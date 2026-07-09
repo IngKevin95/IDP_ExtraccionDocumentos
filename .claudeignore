@@ -1,0 +1,59 @@
+# ── factory-vertical (auto) ───────────────────────────
+# Exclusiones versionadas que reducen el "context bloat" en sesiones de Claude Code.
+# El bloque entre los marcadores se gestiona por `factory-spec init` (idempotente).
+# Líneas fuera del bloque son propias del proyecto y NO se tocan en re-instalaciones.
+
+# Dependencias
+node_modules/
+vendor/
+.pnp/
+.pnp.js
+
+# Artefactos de build
+dist/
+build/
+out/
+target/
+.next/
+.nuxt/
+.turbo/
+.cache/
+.parcel-cache/
+.svelte-kit/
+
+# Coverage / test artifacts
+coverage/
+.nyc_output/
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Lockfiles (típicamente grandes y poco informativos en una sesión Claude)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+poetry.lock
+Cargo.lock
+Gemfile.lock
+composer.lock
+
+# Caches y temporales del editor
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/*.log
+
+# Outputs del propio factory (reportes de revisión, no informan a nuevas sesiones)
+docs/.reviews/
+docs/.flow-state.json
+docs/.factory-suggestions.md
+# ── /factory-vertical ─────────────────────────────────

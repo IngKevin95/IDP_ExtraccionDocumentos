@@ -1,0 +1,10 @@
+# ── factory-vertical (auto) ───────────────────────────
+.claude/skills/factory/
+.claude/agents/factory/
+.claude/commands/factory/
+.claude/hooks/factory.json
+.claude/.factory-version
+docs/.reviews/
+docs/.flow-state.json
+docs/.factory-suggestions.md
+# ── /factory-vertical ─────────────────────────────────
