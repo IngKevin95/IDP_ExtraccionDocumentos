@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IDP · Tipologías</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<aside>
+  <div class="brand">
+    <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+    <div><div class="brand-name">IDP Platform</div><div class="brand-sub">Extracción documental</div></div>
+  </div>
+  <nav>
+    <div class="nav-group-label">Operación</div>
+    <a class="nav-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Panel general</a>
+    <a class="nav-item" href="ingesta.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg> Ingesta</a>
+    <a class="nav-item" href="procesamiento.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg> Procesamiento</a>
+    <a class="nav-item" href="consulta.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg> Consulta</a>
+    <div class="nav-group-label">Configuración</div>
+    <a class="nav-item active" href="tipologias.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Tipologías</a>
+    <a class="nav-item" href="webhooks.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M4 12h16v8H4z"/></svg> Webhooks</a>
+    <a class="nav-item" href="kpis.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg> KPIs</a>
+    <div class="nav-group-label">Piloto</div>
+    <a class="nav-item" href="piloto-embargos.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v6c0 5 4 9 9 9s9-4 9-9V7z"/></svg> Embargos (piloto)</a>
+    <div class="nav-group-label">Administración</div>
+    <a class="nav-item" href="usuarios.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Usuarios y roles</a>
+  </nav>
+  <div class="sidebar-footer"><span class="tenant-badge"><span class="dot"></span> Banco Aurora · tenant activo</span></div>
+</aside>
+
+<main>
+  <header class="topbar">
+    <div class="topbar-title">Configuración de tipologías <span>· EP-004</span></div>
+    <div class="topbar-actions">
+      <button class="btn" onclick="document.getElementById('dlg-new').showModal()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Nueva tipología</button>
+      <button class="btn primary" onclick="document.getElementById('dlg-save').showModal()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Guardar configuración</button>
+    </div>
+  </header>
+
+  <div class="content">
+    <div class="tabs">
+      <a class="tab active" href="#editor">Editor YAML</a>
+      <a class="tab" href="#resolucion">Resolución multi-config</a>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-title">Editor de tipología (HU-001)</div>
+        <div class="panel-sub">Definición pluggable de campos por tipo documental — dominio Embargo judicial</div>
+        <div class="field">
+          <label>Nombre de tipología</label>
+          <input type="text" value="embargo_judicial">
+        </div>
+        <div class="field">
+          <label>Definición YAML de campos</label>
+          <textarea rows="12" style="width:100%; font-family:'IBM Plex Mono',monospace; font-size:12.5px; background:var(--bg-inset); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:10px;">tipologia: embargo_judicial
+version: 3
+campos:
+  - nombre: radicado
+    tipo: string
+    requerido: true
+  - nombre: monto_embargado
+    tipo: currency
+    requerido: true
+  - nombre: juzgado
+    tipo: string
+    requerido: true
+  - nombre: fecha_radicado
+    tipo: date
+    requerido: false</textarea>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Validación fail-fast (HU-002)</div>
+        <div class="panel-sub">Errores de esquema detectados antes de habilitar la tipología</div>
+        <div class="alert err"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg><div>Tipología <b>desembargo_v2</b>: campo "monto_liberado" sin tipo declarado — configuración rechazada, versión anterior sigue activa.</div></div>
+        <div class="alert ok"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><div><b>embargo_judicial v3</b> validado y activo desde 07/07.</div></div>
+
+        <div class="panel-title" style="margin-top:20px;">Resolución multi-config (HU-005, ADR-007)</div>
+        <div class="kv"><span>Prioridad de resolución</span><span>Tenant &gt; Dominio &gt; Global</span></div>
+        <div class="kv"><span>Tenant Banco Aurora</span><span>override activo: umbral 0.90</span></div>
+        <div class="kv"><span>Dominio Embargos (global)</span><span>umbral 0.85</span></div>
+      </div>
+    </div>
+
+    <div class="section-title">Tipologías configuradas</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Tipología</th><th>Dominio</th><th>Campos</th><th>Versión</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr class="clickable" onclick="location.href='tipologias.html#editor'"><td>embargo_judicial</td><td>Embargos y desembargos</td><td>4</td><td>v3</td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Activa</span></td></tr>
+          <tr class="clickable" onclick="location.href='tipologias.html#editor'"><td>desembargo</td><td>Embargos y desembargos</td><td>3</td><td>v2</td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Activa</span></td></tr>
+          <tr class="clickable" onclick="location.href='tipologias.html#editor'"><td>desembargo_v2</td><td>Embargos y desembargos</td><td>4</td><td>v3-draft</td><td><span class="badge error"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Rechazada</span></td></tr>
+          <tr class="clickable" onclick="location.href='tipologias.html#editor'"><td>contrato_fiducia</td><td>Fiducia</td><td>6</td><td>v1</td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Activa</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<dialog id="dlg-new">
+  <div class="modal-head"><h3>Nueva tipología</h3><button class="icon-btn" onclick="document.getElementById('dlg-new').close()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
+  <div class="modal-body">
+    <div class="panel-sub">Se crea como borrador — pasa por validación fail-fast (HU-002) antes de activarse</div>
+    <div class="field"><label>Nombre de tipología</label><input type="text" placeholder="p. ej. medida_cautelar"></div>
+    <div class="field"><label>Dominio</label><select><option>Embargos y desembargos</option><option>Fiducia</option><option>Nuevo dominio…</option></select></div>
+    <div class="field"><label>Tenant destino</label><select><option>Banco Aurora</option><option>NeoFin</option><option>Fiduciaria Meridiano</option><option>Global (todos)</option></select></div>
+    <div class="field"><label>Plantilla base</label><select><option>Vacía</option><option>Copiar de embargo_judicial</option><option>Copiar de desembargo</option></select></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn" onclick="document.getElementById('dlg-new').close()">Cancelar</button>
+    <a class="btn primary" href="tipologias.html#editor">Crear y abrir editor</a>
+  </div>
+</dialog>
+
+<dialog id="dlg-save">
+  <div class="modal-head"><h3>Configuración guardada</h3><button class="icon-btn" onclick="document.getElementById('dlg-save').close()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
+  <div class="modal-body">
+    <div class="alert ok"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><div>Tipología embargo_judicial v4 validada y publicada.</div></div>
+  </div>
+  <div class="modal-foot"><a class="btn primary" href="ingesta.html">Ir a ingesta</a></div>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>

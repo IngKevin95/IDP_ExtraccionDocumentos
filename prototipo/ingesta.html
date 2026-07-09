@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IDP · Ingesta</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<aside>
+  <div class="brand">
+    <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+    <div><div class="brand-name">IDP Platform</div><div class="brand-sub">Extracción documental</div></div>
+  </div>
+  <nav>
+    <div class="nav-group-label">Operación</div>
+    <a class="nav-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Panel general</a>
+    <a class="nav-item active" href="ingesta.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg> Ingesta</a>
+    <a class="nav-item" href="procesamiento.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg> Procesamiento</a>
+    <a class="nav-item" href="consulta.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg> Consulta</a>
+    <div class="nav-group-label">Configuración</div>
+    <a class="nav-item" href="tipologias.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Tipologías</a>
+    <a class="nav-item" href="webhooks.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M4 12h16v8H4z"/></svg> Webhooks</a>
+    <a class="nav-item" href="kpis.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg> KPIs</a>
+    <div class="nav-group-label">Piloto</div>
+    <a class="nav-item" href="piloto-embargos.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v6c0 5 4 9 9 9s9-4 9-9V7z"/></svg> Embargos (piloto)</a>
+    <div class="nav-group-label">Administración</div>
+    <a class="nav-item" href="usuarios.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Usuarios y roles</a>
+  </nav>
+  <div class="sidebar-footer"><span class="tenant-badge"><span class="dot"></span> Banco Aurora · tenant activo</span></div>
+</aside>
+
+<main>
+  <header class="topbar">
+    <div class="topbar-title">Ingesta de documentos <span>· EP-001</span></div>
+    <div class="topbar-actions">
+      <button class="btn" onclick="location.reload()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.5 0 4.7 1 6.3 2.7L21 8"/><path d="M21 3v5h-5"/></svg> Actualizar</button>
+    </div>
+  </header>
+
+  <div class="content">
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-title">Subir documento</div>
+        <div class="panel-sub">HU-003 · formatos y límites según ADR-006 (PDF, hasta 20MB)</div>
+        <div class="upload-drop">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Arrastra el PDF aquí o haz clic para seleccionar
+        </div>
+        <div class="field">
+          <label>Tipología esperada (opcional)</label>
+          <select><option>Auto-detectar</option><option>Embargo judicial</option><option>Desembargo</option><option>Contrato fiducia</option></select>
+        </div>
+        <button class="btn primary" onclick="document.getElementById('dlg-ok').showModal()" style="width:100%; justify-content:center;">Subir documento</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Última ingesta rechazada</div>
+        <div class="panel-sub">HU-004 · validación fail-fast</div>
+        <div class="alert err">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+          <div><b>escritura_manual.docx</b> rechazado — formato no soportado (solo PDF, ADR-006). Tenant: NeoFin · 08/07 14:02</div>
+        </div>
+        <div class="alert warn">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+          <div><b>embargo_escaneado.pdf</b> excede 20MB (23.4MB) — rechazado en ingesta, sin consumir cuota LLM.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Cola de ingesta reciente</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Documento</th><th>Origen</th><th>Tamaño</th><th>Estado</th><th>Hora</th></tr></thead>
+        <tbody>
+          <tr class="clickable" onclick="location.href='documento.html?id=embargo_2026-4471'"><td><div class="doc-name"><a href="documento.html?id=embargo_2026-4471">embargo_2026-4471.pdf</a></div></td><td>API</td><td>1.2MB</td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Aceptado</span></td><td>14:41</td></tr>
+          <tr><td><div class="doc-name">escritura_manual.docx</div></td><td>API</td><td>0.8MB</td><td><span class="badge error"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Rechazado</span></td><td>14:02</td></tr>
+          <tr><td><div class="doc-name">embargo_escaneado.pdf</div></td><td>Lote batch</td><td>23.4MB</td><td><span class="badge error"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Rechazado</span></td><td>13:58</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<dialog id="dlg-ok">
+  <div class="modal-head"><h3>Documento recibido</h3><button class="icon-btn" onclick="document.getElementById('dlg-ok').close()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
+  <div class="modal-body">
+    <div class="alert ok"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><div>Ingesta validada. Encolado para clasificación.</div></div>
+    <div class="kv"><span>ID</span><span>embargo_2026-4473</span></div>
+    <div class="kv"><span>Estado</span><span>En cola</span></div>
+  </div>
+  <div class="modal-foot"><a class="btn primary" href="procesamiento.html">Ver en pipeline</a></div>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
