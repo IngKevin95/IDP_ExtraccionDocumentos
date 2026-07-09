@@ -4,10 +4,10 @@ titulo: Crear nueva tipología desde editor (self-service)
 epica: EP-004
 prioridad: Should
 complejidad: M
-estado: en-desarrollo
+estado: lista
 ---
 
-# HU-019 — Crear nueva tipología desde editor (self-service)
+# HU-021 — Crear nueva tipología desde editor (self-service)
 
 > Prioridad tentativa (MoSCoW) — se ratifica en `docs/05-priorizacion/`.
 
@@ -15,7 +15,7 @@ estado: en-desarrollo
 
 ## Contexto
 
-Complementa HU-002 (validar config). Mientras HU-002 valida una tipología **editada** (cambios a existente), HU-019 introduce creación de tipología **nueva**. El flujo es:
+Complementa HU-002 (validar config). Mientras HU-002 valida una tipología **editada** (cambios a existente), HU-021 introduce creación de tipología **nueva**. El flujo es:
 1. Usuario abre editor tipologías
 2. Hace clic en "+ Nueva tipología"
 3. Elige template base (vacío, copia de embargo_judicial, etc.)
@@ -60,4 +60,4 @@ Complementa HU-002 (validar config). Mientras HU-002 valida una tipología **edi
 
 ---
 
-_Redactado vía `/factory:ac HU-019`. Diferencia clave vs. HU-002: HU-002 edita existente, HU-019 crea nuevo borrador._
+_Redactado vía `/factory:ac HU-021`. Diferencia clave vs. HU-002: HU-002 edita existente, HU-021 crea nuevo borrador._
