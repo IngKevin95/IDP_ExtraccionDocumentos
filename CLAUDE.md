@@ -87,6 +87,7 @@ Dos flags opcionales en `.claude/settings.local.json`:
 ```
 feature/HU-XXX-slug-corto        → Implementación de historia (HU-XXX)
 bugfix/HU-XXX-descripcion        → Fix de historia ya en desarrollo
+docs/slug-corto                  → Trabajo documental sin HU asociada (ej. consolidación de artefactos Factory)
 release/v0.Y.Z                   → Preparación de release (desde develop)
 hotfix/v0.Y.Z-descripcion        → Fix crítico en producción (desde main)
 ```
@@ -148,7 +149,7 @@ Cada historia en `docs/04-historias/HU-XXX.md` tiene un campo `estado`:
 | `lista` | Mergeado en develop | Commit merge creado. Test coverage OK. |
 | `en-produccion` | Mergeado en main | Release tag v0.Y.Z aplicado. |
 
-**Importante**: Update historia `estado` al abrir PR, no al mergear. El merge cierra automáticamente la PR.
+**Importante**: Update historia `estado` a `en-revision` al abrir PR (el merge cierra automáticamente la PR, no el estado). Al mergear, bumpear `estado: en-desarrollo` → `estado: lista` en un commit `docs(HU-XXX): mark as lista` sobre develop — no queda automático, requiere paso explícito.
 
 ### Flujo por feature (paso a paso)
 

@@ -16,6 +16,7 @@ Reglas locales para historias de usuario y sus AC. Detalle completo en `METODOLO
 2. Formato canónico: "Como [rol específico], quiero [acción concreta], para [beneficio externo y visible]". Un rol genérico como "usuario" se rechaza en revisión.
 3. AC en Given/When/Then, 3-5 escenarios (happy + error + edge). Given describe estado, When es una única acción, Then es un resultado observable.
 4. INVEST debe pasar antes de marcar `estado: lista`.
+5. El ID debe coincidir exactamente en 3 lugares: frontmatter (`id:`), H1 (`# HU-XXX — ...`) y footer (`_Redactado vía /factory:ac HU-XXX_`). Divergencia entre ellos (ej. renombrado post-creación) es bloqueante en revisión.
 
 ## Automatización disponible
 

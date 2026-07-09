@@ -4,10 +4,10 @@ titulo: Gestionar usuarios y roles del tenant (auto-administración)
 epica: EP-004
 prioridad: Should
 complejidad: M
-estado: en-desarrollo
+estado: lista
 ---
 
-# HU-018 — Gestionar usuarios y roles del tenant (auto-administración)
+# HU-020 — Gestionar usuarios y roles del tenant (auto-administración)
 
 > Prioridad tentativa (MoSCoW) — se ratifica en `docs/05-priorizacion/`.
 
@@ -21,7 +21,7 @@ Capability "Administración multi-tenant" (no asignada a épica, cae bajo gobern
 
 - [x] **Valiosa**: beneficio externo declarado (autoservicio, reduces ops bottleneck).
 - [x] **Pequeña**: complejidad M, alcanza solo a UI (prototype) + permisos RBAC en backend.
-- [x] **Verificable**: matriz de permisos por rol verificable; AC formal en `/factory:ac HU-018`.
+- [x] **Verificable**: matriz de permisos por rol verificable; AC formal en `/factory:ac HU-020`.
 - [x] **Independiente**: sin dependencias externas.
 - [x] **Negociable**: criterio de equipo confirmado (Banco Aurora, NeoFin, Fiduciaria Meridiano requieren).
 - [ ] **Estimable**: pendiente estimación formal.
@@ -55,4 +55,4 @@ Capability "Administración multi-tenant" (no asignada a épica, cae bajo gobern
 
 ---
 
-_Redactado vía `/factory:ac HU-018`. Rol "Auditor" agregado tras demanda; AC 4 es referencia sin test formal (UI no tiene interactividad en prototype)._
+_Redactado vía `/factory:ac HU-020`. Rol "Auditor" agregado tras demanda; AC 4 es referencia sin test formal (UI no tiene interactividad en prototype)._

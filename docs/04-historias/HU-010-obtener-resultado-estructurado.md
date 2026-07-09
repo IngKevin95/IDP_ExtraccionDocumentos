@@ -4,7 +4,7 @@ titulo: Obtener resultado estructurado de un documento completo
 epica: EP-003
 prioridad: Must
 complejidad: S
-estado: en-desarrollo
+estado: lista
 ---
 
 # HU-010 — Obtener resultado estructurado de un documento completo

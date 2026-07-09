@@ -4,7 +4,7 @@ titulo: Validar config de dominio antes de activarla (fail-fast)
 epica: EP-004
 prioridad: Must
 complejidad: S
-estado: en-desarrollo
+estado: lista
 ---
 
 # HU-002 — Validar config de dominio antes de activarla (fail-fast)
