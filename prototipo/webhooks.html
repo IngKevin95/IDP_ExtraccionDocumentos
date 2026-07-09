@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IDP · Webhooks</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<aside>
+  <div class="brand">
+    <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+    <div><div class="brand-name">IDP Platform</div><div class="brand-sub">Extracción documental</div></div>
+  </div>
+  <nav>
+    <div class="nav-group-label">Operación</div>
+    <a class="nav-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Panel general</a>
+    <a class="nav-item" href="ingesta.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg> Ingesta</a>
+    <a class="nav-item" href="procesamiento.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg> Procesamiento</a>
+    <a class="nav-item" href="consulta.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg> Consulta</a>
+    <div class="nav-group-label">Configuración</div>
+    <a class="nav-item" href="tipologias.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Tipologías</a>
+    <a class="nav-item active" href="webhooks.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M4 12h16v8H4z"/></svg> Webhooks</a>
+    <a class="nav-item" href="kpis.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg> KPIs</a>
+    <div class="nav-group-label">Piloto</div>
+    <a class="nav-item" href="piloto-embargos.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v6c0 5 4 9 9 9s9-4 9-9V7z"/></svg> Embargos (piloto)</a>
+    <div class="nav-group-label">Administración</div>
+    <a class="nav-item" href="usuarios.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Usuarios y roles</a>
+  </nav>
+  <div class="sidebar-footer"><span class="tenant-badge"><span class="dot"></span> Banco Aurora · tenant activo</span></div>
+</aside>
+
+<main>
+  <header class="topbar">
+    <div class="topbar-title">Webhooks salientes <span>· HU-016</span></div>
+    <div class="topbar-actions">
+      <button class="btn primary" onclick="document.getElementById('dlg-new').showModal()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Nuevo webhook</button>
+    </div>
+  </header>
+
+  <div class="content">
+    <div class="panel">
+      <div class="panel-title">Política de reintentos (ADR-009)</div>
+      <div class="panel-sub">Configurable por tenant / dominio — backoff exponencial con jitter</div>
+      <div class="kv"><span>Reintentos máximos</span><span>5</span></div>
+      <div class="kv"><span>Backoff base</span><span>2s (exponencial: 2s, 4s, 8s, 16s, 32s)</span></div>
+      <div class="kv"><span>Timeout por intento</span><span>10s</span></div>
+      <div class="kv"><span>Acción tras agotar reintentos</span><span>Marcar como fallido + disponible por poll (ADR-004)</span></div>
+    </div>
+
+    <div class="section-title">Endpoints configurados</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Tenant</th><th>URL destino</th><th>Eventos</th><th>Últimos 24h</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr class="clickable" onclick="location.href='webhooks.html#detalle-1'"><td>Banco Aurora</td><td>https://api.bancoaurora.internal/idp/callback</td><td>documento.completado</td><td>312 / 312 OK</td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Saludable</span></td></tr>
+          <tr class="clickable" onclick="location.href='webhooks.html#detalle-2'"><td>NeoFin</td><td>https://hooks.neofin.example/v1/idp</td><td>documento.completado, documento.error</td><td>289 / 296 OK</td><td><span class="badge procesando"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Degradado</span></td></tr>
+          <tr class="clickable" onclick="location.href='webhooks.html#detalle-3'"><td>Fiduciaria Meridiano</td><td>https://integraciones.meridiano.example/idp-hook</td><td>documento.completado</td><td>0 / 0</td><td><span class="badge pendiente"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Sin tráfico</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="alert warn" id="detalle-2">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+      <div>NeoFin: 7 entregas agotaron reintentos (endpoint respondió 503). Documentos afectados disponibles vía <a href="consulta.html" style="color:inherit;">consulta</a>.</div>
+    </div>
+  </div>
+</main>
+
+<dialog id="dlg-new">
+  <div class="modal-head"><h3>Nuevo webhook</h3><button class="icon-btn" onclick="document.getElementById('dlg-new').close()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
+  <div class="modal-body">
+    <div class="field"><label>Tenant</label><select><option>Banco Aurora</option><option>NeoFin</option><option>Fiduciaria Meridiano</option></select></div>
+    <div class="field"><label>URL destino</label><input type="text" placeholder="https://..."></div>
+    <div class="field"><label>Eventos</label><select><option>documento.completado</option><option>documento.error</option></select></div>
+  </div>
+  <div class="modal-foot"><button class="btn primary" onclick="document.getElementById('dlg-new').close()">Guardar</button></div>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>

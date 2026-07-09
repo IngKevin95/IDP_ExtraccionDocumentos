@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IDP · Usuarios y roles</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<aside>
+  <div class="brand">
+    <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+    <div><div class="brand-name">IDP Platform</div><div class="brand-sub">Extracción documental</div></div>
+  </div>
+  <nav>
+    <div class="nav-group-label">Operación</div>
+    <a class="nav-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Panel general</a>
+    <a class="nav-item" href="ingesta.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg> Ingesta</a>
+    <a class="nav-item" href="procesamiento.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg> Procesamiento</a>
+    <a class="nav-item" href="consulta.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg> Consulta</a>
+    <div class="nav-group-label">Configuración</div>
+    <a class="nav-item" href="tipologias.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Tipologías</a>
+    <a class="nav-item" href="webhooks.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M4 12h16v8H4z"/></svg> Webhooks</a>
+    <a class="nav-item" href="kpis.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg> KPIs</a>
+    <div class="nav-group-label">Piloto</div>
+    <a class="nav-item" href="piloto-embargos.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v6c0 5 4 9 9 9s9-4 9-9V7z"/></svg> Embargos (piloto)</a>
+    <div class="nav-group-label">Administración</div>
+    <a class="nav-item active" href="usuarios.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Usuarios y roles</a>
+  </nav>
+  <div class="sidebar-footer"><span class="tenant-badge"><span class="dot"></span> Banco Aurora · tenant activo</span></div>
+</aside>
+
+<main>
+  <header class="topbar">
+    <div class="topbar-title">Usuarios y roles <span>· administración multi-tenant</span></div>
+    <div class="topbar-actions">
+      <button class="btn primary" onclick="document.getElementById('dlg-invite').showModal()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg> Invitar usuario</button>
+    </div>
+  </header>
+
+  <div class="content">
+    <div class="tabs">
+      <a class="tab active" href="#usuarios">Usuarios</a>
+      <a class="tab" href="#roles">Roles y permisos</a>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Modelo de acceso (RBAC)</div>
+      <div class="panel-sub">Aislamiento por tenant — un usuario solo ve documentos y configuración del tenant al que pertenece</div>
+      <div class="kv"><span>Estrategia de aislamiento</span><span>tenant_id obligatorio en cada recurso (ADR-007)</span></div>
+      <div class="kv"><span>Roles disponibles</span><span>Administrador · Operador · Auditor</span></div>
+      <div class="kv"><span>Autenticación</span><span>SSO corporativo por tenant (OIDC)</span></div>
+    </div>
+
+    <div class="section-title">Usuarios del tenant Banco Aurora</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Usuario</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Último acceso</th></tr></thead>
+        <tbody>
+          <tr class="clickable" onclick="document.getElementById('dlg-edit').showModal()"><td><div class="doc-name">María Restrepo</div></td><td>maria.restrepo@bancoaurora.example</td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Administrador</span></td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Activo</span></td><td>hoy 09:12</td></tr>
+          <tr class="clickable" onclick="document.getElementById('dlg-edit').showModal()"><td><div class="doc-name">Carlos Ariza</div></td><td>carlos.ariza@bancoaurora.example</td><td><span class="badge procesando"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Operador</span></td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Activo</span></td><td>hoy 08:40</td></tr>
+          <tr class="clickable" onclick="document.getElementById('dlg-edit').showModal()"><td><div class="doc-name">Ana Lucía Peña</div></td><td>ana.pena@bancoaurora.example</td><td><span class="badge pendiente"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Auditor</span></td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Activo</span></td><td>ayer 17:55</td></tr>
+          <tr class="clickable" onclick="document.getElementById('dlg-edit').showModal()"><td><div class="doc-name">Jorge Medina</div></td><td>jorge.medina@bancoaurora.example</td><td><span class="badge procesando"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Operador</span></td><td><span class="badge error"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Invitación pendiente</span></td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-title" id="roles">Matriz de permisos por rol</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Permiso</th><th>Administrador</th><th>Operador</th><th>Auditor</th></tr></thead>
+        <tbody>
+          <tr><td>Ingestar documentos</td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Sí</span></td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Sí</span></td><td>—</td></tr>
+          <tr><td>Consultar y editar campos extraídos</td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Sí</span></td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Sí</span></td><td>solo lectura</td></tr>
+          <tr><td>Configurar tipologías y webhooks</td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Sí</span></td><td>—</td><td>—</td></tr>
+          <tr><td>Gestionar usuarios y roles</td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Sí</span></td><td>—</td><td>—</td></tr>
+          <tr><td>Ver KPIs y trazabilidad</td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Sí</span></td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Sí</span></td><td><span class="badge completo"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> Sí</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<dialog id="dlg-invite">
+  <div class="modal-head"><h3>Invitar usuario</h3><button class="icon-btn" onclick="document.getElementById('dlg-invite').close()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
+  <div class="modal-body">
+    <div class="field"><label>Correo corporativo</label><input type="text" placeholder="nombre@bancoaurora.example"></div>
+    <div class="field"><label>Tenant</label><select><option>Banco Aurora</option><option>NeoFin</option><option>Fiduciaria Meridiano</option></select></div>
+    <div class="field"><label>Rol</label><select><option>Operador</option><option>Administrador</option><option>Auditor</option></select></div>
+  </div>
+  <div class="modal-foot"><button class="btn primary" onclick="document.getElementById('dlg-invite').close()">Enviar invitación</button></div>
+</dialog>
+
+<dialog id="dlg-edit">
+  <div class="modal-head"><h3>Editar usuario</h3><button class="icon-btn" onclick="document.getElementById('dlg-edit').close()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
+  <div class="modal-body">
+    <div class="field"><label>Rol</label><select><option>Administrador</option><option>Operador</option><option>Auditor</option></select></div>
+    <div class="field"><label>Estado</label><select><option>Activo</option><option>Suspendido</option></select></div>
+  </div>
+  <div class="modal-foot"><button class="btn primary" onclick="document.getElementById('dlg-edit').close()">Guardar cambios</button></div>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
