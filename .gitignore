@@ -1,10 +1,26 @@
-# ── factory-vertical (auto) ───────────────────────────
-.claude/skills/factory/
-.claude/agents/factory/
-.claude/commands/factory/
-.claude/hooks/factory.json
-.claude/.factory-version
+# Build
+target/
+*.class
+*.jar
+!**/.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Infra local
+.terraform/
+*.tfstate
+*.tfstate.*
+.env
+*.env.local
+
+# Orquestación con agentes
+.oc-logs/
+.fuentes/
+.worktrees/
+
+# Restos locales de la metodología anterior (no versionar)
 docs/.reviews/
-docs/.flow-state.json
-docs/.factory-suggestions.md
-# ── /factory-vertical ─────────────────────────────────
