@@ -1,14 +1,49 @@
-server:
-  port: 8080
 spring:
   application:
     name: tenant-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:tenant_db}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:postgres}
+  flyway:
+    enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8180/realms/idp/protocol/openid-connect/certs}
+          issuer-uri: ${JWT_ISSUER_URI:}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+server:
+  port: 8081
+
+idp:
+  tenant:
+    offboarding:
+      grace-days: ${OFFBOARDING_GRACE_DAYS:30}
+      job-enabled: ${OFFBOARDING_JOB_ENABLED:true}
+      job-interval-ms: 3600000
+    breakglass:
+      max-ttl-minutes: 480
+      expiry-job-enabled: ${BREAKGLASS_EXPIRY_JOB_ENABLED:true}
+    certification:
+      signing-key-id: ${CERT_SIGNING_KEY_ID:access-certification}
+    revalidation:
+      cache-ttl-seconds: 30
+    quota:
+      alert-threshold-percent: 80
+  outbox:
+    relay-enabled: ${OUTBOX_RELAY_ENABLED:true}
+    topic: ${OUTBOX_TOPIC:idp.tenant.events}
+    interval-ms: 1000
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,prometheus
-  endpoint:
-    health:
-      probes:
-        enabled: true
+        include: health,info,prometheus
