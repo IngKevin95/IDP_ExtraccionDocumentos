@@ -1,0 +1,5 @@
+# Archivo vacío por defecto para sobreescribir valores en staging
+global:
+  image:
+    registry: ghcr.io/ingkevin95/idp_extracciondocumentos
+  environment: staging

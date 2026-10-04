@@ -1,0 +1,1858 @@
+---
+# Source: idp/templates/networkpolicies.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+---
+# Source: idp/templates/networkpolicies.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-all
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+---
+# Source: idp/templates/networkpolicies.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: common-egress
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: NotIn
+        values:
+          - renderer
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: idp-platform
+      ports:
+        - protocol: TCP
+          port: 9092 # Kafka
+        - protocol: TCP
+          port: 5432 # Postgres
+        - protocol: TCP
+          port: 6379 # Redis
+        - protocol: TCP
+          port: 8200 # OpenBao
+        - protocol: TCP
+          port: 8080 # Keycloak
+        - protocol: TCP
+          port: 9000 # MinIO/S3
+
+---
+# Source: idp/templates/networkpolicies.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: renderer-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: renderer
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: document-service
+      ports:
+        - protocol: TCP
+          port: 8080
+
+---
+# Source: idp/templates/networkpolicies.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: notification-service-egress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: notification-service
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+
+---
+# Source: idp/templates/networkpolicies.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: edge-gateway-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: edge-gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-system # Assume Gateway API controller namespace
+      ports:
+        - protocol: TCP
+          port: 8080
+
+---
+# Source: idp/templates/networkpolicies.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: internal-services-ingress
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: NotIn
+        values:
+          - renderer
+          - edge-gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: edge-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+
+---
+# Source: idp/templates/networkpolicies.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: metrics-ingress
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring # Assume monitoring namespace
+      ports:
+        - protocol: TCP
+          port: 8080 # Metrics port
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: t-audit-service
+  labels:
+    app.kubernetes.io/name: audit-service
+    app.kubernetes.io/instance: t
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: audit-service
+      app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: t-chat-service
+  labels:
+    app.kubernetes.io/name: chat-service
+    app.kubernetes.io/instance: t
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: chat-service
+      app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: t-document-service
+  labels:
+    app.kubernetes.io/name: document-service
+    app.kubernetes.io/instance: t
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: document-service
+      app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: t-edge-gateway
+  labels:
+    app.kubernetes.io/name: edge-gateway
+    app.kubernetes.io/instance: t
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: edge-gateway
+      app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: t-extraction-service
+  labels:
+    app.kubernetes.io/name: extraction-service
+    app.kubernetes.io/instance: t
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: extraction-service
+      app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: t-notification-service
+  labels:
+    app.kubernetes.io/name: notification-service
+    app.kubernetes.io/instance: t
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notification-service
+      app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: t-quality-service
+  labels:
+    app.kubernetes.io/name: quality-service
+    app.kubernetes.io/instance: t
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: quality-service
+      app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: t-renderer
+  labels:
+    app.kubernetes.io/name: renderer
+    app.kubernetes.io/instance: t
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: renderer
+      app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: t-review-service
+  labels:
+    app.kubernetes.io/name: review-service
+    app.kubernetes.io/instance: t
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: review-service
+      app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: t-tenant-service
+  labels:
+    app.kubernetes.io/name: tenant-service
+    app.kubernetes.io/instance: t
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tenant-service
+      app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: t-audit-service
+  labels:
+    app.kubernetes.io/name: audit-service
+    app.kubernetes.io/instance: t
+automountServiceAccountToken: false
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: t-chat-service
+  labels:
+    app.kubernetes.io/name: chat-service
+    app.kubernetes.io/instance: t
+automountServiceAccountToken: false
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: t-document-service
+  labels:
+    app.kubernetes.io/name: document-service
+    app.kubernetes.io/instance: t
+automountServiceAccountToken: false
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: t-edge-gateway
+  labels:
+    app.kubernetes.io/name: edge-gateway
+    app.kubernetes.io/instance: t
+automountServiceAccountToken: false
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: t-extraction-service
+  labels:
+    app.kubernetes.io/name: extraction-service
+    app.kubernetes.io/instance: t
+automountServiceAccountToken: false
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: t-notification-service
+  labels:
+    app.kubernetes.io/name: notification-service
+    app.kubernetes.io/instance: t
+automountServiceAccountToken: false
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: t-quality-service
+  labels:
+    app.kubernetes.io/name: quality-service
+    app.kubernetes.io/instance: t
+automountServiceAccountToken: false
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: t-renderer
+  labels:
+    app.kubernetes.io/name: renderer
+    app.kubernetes.io/instance: t
+automountServiceAccountToken: false
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: t-review-service
+  labels:
+    app.kubernetes.io/name: review-service
+    app.kubernetes.io/instance: t
+automountServiceAccountToken: false
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: t-tenant-service
+  labels:
+    app.kubernetes.io/name: tenant-service
+    app.kubernetes.io/instance: t
+automountServiceAccountToken: false
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: t-audit-service
+  labels:
+    app.kubernetes.io/name: audit-service
+    app.kubernetes.io/instance: t
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: audit-service
+    app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: t-chat-service
+  labels:
+    app.kubernetes.io/name: chat-service
+    app.kubernetes.io/instance: t
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: chat-service
+    app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: t-document-service
+  labels:
+    app.kubernetes.io/name: document-service
+    app.kubernetes.io/instance: t
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: document-service
+    app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: t-edge-gateway
+  labels:
+    app.kubernetes.io/name: edge-gateway
+    app.kubernetes.io/instance: t
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: edge-gateway
+    app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: t-extraction-service
+  labels:
+    app.kubernetes.io/name: extraction-service
+    app.kubernetes.io/instance: t
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: extraction-service
+    app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: t-notification-service
+  labels:
+    app.kubernetes.io/name: notification-service
+    app.kubernetes.io/instance: t
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: notification-service
+    app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: t-quality-service
+  labels:
+    app.kubernetes.io/name: quality-service
+    app.kubernetes.io/instance: t
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: quality-service
+    app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: t-renderer
+  labels:
+    app.kubernetes.io/name: renderer
+    app.kubernetes.io/instance: t
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: renderer
+    app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: t-review-service
+  labels:
+    app.kubernetes.io/name: review-service
+    app.kubernetes.io/instance: t
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: review-service
+    app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: t-tenant-service
+  labels:
+    app.kubernetes.io/name: tenant-service
+    app.kubernetes.io/instance: t
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: tenant-service
+    app.kubernetes.io/instance: t
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: t-audit-service
+  labels:
+    app.kubernetes.io/name: audit-service
+    app.kubernetes.io/instance: t
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: audit-service
+      app.kubernetes.io/instance: t
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: audit-service
+        app.kubernetes.io/instance: t
+    spec:
+      serviceAccountName: t-audit-service
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: audit-service
+              app.kubernetes.io/instance: t
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: audit-service
+          image: "ghcr.io/ingkevin95/idp_extracciondocumentos/audit-service:"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: t-audit-service
+  labels:
+    app.kubernetes.io/name: audit-service
+    app.kubernetes.io/instance: t
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: audit-service
+      app.kubernetes.io/instance: t
+  endpoints:
+    - port: http
+      path: /actuator/prometheus---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: t-chat-service
+  labels:
+    app.kubernetes.io/name: chat-service
+    app.kubernetes.io/instance: t
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: chat-service
+      app.kubernetes.io/instance: t
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: chat-service
+        app.kubernetes.io/instance: t
+    spec:
+      serviceAccountName: t-chat-service
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: chat-service
+              app.kubernetes.io/instance: t
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: chat-service
+          image: "ghcr.io/ingkevin95/idp_extracciondocumentos/chat-service:"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: t-chat-service
+  labels:
+    app.kubernetes.io/name: chat-service
+    app.kubernetes.io/instance: t
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: chat-service
+      app.kubernetes.io/instance: t
+  endpoints:
+    - port: http
+      path: /actuator/prometheus---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: t-document-service
+  labels:
+    app.kubernetes.io/name: document-service
+    app.kubernetes.io/instance: t
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: document-service
+      app.kubernetes.io/instance: t
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: document-service
+        app.kubernetes.io/instance: t
+    spec:
+      serviceAccountName: t-document-service
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: document-service
+              app.kubernetes.io/instance: t
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: document-service
+          image: "ghcr.io/ingkevin95/idp_extracciondocumentos/document-service:"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: t-document-service
+  labels:
+    app.kubernetes.io/name: document-service
+    app.kubernetes.io/instance: t
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: document-service
+      app.kubernetes.io/instance: t
+  endpoints:
+    - port: http
+      path: /actuator/prometheus---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: t-edge-gateway
+  labels:
+    app.kubernetes.io/name: edge-gateway
+    app.kubernetes.io/instance: t
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: edge-gateway
+      app.kubernetes.io/instance: t
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: edge-gateway
+        app.kubernetes.io/instance: t
+    spec:
+      serviceAccountName: t-edge-gateway
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: edge-gateway
+              app.kubernetes.io/instance: t
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: edge-gateway
+          image: "ghcr.io/ingkevin95/idp_extracciondocumentos/edge-gateway:"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: t-edge-gateway
+  labels:
+    app.kubernetes.io/name: edge-gateway
+    app.kubernetes.io/instance: t
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: edge-gateway
+      app.kubernetes.io/instance: t
+  endpoints:
+    - port: http
+      path: /actuator/prometheus---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: t-extraction-service
+  labels:
+    app.kubernetes.io/name: extraction-service
+    app.kubernetes.io/instance: t
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: extraction-service
+      app.kubernetes.io/instance: t
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: extraction-service
+        app.kubernetes.io/instance: t
+    spec:
+      serviceAccountName: t-extraction-service
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: extraction-service
+              app.kubernetes.io/instance: t
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: extraction-service
+          image: "ghcr.io/ingkevin95/idp_extracciondocumentos/extraction-service:"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: t-extraction-service
+  labels:
+    app.kubernetes.io/name: extraction-service
+    app.kubernetes.io/instance: t
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: extraction-service
+      app.kubernetes.io/instance: t
+  endpoints:
+    - port: http
+      path: /actuator/prometheus---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: t-notification-service
+  labels:
+    app.kubernetes.io/name: notification-service
+    app.kubernetes.io/instance: t
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notification-service
+      app.kubernetes.io/instance: t
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: notification-service
+        app.kubernetes.io/instance: t
+    spec:
+      serviceAccountName: t-notification-service
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: notification-service
+              app.kubernetes.io/instance: t
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: notification-service
+          image: "ghcr.io/ingkevin95/idp_extracciondocumentos/notification-service:"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: t-notification-service
+  labels:
+    app.kubernetes.io/name: notification-service
+    app.kubernetes.io/instance: t
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notification-service
+      app.kubernetes.io/instance: t
+  endpoints:
+    - port: http
+      path: /actuator/prometheus---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: t-quality-service
+  labels:
+    app.kubernetes.io/name: quality-service
+    app.kubernetes.io/instance: t
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: quality-service
+      app.kubernetes.io/instance: t
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: quality-service
+        app.kubernetes.io/instance: t
+    spec:
+      serviceAccountName: t-quality-service
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: quality-service
+              app.kubernetes.io/instance: t
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: quality-service
+          image: "ghcr.io/ingkevin95/idp_extracciondocumentos/quality-service:"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: t-quality-service
+  labels:
+    app.kubernetes.io/name: quality-service
+    app.kubernetes.io/instance: t
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: quality-service
+      app.kubernetes.io/instance: t
+  endpoints:
+    - port: http
+      path: /actuator/prometheus---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: t-renderer
+  labels:
+    app.kubernetes.io/name: renderer
+    app.kubernetes.io/instance: t
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: renderer
+      app.kubernetes.io/instance: t
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: renderer
+        app.kubernetes.io/instance: t
+    spec:
+      serviceAccountName: t-renderer
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: renderer
+              app.kubernetes.io/instance: t
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: renderer
+          image: "ghcr.io/ingkevin95/idp_extracciondocumentos/renderer:"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: t-renderer
+  labels:
+    app.kubernetes.io/name: renderer
+    app.kubernetes.io/instance: t
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: renderer
+      app.kubernetes.io/instance: t
+  endpoints:
+    - port: http
+      path: /actuator/prometheus---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: t-review-service
+  labels:
+    app.kubernetes.io/name: review-service
+    app.kubernetes.io/instance: t
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: review-service
+      app.kubernetes.io/instance: t
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: review-service
+        app.kubernetes.io/instance: t
+    spec:
+      serviceAccountName: t-review-service
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: review-service
+              app.kubernetes.io/instance: t
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: review-service
+          image: "ghcr.io/ingkevin95/idp_extracciondocumentos/review-service:"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: t-review-service
+  labels:
+    app.kubernetes.io/name: review-service
+    app.kubernetes.io/instance: t
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: review-service
+      app.kubernetes.io/instance: t
+  endpoints:
+    - port: http
+      path: /actuator/prometheus---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: t-tenant-service
+  labels:
+    app.kubernetes.io/name: tenant-service
+    app.kubernetes.io/instance: t
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tenant-service
+      app.kubernetes.io/instance: t
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tenant-service
+        app.kubernetes.io/instance: t
+    spec:
+      serviceAccountName: t-tenant-service
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: tenant-service
+              app.kubernetes.io/instance: t
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: tenant-service
+          image: "ghcr.io/ingkevin95/idp_extracciondocumentos/tenant-service:"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: t-audit-service
+  labels:
+    app.kubernetes.io/name: audit-service
+    app.kubernetes.io/instance: t
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: t-audit-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: t-chat-service
+  labels:
+    app.kubernetes.io/name: chat-service
+    app.kubernetes.io/instance: t
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: t-chat-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: t-document-service
+  labels:
+    app.kubernetes.io/name: document-service
+    app.kubernetes.io/instance: t
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: t-document-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: t-edge-gateway
+  labels:
+    app.kubernetes.io/name: edge-gateway
+    app.kubernetes.io/instance: t
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: t-edge-gateway
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: t-extraction-service
+  labels:
+    app.kubernetes.io/name: extraction-service
+    app.kubernetes.io/instance: t
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: t-extraction-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: t-notification-service
+  labels:
+    app.kubernetes.io/name: notification-service
+    app.kubernetes.io/instance: t
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: t-notification-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: t-quality-service
+  labels:
+    app.kubernetes.io/name: quality-service
+    app.kubernetes.io/instance: t
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: t-quality-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: t-renderer
+  labels:
+    app.kubernetes.io/name: renderer
+    app.kubernetes.io/instance: t
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: t-renderer
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: t-review-service
+  labels:
+    app.kubernetes.io/name: review-service
+    app.kubernetes.io/instance: t
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: t-review-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: t-tenant-service
+  labels:
+    app.kubernetes.io/name: tenant-service
+    app.kubernetes.io/instance: t
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: t-tenant-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# Source: idp/templates/services.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: t-tenant-service
+  labels:
+    app.kubernetes.io/name: tenant-service
+    app.kubernetes.io/instance: t
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tenant-service
+      app.kubernetes.io/instance: t
+  endpoints:
+    - port: http
+      path: /actuator/prometheus

@@ -1,0 +1,21 @@
+{{- $root := . -}}
+
+{{- range $serviceName, $serviceValues := .Values }}
+{{- if and (ne $serviceName "global") (kindIs "map" $serviceValues) }}
+{{- if $serviceValues.enabled }}
+{{- $ctx := dict "Values" (merge (deepCopy $serviceValues) (deepCopy $root.Values.global)) "Chart" (dict "Name" ($serviceName | kebabcase)) "Release" $root.Release "Capabilities" $root.Capabilities -}}
+---
+{{ include "idp-common.deployment" $ctx }}
+---
+{{ include "idp-common.service" $ctx }}
+---
+{{ include "idp-common.serviceaccount" $ctx }}
+---
+{{ include "idp-common.pdb" $ctx }}
+---
+{{ include "idp-common.hpa" $ctx }}
+---
+{{ include "idp-common.servicemonitor" $ctx }}
+{{- end }}
+{{- end }}
+{{- end }}

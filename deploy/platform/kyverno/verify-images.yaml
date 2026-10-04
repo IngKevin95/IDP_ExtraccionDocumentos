@@ -1,0 +1,35 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-images
+spec:
+  validationFailureAction: Enforce
+  background: false
+  webhookTimeoutSeconds: 30
+  failurePolicy: Fail
+  rules:
+    - name: verify-images-signature
+      match:
+        any:
+        - resources:
+            kinds:
+              - Pod
+      exclude:
+        any:
+        - resources:
+            namespaces:
+              - kube-system
+              - argocd
+              - kyverno
+              - idp-platform
+      verifyImages:
+      - imageReferences:
+        - "ghcr.io/ingkevin95/idp_extracciondocumentos/*"
+        mutateDigest: true
+        verifyDigest: true
+        required: true
+        attestors:
+        - entries:
+          - keyless:
+              subject: "https://github.com/IngKevin95/IDP_ExtraccionDocumentos/.github/workflows/ci.yml@refs/heads/*"
+              issuer: "https://token.actions.githubusercontent.com"

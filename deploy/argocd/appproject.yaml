@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: idp
+  namespace: argocd
+spec:
+  description: "Proyecto IDP de extracción de documentos"
+  sourceRepos:
+    - "https://github.com/IngKevin95/IDP_ExtraccionDocumentos.git"
+    - "https://charts.bitnami.com/bitnami"
+    - "https://strimzi.io/charts/"
+    - "https://cloudnative-pg.github.io/charts"
+  destinations:
+    - namespace: "idp-core"
+      server: "https://kubernetes.default.svc"
+    - namespace: "idp-platform"
+      server: "https://kubernetes.default.svc"
+  clusterResourceWhitelist:
+    - group: "gateway.networking.k8s.io"
+      kind: "Gateway"
+    - group: "gateway.networking.k8s.io"
+      kind: "HTTPRoute"
+    - group: "monitoring.coreos.com"
+      kind: "ServiceMonitor"
+  clusterResourceBlacklist:
+    - group: ""
+      kind: "Namespace"
+  namespaceResourceBlacklist:
+    - group: ""
+      kind: "ResourceQuota"
+    - group: ""
+      kind: "LimitRange"
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

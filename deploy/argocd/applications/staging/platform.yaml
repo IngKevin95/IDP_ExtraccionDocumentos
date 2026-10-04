@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: idp-platform-staging
+  namespace: argocd
+spec:
+  project: idp
+  source:
+    repoURL: 'https://github.com/IngKevin95/IDP_ExtraccionDocumentos.git'
+    path: deploy/platform
+    directory:
+      recurse: true
+    targetRevision: HEAD
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: idp-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

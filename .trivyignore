@@ -1,0 +1,4 @@
+# Archivo de exclusiones de Trivy
+# Documentar siempre el motivo de la exclusión con el ID de la vulnerabilidad.
+# Formato: 
+# CVE-XXXX-XXXXX # Motivo de la exclusión, fecha y responsable.

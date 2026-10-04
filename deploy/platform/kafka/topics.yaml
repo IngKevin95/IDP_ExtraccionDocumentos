@@ -1,0 +1,27 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: dominio.documentos
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: auditoria.eventos
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: 31536000000
+    min.insync.replicas: 2

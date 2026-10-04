@@ -1,0 +1,10 @@
+# Archivo de ejemplo para las variables. 
+# Cópialo a un archivo sin el sufijo .example (ej. dev.tfvars) y ajusta los valores.
+# NOTA: No incluyas credenciales ni secretos en este archivo.
+
+aws_region          = "us-east-1"
+environment         = "dev"
+project_name        = "idp-bancario"
+vpc_cidr            = "10.0.0.0/16"
+eks_cluster_version = "1.30"
+node_instance_types = ["t3.large"]

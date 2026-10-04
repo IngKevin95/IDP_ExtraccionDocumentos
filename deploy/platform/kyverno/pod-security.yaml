@@ -1,0 +1,25 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-restricted-psa
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: check-psa
+      match:
+        any:
+        - resources:
+            kinds:
+              - Pod
+      exclude:
+        any:
+        - resources:
+            namespaces:
+              - kube-system
+              - argocd
+              - kyverno
+      validate:
+        podSecurity:
+          level: restricted
+          version: latest
