@@ -1,0 +1,27 @@
+server:
+  ha:
+    enabled: true
+    replicas: 3
+    raft:
+      enabled: true
+  seal:
+    # AWS KMS configurado via alias en OpenTofu
+    awskms:
+      enabled: true
+      region: "us-east-1"
+      kms_key_id: "alias/idp-staging-openbao-unseal" # Cambiar segun ambiente (ej. idp-prod-openbao-unseal)
+      
+    # Ejemplo para GCP (descomentar si se usa GCP)
+    # gcpckms:
+    #   enabled: true
+    #   project: "my-project"
+    #   region: "global"
+    #   key_ring: "openbao-ring"
+    #   crypto_key: "openbao-key"
+    
+    # Ejemplo para Azure (descomentar si se usa Azure)
+    # azurekeyvault:
+    #   enabled: true
+    #   tenant_id: "my-tenant"
+    #   vault_name: "my-vault"
+    #   key_name: "openbao-key"

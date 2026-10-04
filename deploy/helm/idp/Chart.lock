@@ -1,0 +1,6 @@
+dependencies:
+- name: idp-common
+  repository: file://../idp-common
+  version: 1.0.0
+digest: sha256:c9b556b0d13892784bc17f2cf52868b02121a02eb1d93d65d01d7b3331b1e0bc
+generated: "2026-10-04T15:48:04.7562126-05:00"

@@ -1,0 +1,211 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: document-service
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Describe
+      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+        operation: Describe
+      - resource: { type: group, name: document-service, patternType: literal }
+        operation: Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: extraction-service
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Describe
+      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+        operation: Describe
+      - resource: { type: group, name: extraction-service, patternType: literal }
+        operation: Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: review-service
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Describe
+      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+        operation: Describe
+      - resource: { type: group, name: review-service, patternType: literal }
+        operation: Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: quality-service
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+        operation: Describe
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Describe
+      - resource: { type: group, name: quality-service, patternType: literal }
+        operation: Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: chat-service
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Describe
+      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+        operation: Describe
+      - resource: { type: group, name: chat-service, patternType: literal }
+        operation: Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: notification-service
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Describe
+      - resource: { type: topic, name: dominio.documentos-retry, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: dominio.documentos-retry, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: dominio.documentos-retry, patternType: literal }
+        operation: Describe
+      - resource: { type: topic, name: dominio.documentos-dlt, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: dominio.documentos-dlt, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: dominio.documentos-dlt, patternType: literal }
+        operation: Describe
+      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+        operation: Describe
+      - resource: { type: group, name: notification-service, patternType: literal }
+        operation: Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: audit-service
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Describe
+      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+        operation: Describe
+      - resource: { type: group, name: audit-service, patternType: literal }
+        operation: Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: tenant-service
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Describe
+      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+        operation: Describe

@@ -1,0 +1,50 @@
+name: Kind E2E Tests
+
+on:
+  pull_request:
+    paths:
+      - 'deploy/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Kubernetes Cluster (Kind)
+        uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
+        with:
+          cluster_name: idp-cluster
+
+      - name: Install Gateway API and Prometheus Operator CRDs
+        run: |
+          kubectl kustomize "https://github.com/kubernetes-sigs/gateway-api/config/crd?ref=v1.2.1" | kubectl apply -f -
+          kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.80.0/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
+
+      - name: Helm Dependency Build
+        run: helm dependency build deploy/helm/idp
+
+      - name: Lint Helm Chart
+        run: helm lint deploy/helm/idp
+
+      - name: Dry-run Helm Install
+        run: |
+          helm template idp-release deploy/helm/idp -f deploy/helm/idp/values-local.yaml | kubectl apply --dry-run=server -f -
+
+      - name: Install Kubeconform and Run
+        run: |
+          curl -sLo kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/
+          helm template idp-release deploy/helm/idp -f deploy/helm/idp/values-local.yaml | kubeconform -strict -summary -ignore-missing-schemas

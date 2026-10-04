@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: idp-app-prod
+  namespace: argocd
+spec:
+  project: idp
+  source:
+    repoURL: 'https://github.com/IngKevin95/IDP_ExtraccionDocumentos.git'
+    path: deploy/helm/idp
+    targetRevision: main  # fijar a tag de release (vX.Y.Z) en cada despliegue a prod
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-onprem.yaml  # cambiar a values-aws.yaml, values-gcp.yaml o values-azure.yaml según destino
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: idp-core
+  syncPolicy:
+    # prod: sincronización manual (sin automated); promover fijando targetRevision a un tag vX.Y.Z

@@ -1,0 +1,6 @@
+global:
+  adapters:
+    storage: s3
+    kms: awskms
+    llm: bedrock
+    postgres: rds

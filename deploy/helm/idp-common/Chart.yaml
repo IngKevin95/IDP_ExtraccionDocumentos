@@ -1,0 +1,5 @@
+apiVersion: v2
+name: idp-common
+description: Plantillas comunes (Library Chart) para despliegues de la plataforma IDP
+type: library
+version: 1.0.0

@@ -1,0 +1,21 @@
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  name: idp-keycloak
+  labels:
+    app: sso
+spec:
+  instances: 2 # 1 en local
+  db:
+    vendor: postgres
+    host: idp-control-db-rw
+    usernameSecret:
+      name: keycloak-db-secret
+      key: username
+    passwordSecret:
+      name: keycloak-db-secret
+      key: password
+  http:
+    tlsSecret: idp-keycloak-tls
+  hostname:
+    hostname: sso.idp.local

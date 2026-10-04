@@ -1,0 +1,6 @@
+global:
+  adapters:
+    storage: minio
+    kms: openbao
+    llm: ollama
+    postgres: cnpg-local

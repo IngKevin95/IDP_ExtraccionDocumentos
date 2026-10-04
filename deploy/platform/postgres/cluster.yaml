@@ -1,0 +1,36 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: idp-postgres
+  namespace: idp-platform
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:16
+  primaryUpdateStrategy: unsupervised
+  storage:
+    size: 50Gi
+  bootstrap:
+    initdb:
+      database: idp_db
+      owner: idp_admin
+      secret:
+        name: idp-postgres-credentials
+  postgresql:
+    parameters:
+      shared_buffers: 256MB
+      max_connections: "200"
+  backup:
+    barmanObjectStore:
+      destinationPath: s3://idp-backups/postgres/
+      endpointURL: https://s3.amazonaws.com
+      s3Credentials:
+        accessKeyId:
+          name: idp-s3-credentials
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: idp-s3-credentials
+          key: SECRET_ACCESS_KEY
+      wal:
+        compression: gzip
+        encryption: AES256
+    retentionPolicy: "30d"

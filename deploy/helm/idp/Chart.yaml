@@ -1,0 +1,9 @@
+apiVersion: v2
+name: idp
+description: Umbrella chart para la plataforma IDP (10 microservicios)
+type: application
+version: 1.0.0
+dependencies:
+  - name: idp-common
+    version: 1.0.0
+    repository: "file://../idp-common"

@@ -1,0 +1,7 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: idp-internal-issuer
+spec:
+  ca:
+    secretName: idp-internal-ca-secret

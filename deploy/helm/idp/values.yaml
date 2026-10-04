@@ -1,0 +1,155 @@
+global:
+  domain: idp.local
+  image:
+    registry: ghcr.io/ingkevin95/idp_extracciondocumentos
+    pullPolicy: IfNotPresent
+  serviceAccount:
+    create: true
+  service:
+    type: ClusterIP
+    port: 8080
+  metrics:
+    enabled: true
+  pdb:
+    enabled: true
+    minAvailable: 1
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+
+edgeGateway:
+  enabled: true
+  image:
+    repository: ghcr.io/ingkevin95/idp_extracciondocumentos/edge-gateway
+    tag: ""
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+tenantService:
+  enabled: true
+  image:
+    repository: ghcr.io/ingkevin95/idp_extracciondocumentos/tenant-service
+    tag: ""
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+documentService:
+  enabled: true
+  image:
+    repository: ghcr.io/ingkevin95/idp_extracciondocumentos/document-service
+    tag: ""
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+extractionService:
+  enabled: true
+  image:
+    repository: ghcr.io/ingkevin95/idp_extracciondocumentos/extraction-service
+    tag: ""
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+renderer:
+  enabled: true
+  image:
+    repository: ghcr.io/ingkevin95/idp_extracciondocumentos/renderer
+    tag: ""
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+reviewService:
+  enabled: true
+  image:
+    repository: ghcr.io/ingkevin95/idp_extracciondocumentos/review-service
+    tag: ""
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+qualityService:
+  enabled: true
+  image:
+    repository: ghcr.io/ingkevin95/idp_extracciondocumentos/quality-service
+    tag: ""
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+chatService:
+  enabled: true
+  image:
+    repository: ghcr.io/ingkevin95/idp_extracciondocumentos/chat-service
+    tag: ""
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+notificationService:
+  enabled: true
+  image:
+    repository: ghcr.io/ingkevin95/idp_extracciondocumentos/notification-service
+    tag: ""
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+auditService:
+  enabled: true
+  image:
+    repository: ghcr.io/ingkevin95/idp_extracciondocumentos/audit-service
+    tag: ""
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+# Namespaces de plataforma usados por las NetworkPolicy
+networkPolicy:
+  gatewayControllerNamespace: envoy-gateway-system
+  monitoringNamespace: idp-platform
