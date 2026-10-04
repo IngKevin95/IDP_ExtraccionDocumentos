@@ -2,3 +2,10 @@
 # Documentar siempre el motivo de la exclusión con el ID de la vulnerabilidad.
 # Formato: 
 # CVE-XXXX-XXXXX # Motivo de la exclusión, fecha y responsable.
+
+# AVD-AWS-0132: el bucket de access logs de S3 no admite SSE-KMS como destino de server access logging
+# (limitación de AWS: solo SSE-S3/AES256). Los buckets de datos sí usan llave KMS propia.
+AVD-AWS-0132
+# AVD-AWS-0104: los nodos de EKS requieren egress (descarga de imágenes, APIs de AWS vía NAT).
+# El egress de los pods se restringe con NetworkPolicy deny-by-default (deploy/helm/idp).
+AVD-AWS-0104
