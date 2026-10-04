@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Libs de plataforma: colaboradores inyectados por constructor (JdbcTemplate, KafkaTemplate, S3Client,
+     RestClient, ObjectMapper). Son beans de Spring compartidos por diseno, no estado interno expuesto. -->
+<FindBugsFilter>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+</FindBugsFilter>

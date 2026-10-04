@@ -1,0 +1,20 @@
+-- Tablas del patron outbox e idempotencia. Copiar a la migracion Flyway del silo de cada servicio.
+create table if not exists outbox (
+    id            uuid primary key,
+    partition_key varchar(255) not null,
+    event_type    varchar(120) not null,
+    tenant_id     uuid         not null,
+    payload       text         not null,
+    status        varchar(16)  not null default 'PENDING',
+    attempts      integer      not null default 0,
+    last_error    varchar(500),
+    created_at    timestamptz  not null default now(),
+    published_at  timestamptz
+);
+
+create index if not exists idx_outbox_pending on outbox (created_at, id) where status = 'PENDING';
+
+create table if not exists processed_event (
+    event_id     uuid primary key,
+    processed_at timestamptz not null default now()
+);
