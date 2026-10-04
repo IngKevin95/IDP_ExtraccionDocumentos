@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/seguridad.prompt_injection_detectado/v1.json",
+  "title": "Seguridad Prompt Injection Detectado Event",
+  "description": "Evento de seguridad emitido cuando se detecta un intento de manipulación de instrucciones (Prompt Injection).",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "documentId",
+    "source"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "seguridad.prompt_injection_detectado"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "documentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "CHAT",
+        "EXTRACTION"
+      ]
+    },
+    "sessionId": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "additionalProperties": false
+}

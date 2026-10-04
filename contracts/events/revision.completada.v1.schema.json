@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/revision.completada/v1.json",
+  "title": "Revision Completada Event",
+  "description": "Evento emitido cuando una tarea de revisión manual humana ha finalizado (Aprobada o Rechazada).",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "documentId",
+    "taskId",
+    "action"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "revision.completada"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "documentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "taskId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "APROBADO",
+        "RECHAZADO"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

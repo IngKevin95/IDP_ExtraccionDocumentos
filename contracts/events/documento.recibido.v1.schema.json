@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/documento.recibido/v1.json",
+  "title": "Documento Recibido Event",
+  "description": "Evento emitido tras la ingesta idempotente exitosa de un oficio. Sin PII (SEC-050).",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "documentId",
+    "hashSha256",
+    "typology",
+    "version",
+    "classification",
+    "objectStoreKey"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "documento.recibido"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "documentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "hashSha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "typology": {
+      "type": "string",
+      "pattern": "^[A-Z]{2,4}$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "PUBLICO",
+        "INTERNO",
+        "CONFIDENCIAL",
+        "ALTAMENTE_CONFIDENCIAL"
+      ]
+    },
+    "objectStoreKey": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

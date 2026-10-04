@@ -1,0 +1,271 @@
+openapi: 3.1.0
+info:
+  title: IDP Bancario - API Pública
+  version: 1.0.0
+  description: |
+    API pública para la ingesta, extracción y chat sobre oficios de embargo y desembargo. 
+    Este contrato agrupa las rutas proxificadas por el `edge-gateway` hacia los microservicios internos.
+servers:
+  - url: https://api.idp.example
+    description: API Gateway
+security:
+  - bearerAuth: []
+paths:
+  /v1/documents:
+    post:
+      summary: Carga un nuevo oficio para su extracción
+      operationId: uploadDocument
+      tags:
+        - Documentos
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Archivo PDF, DOCX, PNG o JPG (max 20MB)
+      responses:
+        '202':
+          description: Documento recibido y encolado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentReference'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: Payload muy grande (Rechazo Gateway)
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /v1/documents/{documentId}:
+    get:
+      summary: Consulta el estado y extracción de un oficio
+      operationId: getDocument
+      tags:
+        - Documentos
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Datos del documento y su extracción si está completada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentDetails'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/chat/sessions/{sessionId}/messages:
+    post:
+      summary: Envía un mensaje al chat documental
+      operationId: sendChatMessage
+      tags:
+        - Chat
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  example: "¿Cuáles son los productos afectados y por qué monto?"
+      responses:
+        '200':
+          description: Respuesta generada por el asistente RAG
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/review/tasks:
+    get:
+      summary: Lista tareas pendientes de revisión humana (HITL)
+      operationId: listReviewTasks
+      tags:
+        - Revisión
+      responses:
+        '200':
+          description: Lista paginada de tareas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReviewTask'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/review/tasks/{taskId}/approve:
+    post:
+      summary: Aprueba o corrige campos manuales
+      operationId: approveTask
+      tags:
+        - Revisión
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                corrections:
+                  type: object
+                  additionalProperties:
+                    type: string
+      responses:
+        '200':
+          description: Tarea procesada
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: No posee el rol de aprobador distinto (Regla 4 ojos)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+  schemas:
+    DocumentReference:
+      type: object
+      properties:
+        documentId:
+          type: string
+          format: uuid
+          example: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+        status:
+          type: string
+          enum: [RECIBIDO, RECHAZADO, RENDERIZADO, EN_EXTRACCION, EN_REVISION, APROBADO, FALLIDO]
+          example: "RECIBIDO"
+
+    DocumentDetails:
+      type: object
+      properties:
+        documentId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        extractedData:
+          type: object
+          description: Datos estructurados según tipología.
+          properties:
+            radicado:
+              type: string
+              example: "11001400302520230045600"
+            tipologia:
+              type: string
+              example: "EC"
+
+    ChatMessageResponse:
+      type: object
+      properties:
+        answer:
+          type: string
+          example: "Se embargan la cuenta de ahorros 1234 y corriente 5678 por un total de 5,000,000 COP."
+        citations:
+          type: array
+          items:
+            type: string
+            example: "Documento base, página 2: 'se ordena el embargo de cuentas de ahorro 1234...'"
+
+    ReviewTask:
+      type: object
+      properties:
+        taskId:
+          type: string
+          format: uuid
+        documentId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          example: "PENDIENTE"
+
+  responses:
+    BadRequest:
+      description: Petición malformada
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "bad_request"
+              message:
+                type: string
+    Unauthorized:
+      description: Token inválido, expirado o ausente (Rechazo Gateway)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "unauthorized"
+              message:
+                type: string
+    NotFound:
+      description: Recurso no encontrado o perteneciente a otro tenant
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "not_found"
+    TooManyRequests:
+      description: Límite de tasa excedido (Rechazo Gateway)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "too_many_requests"
+              message:
+                type: string

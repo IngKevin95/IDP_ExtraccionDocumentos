@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/extraccion.aprobada/v1.json",
+  "title": "Extraccion Aprobada Event",
+  "description": "Evento de resolución terminal positiva para habilitar notificaciones, auditoría e indexación RAG. Sin PII (SEC-050).",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "documentId",
+    "approvedBy"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "extraccion.aprobada"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "documentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "approvedBy": {
+      "type": "string",
+      "enum": [
+        "AUTO_STP",
+        "HUMAN_REVIEWER",
+        "DATA_STEWARD"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

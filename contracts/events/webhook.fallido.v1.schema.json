@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/webhook.fallido/v1.json",
+  "title": "Webhook Fallido Event",
+  "description": "Evento emitido cuando un webhook no pudo ser entregado tras agotar reintentos o falló validación.",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "webhookId",
+    "documentId",
+    "reasonCode",
+    "attempts"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "webhook.fallido"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "webhookId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "documentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "reasonCode": {
+      "type": "string",
+      "enum": [
+        "HTTP_ERROR_THRESHOLD_EXCEEDED",
+        "SSRF_BLOCKED",
+        "CONNECTION_TIMEOUT",
+        "ENDPOINT_UNREACHABLE"
+      ]
+    },
+    "attempts": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false
+}

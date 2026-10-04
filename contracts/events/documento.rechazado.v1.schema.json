@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/documento.rechazado/v1.json",
+  "title": "Documento Rechazado Event",
+  "description": "Evento emitido cuando un documento es rechazado en la ingesta o falla el proceso de renderizado/validación. Sin PII (SEC-050).",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "documentId",
+    "reasonCode"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "documento.rechazado"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "documentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "reasonCode": {
+      "type": "string",
+      "enum": [
+        "INVALID_MAGIC_BYTES",
+        "FILE_SIZE_EXCEEDED",
+        "RENDERER_FAILED",
+        "ANTIVIRUS_POSITIVE",
+        "MALWARE_DETECTED"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

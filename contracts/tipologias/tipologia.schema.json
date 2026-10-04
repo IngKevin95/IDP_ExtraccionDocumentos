@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/typology/v1.json",
+  "title": "Tipología Documental",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": { "type": "string" },
+      "code": { "type": "string", "pattern": "^[A-Z]{2,4}$" },
+      "name": { "type": "string" },
+      "version": { "type": "integer" },
+      "description": { "type": "string" },
+      "prompt_few_shot": { "type": "string" },
+      "fields": {
+        "type": "array",
+        "items": { "$ref": "#/$defs/field" }
+      },
+      "tables": {
+        "type": "array",
+        "items": { "$ref": "#/$defs/table" }
+      }
+    },
+    "required": ["id", "code", "name", "version", "description", "fields"],
+    "additionalProperties": false
+  },
+  "$defs": {
+    "field": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["string", "decimal", "date"] },
+        "description": { "type": "string" },
+        "critico": { "type": "boolean" },
+        "validator": { "type": "string" },
+        "umbral_auto": { "type": "number", "minimum": 0, "maximum": 1 },
+        "umbral_revisar": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "required": ["name", "type", "description", "critico", "umbral_auto", "umbral_revisar"],
+      "additionalProperties": false
+    },
+    "table": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/field" }
+        }
+      },
+      "required": ["name", "description", "fields"],
+      "additionalProperties": false
+    }
+  }
+}

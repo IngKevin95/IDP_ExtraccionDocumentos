@@ -1,0 +1,237 @@
+openapi: 3.1.0
+info:
+  title: Quality Service API
+  description: API interna para consulta de métricas de calidad (STP, Hitl, Error Silente) y gestión del Golden Set.
+  version: 1.0.0
+
+servers:
+  - url: https://api.idp.example
+    description: API Gateway
+paths:
+  /v1/quality/reports/stp:
+    get:
+      summary: Consultar métricas de STP
+      description: Retorna el histórico de procesamiento STP vs intervenciones HITL agrupado por día.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: tipologia
+          in: query
+          schema:
+            type: string
+            enum: [EC, EJ, DC, DJ]
+      responses:
+        '200':
+          description: Métricas agregadas de la serie temporal.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+              example:
+                tenant_id: "tenant-demo-1"
+                data:
+                  - date: "2026-10-01"
+                    total_documents: 1000
+                    stp_count: 850
+                    hitl_count: 150
+                    stp_percentage: 85.0
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /v1/quality/reports/silent-error:
+    get:
+      summary: Consultar Error Silente
+      description: Retorna la tasa de error silente detectada a través del muestreo ciego (blind sampling).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Tasa histórica de errores silentes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SilentErrorResponse'
+              example:
+                tenant_id: "tenant-demo-1"
+                data:
+                  - date: "2026-10-01"
+                    blind_samples_total: 20
+                    silent_errors_found: 1
+                    silent_error_percentage: 5.0
+                    drift_detected: false
+
+  /v1/quality/reports/golden-set:
+    get:
+      summary: Listar documentos del Golden Set
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de oficios ficticios utilizados para calibración.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GoldenSetDocument'
+    post:
+      summary: Crear documento ficticio
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoldenSetDocumentInput'
+      responses:
+        '201':
+          description: Documento creado.
+
+  /v1/quality/reports/golden-set/evaluate:
+    post:
+      summary: Disparar evaluación de calibración
+      description: Ejecuta los prompts de extracción sobre el Golden Set para medir precisión sin afectar operación real.
+      security:
+        - bearerAuth: []
+      responses:
+        '202':
+          description: Proceso iniciado de forma asíncrona.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                    format: uuid
+              example:
+                job_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    MetricsResponse:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              total_documents:
+                type: integer
+              stp_count:
+                type: integer
+              hitl_count:
+                type: integer
+              stp_percentage:
+                type: number
+                format: float
+
+    SilentErrorResponse:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              blind_samples_total:
+                type: integer
+              silent_errors_found:
+                type: integer
+              silent_error_percentage:
+                type: number
+                format: float
+              drift_detected:
+                type: boolean
+
+    GoldenSetDocument:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        tipologia:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        payload_sintetico_json:
+          type: object
+          description: Mapa llave-valor con la extracción perfecta esperada.
+
+    GoldenSetDocumentInput:
+      type: object
+      required:
+        - nombre
+        - tipologia
+        - payload_sintetico_json
+      properties:
+        nombre:
+          type: string
+          example: "Oficio Ficticio EC - Caso Base"
+        tipologia:
+          type: string
+          enum: [EC, EJ, DC, DJ]
+        payload_sintetico_json:
+          type: object
+          example:
+            radicado: "11001202300000000000001"
+            monto: 500000.00
+        tags:
+          type: array
+          items:
+            type: string
+
+  responses:
+    Unauthorized:
+      description: Token inválido o ausente.
+    Forbidden:
+      description: Permisos insuficientes (requiere rol Data Steward).

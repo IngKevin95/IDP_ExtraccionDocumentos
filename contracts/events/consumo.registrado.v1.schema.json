@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/consumo.registrado/v1.json",
+  "title": "Consumo Registrado Event",
+  "description": "Evento para el seguimiento de la facturación y uso de cuota (ej. páginas procesadas, requests a LLM).",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "metricName",
+    "value"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "consumo.registrado"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "metricName": {
+      "type": "string",
+      "enum": [
+        "PAGES_RENDERED",
+        "LLM_TOKENS_PROMPT",
+        "LLM_TOKENS_COMPLETION",
+        "DOCUMENTS_EXTRACTED"
+      ]
+    },
+    "value": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false
+}

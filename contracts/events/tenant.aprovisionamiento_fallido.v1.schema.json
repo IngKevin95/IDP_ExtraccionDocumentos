@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/tenant.aprovisionamiento_fallido/v1.json",
+  "title": "Tenant Aprovisionamiento Fallido Event",
+  "description": "Evento emitido si ocurre un error irrecuperable durante la creación del tenant.",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "reasonCode"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "tenant.aprovisionamiento_fallido"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "reasonCode": {
+      "type": "string",
+      "enum": [
+        "INFRASTRUCTURE_ERROR",
+        "CONFIGURATION_INVALID",
+        "TIMEOUT"
+      ]
+    }
+  },
+  "additionalProperties": false
+}
