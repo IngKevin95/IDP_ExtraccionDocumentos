@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/legalhold.aplicado/v1.json",
+  "title": "Legal Hold Aplicado Event",
+  "description": "Evento emitido cuando se aplica un estado de preservación legal (Legal Hold) a un documento o tenant.",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "holdId",
+    "reasonCode",
+    "appliedBy"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "legalhold.aplicado"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "holdId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "documentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "reasonCode": {
+      "type": "string",
+      "enum": [
+        "LITIGATION",
+        "INVESTIGATION",
+        "REGULATORY_REQUIREMENT",
+        "INTERNAL_AUDIT"
+      ]
+    },
+    "appliedBy": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/seguridad.acceso_denegado/v1.json",
+  "title": "Seguridad Acceso Denegado Event",
+  "description": "Evento emitido ante intentos de acceso no autorizados (ej. cruce de tenant).",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "resourceId",
+    "reasonCode"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "seguridad.acceso_denegado"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "resourceId": {
+      "type": "string"
+    },
+    "reasonCode": {
+      "type": "string",
+      "enum": [
+        "UNAUTHORIZED_TENANT",
+        "INSUFFICIENT_PERMISSIONS",
+        "TOKEN_INVALID"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

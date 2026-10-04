@@ -1,0 +1,15 @@
+# Tareas de Implementación: Servicio de Auditoría (audit-service)
+
+| ID | Tarea | Criterio de Hecho | AC / Test |
+|---|---|---|---|
+| T-01 | Setup del módulo base | Módulo `audit-service` creado en `services/audit-service` con dependencias Maven (Spring Web, Data JPA, Security, Kafka, `tenant-context`, `storage-port`, `kms-port`). `application.yml` configurado. | El módulo compila y arranca el contexto Spring en tests de unidad. |
+| T-02 | Definir contratos OpenAPI y JSON Schema | Archivos `contracts/openapi/audit-service.yaml`, `contracts/events/legalhold.aplicado.v1.schema.json` y `contracts/events/auditoria.alerta_integridad.v1.schema.json` creados en el repositorio de contratos. | Linter de OpenAPI y JSON Schema aprueba la sintaxis sin errores. |
+| T-03 | Migraciones Flyway de Base de Control | Creado script `V1__create_audit_tables.sql` con las tablas `audit_entries`, `worm_anchors` y `legal_hold_records` con sus índices unívocos. | Ejecución exitosa de Flyway en Testcontainers durante test de integración. |
+| T-04 | Capa de Dominio (Entidades y Repositorios) | Entidades `AuditEntry`, `WormAnchor`, `LegalHoldRecord` mapeadas con JPA. Repositorios Spring Data creados. | Test de integración JPA persiste y recupera datos manteniendo índices por tenant y secuencia. |
+| T-05 | Lógica de Cálculo de Hash y Cadena de Auditoría | Implementados `HashChainService` y `AuditIngestionService` para cálculo de hash SHA-256 e ingesta atómica secuencial por tenant. | Tests unitarios validan encadenamiento y detección de inconsistencias (AC-01, AC-02). |
+| T-06 | Consumidor Kafka Bloqueante (Sin DLT) | `AuditDomainEventConsumer` configurado con `DefaultErrorHandler` sin DLT para reintento infinito ante fallos de persistencia. | Test de integración con Kafka simula caída de BBDD y verifica retención de offset (AC-06). |
+| T-07 | Servicio de Anclaje WORM e Integración KMS | Implementado `WormAnchorService` que agrupa eventos sin anclar, genera el manifiesto comprimido, invoca firma ed25519 en OpenBao Transit y sube a WORM S3/Blob. | Test de integración en localstack/mock valida creación del ancla WORM y actualización de `worm_anchored` (AC-03). |
+| T-08 | API REST: Expediente Firmado y Verificación Forense | Controladores `AuditController` con endpoints `GET /v1/audit/dossiers/{documentId}` y `GET /v1/audit/verify`. | Tests MVC verifican estructura del expediente firmado y reporte de integridad (AC-02, AC-04). |
+| T-09 | API REST y Eventos de Legal Hold | Controlador `LegalHoldController` con endpoint `POST /v1/audit/legal-holds` y publicación de eventos `legalhold.aplicado`. | Test de integración verifica cambio de estado y bloqueo de purga de documentos (AC-08). |
+| T-10 | Verificación de Aislamiento Multitenant | Integración completa de aislamiento por tenant en ingesta, anclaje y consulta de expediente. | Tests de integración ejecutan eventos concurrentes de múltiples tenants verificando cadenas independientes (AC-05). |
+| T-11 | Exportación con Ofuscación PII | Integrar lógica de `documento.purgado` en el dosier firmado. | Tests unitarios y de integración para registros purgados (AC-07). |

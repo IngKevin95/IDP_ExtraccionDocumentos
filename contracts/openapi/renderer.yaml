@@ -1,0 +1,95 @@
+openapi: 3.1.0
+info:
+  title: API Renderer Service
+  version: 1.0.0
+  description: Servicio interno de aislamiento para renderización, validación y sanitización de documentos del IDP.
+servers:
+  - url: https://renderer.idp.svc.cluster.local
+    description: Clúster interno Kubernetes (mTLS)
+paths:
+  /v1/render:
+    post:
+      summary: Procesa y rasteriza un documento
+      description: |
+        Recibe un documento binario (PDF, DOCX, JPG, PNG, TIFF).
+        Ejecuta escaneo antivirus (ClamAV), valida magic bytes, extrae capa de texto nativo y convierte todas las páginas a imágenes PNG de manera segura.
+      operationId: renderDocument
+      security:
+        - mTLS: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Archivo documental a procesar.
+      responses:
+        '200':
+          description: Documento procesado y renderizado exitosamente.
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+                description: |
+                  Archivo ZIP que contiene:
+                  - page_N.png (Múltiples archivos, uno por página, rasterizados)
+                  - text_layer.json (Archivo con el texto nativo extraído por página)
+        '400':
+          description: Archivo inválido, corrupto o formato no soportado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: Archivo demasiado grande o excede límite de páginas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Contenido del archivo rechazado por reglas de sanitización (ej. macros, scripts embebidos).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error interno del servicio de renderización o timeout.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    mTLS:
+      type: mutualTLS
+      description: Requiere certificado de cliente válido emitido por la CA interna del clúster (solo document-service).
+  
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+        - incidentId
+      properties:
+        code:
+          type: string
+          description: Código de error según taxonomía (ej. ERR_VALIDATION, ERR_MALWARE_DETECTED, ERR_UNSUPPORTED_FORMAT).
+          example: "ERR_MALWARE_DETECTED"
+        message:
+          type: string
+          description: Descripción técnica y detallada del error para logs y diagnóstico.
+          example: "El motor antivirus detectó una firma maliciosa en el archivo."
+        incidentId:
+          type: string
+          format: uuid
+          description: ID de correlación o traza para seguimiento en el sistema de observabilidad.
+          example: "123e4567-e89b-12d3-a456-426614174000"

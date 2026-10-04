@@ -1,0 +1,509 @@
+- id: embargos.v1.ec
+  code: EC
+  name: "Embargo Coactivo"
+  version: 1
+  description: "Oficio que ordena retención de fondos por entidad coactiva."
+  prompt_few_shot: |
+    Extrae la información del embargo coactivo.
+    Ejemplos: tools/synthetic-oficios/ejemplos/ec-01.txt
+  fields:
+    - name: radicado
+      type: string
+      description: "Número de radicación del proceso"
+      critico: true
+      validator: radicado_23_digitos
+      umbral_auto: 0.95
+      umbral_revisar: 0.70
+    - name: autoridad_emisora
+      type: string
+      description: "Entidad que emite el oficio"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: ciudad
+      type: string
+      description: "Ciudad de emisión del oficio"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: fecha_oficio
+      type: date
+      description: "Fecha de emisión del documento"
+      critico: false
+      validator: fechas_coherentes
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: tipo_medida
+      type: string
+      description: "Tipo de medida (EC)"
+      critico: true
+      umbral_auto: 0.95
+      umbral_revisar: 0.75
+    - name: banco_destinatario
+      type: string
+      description: "Banco al que se dirige la medida"
+      critico: false
+      umbral_auto: 0.90
+      umbral_revisar: 0.65
+    - name: monto_numeros
+      type: decimal
+      description: "Valor total en números a embargar"
+      critico: true
+      validator: monto_numeros_letras
+      umbral_auto: 0.95
+      umbral_revisar: 0.75
+    - name: monto_letras
+      type: string
+      description: "Valor total en letras a embargar"
+      critico: false
+      umbral_auto: 0.90
+      umbral_revisar: 0.70
+    - name: limite_inembargabilidad
+      type: decimal
+      description: "Límite de inembargabilidad si aplica"
+      critico: false
+      umbral_auto: 0.90
+      umbral_revisar: 0.70
+    - name: productos_o_cuentas
+      type: string
+      description: "Productos o cuentas afectados"
+      critico: true
+      umbral_auto: 0.95
+      umbral_revisar: 0.70
+    - name: entidad_coactiva
+      type: string
+      description: "Entidad coactiva"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: numero_resolucion
+      type: string
+      description: "Número de resolución"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+  tables:
+    - name: demandados
+      description: "Lista de personas demandadas"
+      fields:
+        - name: nombre
+          type: string
+          description: "Nombre del demandado"
+          critico: false
+          umbral_auto: 0.90
+          umbral_revisar: 0.65
+        - name: tipo_identificacion
+          type: string
+          description: "Tipo de identificación (CC, CE, NIT)"
+          critico: false
+          validator: tipo_doc_valido
+          umbral_auto: 0.90
+          umbral_revisar: 0.65
+        - name: numero_identificacion
+          type: string
+          description: "Número de identificación"
+          critico: true
+          validator: cedula_nit_condicional
+          umbral_auto: 0.95
+          umbral_revisar: 0.70
+        - name: monto
+          type: decimal
+          description: "Monto específico del demandado"
+          critico: true
+          umbral_auto: 0.95
+          umbral_revisar: 0.75
+        - name: productos
+          type: string
+          description: "Productos o cuentas del demandado"
+          critico: true
+          umbral_auto: 0.95
+          umbral_revisar: 0.70
+
+- id: embargos.v1.ej
+  code: EJ
+  name: "Embargo Judicial"
+  version: 1
+  description: "Oficio judicial que ordena retención de fondos."
+  prompt_few_shot: |
+    Extrae la información del embargo judicial.
+    Ejemplos: tools/synthetic-oficios/ejemplos/ej-01.txt
+  fields:
+    - name: radicado
+      type: string
+      description: "Número de radicación del proceso"
+      critico: true
+      validator: radicado_23_digitos
+      umbral_auto: 0.95
+      umbral_revisar: 0.70
+    - name: autoridad_emisora
+      type: string
+      description: "Entidad que emite el oficio"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: ciudad
+      type: string
+      description: "Ciudad de emisión del oficio"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: fecha_oficio
+      type: date
+      description: "Fecha de emisión del documento"
+      critico: false
+      validator: fechas_coherentes
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: tipo_medida
+      type: string
+      description: "Tipo de medida (EJ)"
+      critico: true
+      umbral_auto: 0.95
+      umbral_revisar: 0.75
+    - name: banco_destinatario
+      type: string
+      description: "Banco al que se dirige la medida"
+      critico: false
+      umbral_auto: 0.90
+      umbral_revisar: 0.65
+    - name: monto_numeros
+      type: decimal
+      description: "Valor total en números a embargar"
+      critico: true
+      validator: monto_numeros_letras
+      umbral_auto: 0.95
+      umbral_revisar: 0.75
+    - name: monto_letras
+      type: string
+      description: "Valor total en letras a embargar"
+      critico: false
+      umbral_auto: 0.90
+      umbral_revisar: 0.70
+    - name: limite_inembargabilidad
+      type: decimal
+      description: "Límite de inembargabilidad si aplica"
+      critico: false
+      umbral_auto: 0.90
+      umbral_revisar: 0.70
+    - name: productos_o_cuentas
+      type: string
+      description: "Productos o cuentas afectados"
+      critico: true
+      umbral_auto: 0.95
+      umbral_revisar: 0.70
+    - name: juzgado
+      type: string
+      description: "Nombre del juzgado"
+      critico: false
+      validator: juzgado_catalogo
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: clase_proceso
+      type: string
+      description: "Clase de proceso"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: demandante
+      type: string
+      description: "Demandante"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+  tables:
+    - name: demandados
+      description: "Lista de personas demandadas"
+      fields:
+        - name: nombre
+          type: string
+          description: "Nombre del demandado"
+          critico: false
+          umbral_auto: 0.90
+          umbral_revisar: 0.65
+        - name: tipo_identificacion
+          type: string
+          description: "Tipo de identificación (CC, CE, NIT)"
+          critico: false
+          validator: tipo_doc_valido
+          umbral_auto: 0.90
+          umbral_revisar: 0.65
+        - name: numero_identificacion
+          type: string
+          description: "Número de identificación"
+          critico: true
+          validator: cedula_nit_condicional
+          umbral_auto: 0.95
+          umbral_revisar: 0.70
+        - name: monto
+          type: decimal
+          description: "Monto específico del demandado"
+          critico: true
+          umbral_auto: 0.95
+          umbral_revisar: 0.75
+        - name: productos
+          type: string
+          description: "Productos o cuentas del demandado"
+          critico: true
+          umbral_auto: 0.95
+          umbral_revisar: 0.70
+
+- id: embargos.v1.dc
+  code: DC
+  name: "Desembargo Coactivo"
+  version: 1
+  description: "Oficio que ordena el levantamiento de la retención de fondos por entidad coactiva."
+  prompt_few_shot: |
+    Extrae la información del desembargo coactivo.
+    Ejemplos: tools/synthetic-oficios/ejemplos/dc-01.txt
+  fields:
+    - name: radicado
+      type: string
+      description: "Número de radicación del proceso"
+      critico: true
+      validator: radicado_23_digitos
+      umbral_auto: 0.95
+      umbral_revisar: 0.70
+    - name: autoridad_emisora
+      type: string
+      description: "Entidad que emite el oficio"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: ciudad
+      type: string
+      description: "Ciudad de emisión del oficio"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: fecha_oficio
+      type: date
+      description: "Fecha de emisión del documento"
+      critico: false
+      validator: fechas_coherentes
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: tipo_medida
+      type: string
+      description: "Tipo de medida (DC)"
+      critico: true
+      umbral_auto: 0.95
+      umbral_revisar: 0.75
+    - name: banco_destinatario
+      type: string
+      description: "Banco al que se dirige la medida"
+      critico: false
+      umbral_auto: 0.90
+      umbral_revisar: 0.65
+    - name: monto_numeros
+      type: decimal
+      description: "Valor total en números a desembargar"
+      critico: true
+      validator: monto_numeros_letras
+      umbral_auto: 0.95
+      umbral_revisar: 0.75
+    - name: monto_letras
+      type: string
+      description: "Valor total en letras a desembargar"
+      critico: false
+      umbral_auto: 0.90
+      umbral_revisar: 0.70
+    - name: limite_inembargabilidad
+      type: decimal
+      description: "Límite de inembargabilidad si aplica"
+      critico: false
+      umbral_auto: 0.90
+      umbral_revisar: 0.70
+    - name: productos_o_cuentas
+      type: string
+      description: "Productos o cuentas afectados"
+      critico: true
+      umbral_auto: 0.95
+      umbral_revisar: 0.70
+    - name: entidad_coactiva
+      type: string
+      description: "Entidad coactiva"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: numero_resolucion
+      type: string
+      description: "Número de resolución"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: referencia_oficio_original
+      type: string
+      description: "Referencia al oficio de embargo original"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+  tables:
+    - name: demandados
+      description: "Lista de personas demandadas"
+      fields:
+        - name: nombre
+          type: string
+          description: "Nombre del demandado"
+          critico: false
+          umbral_auto: 0.90
+          umbral_revisar: 0.65
+        - name: tipo_identificacion
+          type: string
+          description: "Tipo de identificación (CC, CE, NIT)"
+          critico: false
+          validator: tipo_doc_valido
+          umbral_auto: 0.90
+          umbral_revisar: 0.65
+        - name: numero_identificacion
+          type: string
+          description: "Número de identificación"
+          critico: true
+          validator: cedula_nit_condicional
+          umbral_auto: 0.95
+          umbral_revisar: 0.70
+        - name: monto
+          type: decimal
+          description: "Monto específico del demandado"
+          critico: true
+          umbral_auto: 0.95
+          umbral_revisar: 0.75
+        - name: productos
+          type: string
+          description: "Productos o cuentas del demandado"
+          critico: true
+          umbral_auto: 0.95
+          umbral_revisar: 0.70
+
+- id: embargos.v1.dj
+  code: DJ
+  name: "Desembargo Judicial"
+  version: 1
+  description: "Oficio judicial que ordena el levantamiento de la retención de fondos."
+  prompt_few_shot: |
+    Extrae la información del desembargo judicial.
+    Ejemplos: tools/synthetic-oficios/ejemplos/dj-01.txt
+  fields:
+    - name: radicado
+      type: string
+      description: "Número de radicación del proceso"
+      critico: true
+      validator: radicado_23_digitos
+      umbral_auto: 0.95
+      umbral_revisar: 0.70
+    - name: autoridad_emisora
+      type: string
+      description: "Entidad que emite el oficio"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: ciudad
+      type: string
+      description: "Ciudad de emisión del oficio"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: fecha_oficio
+      type: date
+      description: "Fecha de emisión del documento"
+      critico: false
+      validator: fechas_coherentes
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: tipo_medida
+      type: string
+      description: "Tipo de medida (DJ)"
+      critico: true
+      umbral_auto: 0.95
+      umbral_revisar: 0.75
+    - name: banco_destinatario
+      type: string
+      description: "Banco al que se dirige la medida"
+      critico: false
+      umbral_auto: 0.90
+      umbral_revisar: 0.65
+    - name: monto_numeros
+      type: decimal
+      description: "Valor total en números a desembargar"
+      critico: true
+      validator: monto_numeros_letras
+      umbral_auto: 0.95
+      umbral_revisar: 0.75
+    - name: monto_letras
+      type: string
+      description: "Valor total en letras a desembargar"
+      critico: false
+      umbral_auto: 0.90
+      umbral_revisar: 0.70
+    - name: limite_inembargabilidad
+      type: decimal
+      description: "Límite de inembargabilidad si aplica"
+      critico: false
+      umbral_auto: 0.90
+      umbral_revisar: 0.70
+    - name: productos_o_cuentas
+      type: string
+      description: "Productos o cuentas afectados"
+      critico: true
+      umbral_auto: 0.95
+      umbral_revisar: 0.70
+    - name: juzgado
+      type: string
+      description: "Nombre del juzgado"
+      critico: false
+      validator: juzgado_catalogo
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: clase_proceso
+      type: string
+      description: "Clase de proceso"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: demandante
+      type: string
+      description: "Demandante"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+    - name: referencia_oficio_original
+      type: string
+      description: "Referencia al oficio de embargo original"
+      critico: false
+      umbral_auto: 0.85
+      umbral_revisar: 0.60
+  tables:
+    - name: demandados
+      description: "Lista de personas demandadas"
+      fields:
+        - name: nombre
+          type: string
+          description: "Nombre del demandado"
+          critico: false
+          umbral_auto: 0.90
+          umbral_revisar: 0.65
+        - name: tipo_identificacion
+          type: string
+          description: "Tipo de identificación (CC, CE, NIT)"
+          critico: false
+          validator: tipo_doc_valido
+          umbral_auto: 0.90
+          umbral_revisar: 0.65
+        - name: numero_identificacion
+          type: string
+          description: "Número de identificación"
+          critico: true
+          validator: cedula_nit_condicional
+          umbral_auto: 0.95
+          umbral_revisar: 0.70
+        - name: monto
+          type: decimal
+          description: "Monto específico del demandado"
+          critico: true
+          umbral_auto: 0.95
+          umbral_revisar: 0.75
+        - name: productos
+          type: string
+          description: "Productos o cuentas del demandado"
+          critico: true
+          umbral_auto: 0.95
+          umbral_revisar: 0.70

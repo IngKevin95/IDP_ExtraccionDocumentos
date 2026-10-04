@@ -1,0 +1,335 @@
+openapi: 3.1.0
+info:
+  title: Document Service API
+  description: API para la ingesta idempotente, gestión de ciclo de vida y purga de documentos u oficios en el IDP Bancario.
+  version: 1.0.0
+servers:
+  - url: https://api.idp.example
+    description: Servidor interno (vía edge-gateway)
+
+security:
+  - BearerAuth: []
+
+paths:
+  /v1/documents:
+    post:
+      summary: Ingesta un nuevo oficio o documento
+      description: Permite cargar un documento binario (PDF, DOCX, PNG, JPG, TIFF) con metadatos asociados. Realiza verificación de idempotencia por hash SHA-256 y tupla de negocio.
+      operationId: ingestDocument
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - typology
+                - radicado
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Binario del documento (máximo 50MB).
+                typology:
+                  type: string
+                  enum: [EC, EJ, DC, DJ]
+                  example: EC
+                  description: Tipología de oficio de embargo/desembargo.
+                radicado:
+                  type: string
+                  example: "11001400300120260012300"
+                  description: Número de radicado de 23 dígitos.
+                version:
+                  type: integer
+                  default: 1
+                  example: 1
+                  description: Versión del documento.
+                classification:
+                  type: string
+                  enum: [PUBLICO, INTERNO, CONFIDENCIAL, ALTAMENTE_CONFIDENCIAL]
+                  default: CONFIDENCIAL
+                  example: CONFIDENCIAL
+      responses:
+        '201':
+          description: Documento ingresado exitosamente y enviado a procesamiento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '200':
+          description: Documento ya existente (idempotente). Retorna el estado actual.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '400':
+          description: Solicitud inválida (metadatos faltantes o mal formados).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '415':
+          description: Tipo de contenido o magic bytes no soportados.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Archivo excede el límite de tamaño o no supera validaciones de formato.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Lista documentos con paginación y filtros básicos
+      operationId: listDocuments
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/DocumentStatus'
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Lista paginada de documentos.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - limit
+                  - offset
+                  - total
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentResponse'
+                  limit:
+                    type: integer
+                    example: 20
+                  offset:
+                    type: integer
+                    example: 0
+                  total:
+                    type: integer
+                    example: 150
+
+  /v1/documents/{documentId}:
+    get:
+      summary: Obtiene metadatos de un documento
+      operationId: getDocumentById
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+      responses:
+        '200':
+          description: Metadatos del documento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '404':
+          description: Documento no encontrado o no pertenece al tenant (SEC-003).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Elimina un documento por Habeas Data (Purga)
+      description: Dispara la purga física del binario en Object Storage y aplica tombstone en BD.
+      operationId: deleteDocument
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+      responses:
+        '204':
+          description: Purga ejecutada exitosamente.
+        '404':
+          description: Documento no encontrado o no pertenece al tenant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/documents/{documentId}/download:
+    get:
+      summary: Genera una URL presignada para descargar el archivo binario
+      operationId: getDownloadUrl
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+      responses:
+        '200':
+          description: Presigned URL generada.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - downloadUrl
+                  - expiresAt
+                properties:
+                  downloadUrl:
+                    type: string
+                    format: uri
+                    example: "https://storage.provider.com/bucket-tenant-a/oficio-123.pdf?token=abc"
+                  expiresAt:
+                    type: string
+                    format: date-time
+                    example: "2026-10-04T12:15:00Z"
+        '404':
+          description: Documento no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/documents/{documentId}/approve-confidential:
+    post:
+      summary: Aprobación por Data Steward para documentos Altamente Confidenciales
+      operationId: approveConfidentialDocument
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+      responses:
+        '200':
+          description: Aprobación otorgada y estado transitado a APROBADO.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '403':
+          description: El usuario no posee el rol Data Steward.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Documento no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    DocumentStatus:
+      type: string
+      enum:
+        - RECIBIDO
+        - RECHAZADO
+        - RENDERIZADO
+        - EN_EXTRACCION
+        - EN_REVISION
+        - APROBADO_PENDIENTE_STEWARD
+        - APROBADO
+        - FALLIDO
+
+    DocumentResponse:
+      type: object
+      required:
+        - id
+        - tenantId
+        - hashSha256
+        - typology
+        - radicado
+        - version
+        - status
+        - classification
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+        tenantId:
+          type: string
+          example: "tenant-banco-01"
+        hashSha256:
+          type: string
+          example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        typology:
+          type: string
+          example: "EC"
+        radicado:
+          type: string
+          example: "11001400300120260012300"
+        version:
+          type: integer
+          example: 1
+        status:
+          $ref: '#/components/schemas/DocumentStatus'
+        classification:
+          type: string
+          example: "CONFIDENCIAL"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-10-04T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-10-04T10:05:00Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - errorCode
+        - message
+        - timestamp
+      properties:
+        errorCode:
+          type: string
+          example: "DOC_INVALID_FORMAT"
+        message:
+          type: string
+          example: "El formato o la firma de cabecera (magic bytes) del archivo no es permitido."
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-10-04T10:00:00Z"

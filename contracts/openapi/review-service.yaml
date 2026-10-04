@@ -1,0 +1,248 @@
+openapi: 3.1.0
+info:
+  title: Review Service API
+  description: API para la gestión de revisión humana (HITL) de oficios extraídos.
+  version: 1.0.0
+servers:
+  - url: https://api.idp.example
+    description: API Gateway (Route)
+security:
+  - bearerAuth: []
+paths:
+  /v1/review/tasks:
+    get:
+      summary: Lista tareas de revisión
+      operationId: listReviewTasks
+      parameters:
+        - name: status
+          in: query
+          description: Filtrar por estado de la tarea
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, PENDING_SECOND_APPROVAL, APPROVED, REJECTED]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Lista paginada de tareas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskPage'
+  /v1/review/tasks/{taskId}:
+    get:
+      summary: Detalle de la tarea de revisión
+      operationId: getReviewTask
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tarea encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewTask'
+        '404':
+          description: Tarea no encontrada o pertenece a otro tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/review/tasks/{taskId}/corrections:
+    get:
+      summary: Obtiene la lista de correcciones de la tarea
+      operationId: getCorrections
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lista de correcciones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Correction'
+    post:
+      summary: Envía una lista de correcciones a la tarea
+      operationId: addCorrections
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CorrectionRequest'
+      responses:
+        '200':
+          description: Correcciones guardadas
+        '400':
+          description: Estado inválido de la tarea para agregar correcciones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/review/tasks/{taskId}/approve:
+    post:
+      summary: Aprobar tarea por el primer revisor
+      operationId: approveTask
+      description: |
+        Marca la tarea como aprobada. Si se realizaron correcciones a campos críticos,
+        transiciona al estado PENDING_SECOND_APPROVAL.
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tarea aprobada o derivada a segunda revisión
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewTask'
+        '400':
+          description: Estado inválido para aprobación
+  /v1/review/tasks/{taskId}/approve-secondary:
+    post:
+      summary: Segunda aprobación por regla de 4 ojos (SEC-009)
+      operationId: approveSecondaryTask
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tarea aprobada definitivamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewTask'
+        '403':
+          description: El usuario actual es el mismo que el primer revisor (Violación SEC-009)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/review/tasks/{taskId}/reject:
+    post:
+      summary: Rechaza la tarea (documento ilegible o inválido)
+      operationId: rejectTask
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tarea rechazada
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ReviewTask:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        documentId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING, PENDING_SECOND_APPROVAL, APPROVED, REJECTED]
+        firstReviewerId:
+          type: string
+        secondReviewerId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TaskPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewTask'
+        totalPages:
+          type: integer
+        totalElements:
+          type: integer
+    CorrectionRequest:
+      type: object
+      required:
+        - fieldName
+        - correctedValue
+      properties:
+        fieldName:
+          type: string
+        originalValue:
+          type: string
+        correctedValue:
+          type: string
+    Correction:
+      allOf:
+        - $ref: '#/components/schemas/CorrectionRequest'
+        - type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            isCritical:
+              type: boolean
+            createdBy:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object

@@ -27,4 +27,4 @@ Se adopta el modelo de **Silo de Datos Físico Lógico por Tenant** a nivel de a
 ## Controles de Seguridad Aplicables
 *   **SEC-020:** Aislamiento lógico. Separación de almacenamiento a nivel de base de datos lógica en PostgreSQL para prevenir contaminación cruzada de datos bancarios.
 *   **SEC-009:** Credenciales temporales y dinámicas gestionadas vía OpenBao para el acceso de los microservicios a los silos de base de datos de tenant, rotadas frecuentemente (TTL corto).
-*   **SEC-028:** Borrado seguro de la información; la arquitectura en silos permite la eliminación del tenant completo y su llave asociada (crypto-shredding) sin afectar a terceros.
+*   **SEC-016:** Borrado seguro de la información; la arquitectura en silos permite la eliminación del tenant completo y su llave asociada (crypto-shredding) sin afectar a terceros.

@@ -166,7 +166,7 @@ Patrón claim-check estricto: cero PII en eventos Kafka. Se usan identificadores
 | `revision.completada` | Evento | `review-service` | `documentId`, `taskId`, `action` |
 | `extraccion.aprobada` | Evento | `document-service` | `documentId`, `tenantId`, `finalScore` |
 | `seguridad.acceso_denegado` | Evento | (Cualquier servicio) | `tenantId`, `userId`, `recurso` |
-| `seguridad.prompt_injection_detectado`| Evento| `extraction-service` | `documentId`, `tenantId` |
+| `seguridad.prompt_injection_detectado`| Evento| `extraction-service`, `chat-service` | `documentId`, `tenantId` |
 | `acceso.revocado` | Evento | `tenant-service` | `userId`, `tenantId` |
 | `breakglass.otorgado` | Evento | `tenant-service` | `userId`, `approverId` |
 | `breakglass.expirado` | Evento | `tenant-service` | `userId` |
@@ -196,7 +196,7 @@ Patrón claim-check estricto: cero PII en eventos Kafka. Se usan identificadores
 | `dominio.documentos` | Pipeline | `documentId` | 12 | 7 días | `document-service`, `extraction-service`, `review-service`, `tenant-service`, `notification-service`, `chat-service` | `document-service`, `extraction-service`, `review-service`, `notification-service`, `chat-service`, `quality-service`, `audit-service` |
 | `auditoria.eventos` | Auditoría | `tenantId` | 6 | 365 días | Todos (para eventos exclusivos de seguridad) | `audit-service` |
 
-El `audit-service` consume todos los tópicos de dominio con su propio consumer group independiente. Los eventos exclusivos de seguridad van al tópico `auditoria.eventos`. El orden de la cadena de hash (hash-chain) está determinado por el orden de ingesta en el `audit-service` y es serializado por tenant en su base de datos, no depende del orden de llegada o retención en Kafka.
+El `audit-service` consume todos los tópicos de dominio con su propio consumer group independiente. Los eventos exclusivos de seguridad van al tópico `auditoria.eventos`. El orden de la cadena de hash (hash-chain) está determinado por el orden de ingesta en el `audit-service` y es serializado por tenant en su base de datos, no depende del orden de llegada o retención en Kafka. Al ingerir cada evento, `audit-service` asigna el número de secuencia de la cadena por tenant; esa secuencia (no el offset de Kafka) es la que entra al hash y se firma.
 
 ## 6. Modelo de Datos y Silos
 

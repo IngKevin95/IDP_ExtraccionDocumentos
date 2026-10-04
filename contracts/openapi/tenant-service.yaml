@@ -1,0 +1,156 @@
+openapi: 3.1.0
+info:
+  title: Tenant Service API
+  description: API administrativa para gestión del ciclo de vida de Tenants (plataforma IDP).
+  version: 1.0.0
+servers:
+  - url: https://api.idp.example
+paths:
+  /v1/admin/tenants:
+    post:
+      summary: Aprovisiona un nuevo tenant
+      operationId: createTenant
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantCreateRequest'
+      responses:
+        '202':
+          description: Aprovisionamiento aceptado e iniciado asíncronamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /v1/admin/tenants/{id}:
+    delete:
+      summary: Inicia proceso de baja de un tenant
+      operationId: deleteTenant
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Baja aceptada (marcado PENDING_DELETION).
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflicto - El tenant posee legal_hold activo.
+  /v1/admin/tenants/{id}/config:
+    put:
+      summary: Actualiza configuración de plan y límites
+      operationId: updateTenantConfig
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantConfigUpdateRequest'
+      responses:
+        '200':
+          description: Configuración actualizada.
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/admin/tenants/{id}/legal-hold:
+    post:
+      summary: Aplica o libera retención legal
+      operationId: toggleLegalHold
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                active:
+                  type: boolean
+              required:
+                - active
+      responses:
+        '200':
+          description: Retención legal actualizada.
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    TenantCreateRequest:
+      type: object
+      required:
+        - name
+        - planId
+      properties:
+        name:
+          type: string
+          example: "Banco XYZ"
+        planId:
+          type: string
+          format: uuid
+    TenantConfigUpdateRequest:
+      type: object
+      required:
+        - planId
+      properties:
+        planId:
+          type: string
+          format: uuid
+        settings:
+          type: object
+          additionalProperties: true
+    TenantResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+          enum: [CREATING, ACTIVE, FAILED, PENDING_DELETION, DELETED]
+        planId:
+          type: string
+          format: uuid
+  responses:
+    BadRequest:
+      description: Petición inválida.
+    Forbidden:
+      description: Permisos insuficientes (requiere rol de plataforma).
+    NotFound:
+      description: Tenant no encontrado.

@@ -1,0 +1,214 @@
+openapi: 3.1.0
+info:
+  title: Chat Service API
+  description: API interna para el servicio de chat documental RAG sobre oficios judiciales extraídos.
+  version: 1.0.0
+servers:
+  - url: https://api.idp.example
+    description: Internal API Gateway routing
+paths:
+  /v1/chat/sessions:
+    post:
+      summary: Iniciar una sesión de chat documental
+      description: Crea una nueva sesión de chat asociada a un documento específico. Valida autorización.
+      operationId: createChatSession
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+      responses:
+        '201':
+          description: Sesión creada exitosamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatSessionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/chat/sessions/{sessionId}/messages:
+    post:
+      summary: Enviar un mensaje
+      description: Envía un mensaje a una sesión de chat existente y obtiene la respuesta del modelo con sus citas.
+      operationId: sendMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '200':
+          description: Respuesta generada exitosamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    CreateSessionRequest:
+      type: object
+      required:
+        - documentId
+      properties:
+        documentId:
+          type: string
+          format: uuid
+          description: ID del documento sobre el cual se realizará el chat.
+          example: "a3b2c1d4-e5f6-7890-1234-56789abcdef0"
+    
+    ChatSessionResponse:
+      type: object
+      required:
+        - id
+        - documentId
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID de la sesión creada.
+          example: "f0e1d2c3-b4a5-6789-0123-456789abcdef"
+        documentId:
+          type: string
+          format: uuid
+          example: "a3b2c1d4-e5f6-7890-1234-56789abcdef0"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-10-04T10:00:00Z"
+
+    SendMessageRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          description: Pregunta o mensaje del usuario.
+          example: "¿Cuál es el monto total embargado?"
+          maxLength: 1000
+
+    ChatMessageResponse:
+      type: object
+      required:
+        - id
+        - role
+        - content
+        - citations
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID del mensaje de respuesta.
+          example: "c4d3e2f1-a0b9-8765-4321-0987654321ab"
+        role:
+          type: string
+          enum: [assistant]
+          example: "assistant"
+        content:
+          type: string
+          description: Texto de la respuesta. Puede indicar insuficiencia de información.
+          example: "El monto total embargado es de $1,500,000.00 COP."
+        citations:
+          type: array
+          description: Lista de citas exactas que fundamentan la respuesta.
+          items:
+            $ref: '#/components/schemas/Citation'
+
+    Citation:
+      type: object
+      required:
+        - chunkId
+        - pageNumber
+        - exactQuote
+      properties:
+        chunkId:
+          type: string
+          format: uuid
+          description: ID del segmento de texto original.
+        pageNumber:
+          type: integer
+          description: Número de página donde se encuentra la cita.
+          example: 1
+        exactQuote:
+          type: string
+          description: Texto exacto extraído del documento original.
+          example: "ORDENA EL EMBARGO DE LOS FONDOS POR LA SUMA DE $1,500,000.00"
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+        - incidentId
+      properties:
+        code:
+          type: string
+          description: Código de error interno según la taxonomía.
+          example: "SEC-033-PROMPT-INJECTION"
+        message:
+          type: string
+          description: Mensaje descriptivo seguro (no revela detalles internos).
+          example: "La consulta ha sido bloqueada por políticas de seguridad."
+        incidentId:
+          type: string
+          format: uuid
+          description: ID de correlación para trazas y logs de seguridad.
+          example: "9a8b7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d"
+
+  responses:
+    BadRequest:
+      description: Request inválido o malformado (ej. prompt injection detectado).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Token ausente, inválido o expirado.
+    Forbidden:
+      description: Token válido, pero el usuario no tiene acceso al tenant, documento o sesión.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Recurso no encontrado (sesión o documento).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

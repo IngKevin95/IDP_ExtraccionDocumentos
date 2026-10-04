@@ -1,0 +1,351 @@
+openapi: 3.1.0
+info:
+  title: Audit Service API
+  description: |
+    API del Servicio de Auditoría para la exportación de expedientes firmados,
+    verificación forense de inmutabilidad de la cadena de hash y gestión de preservación legal (Legal Hold).
+  version: 1.0.0
+servers:
+  - url: https://api.idp.example
+    description: API Gateway
+security:
+  - bearerAuth: []
+paths:
+  /v1/audit/dossiers/{documentId}:
+    get:
+      summary: Exporta el expediente completo y firmado de un documento
+      description: |
+        Consolida la traza inmutable de todos los eventos asociados a un documento,
+        verifica la cadena de hash interna y firma el manifiesto usando la llave asimétrica (ed25519) del tenant.
+      operationId: getDocumentDossier
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          description: Identificador único del documento u oficio
+          schema:
+            type: string
+            format: uuid
+            example: "987e6543-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Expediente digital firmado exportado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditDossier'
+        '401':
+          description: No autenticado o token inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Acceso denegado (requiere rol Auditoría)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Documento no encontrado o sin eventos registrados para este tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/audit/verify:
+    get:
+      summary: Ejecuta verificación forense de la cadena de hash del tenant
+      description: |
+        Recorre la totalidad de la secuencia de eventos del tenant, valida la continuidad
+        de previous_hash contra current_hash y coteja los manifiestos anclados en el almacenamiento WORM.
+      operationId: verifyHashChain
+      parameters:
+        - name: startSequenceId
+          in: query
+          required: false
+          description: Secuencia inicial a verificar (opcional, por defecto 1)
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - name: endSequenceId
+          in: query
+          required: false
+          description: Secuencia final a verificar (opcional, por defecto la última registrada)
+          schema:
+            type: integer
+            minimum: 1
+            example: 5000
+      responses:
+        '200':
+          description: Reporte de verificación forense generado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChainVerificationReport'
+        '401':
+          description: No autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Acceso denegado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/audit/legal-hold:
+    post:
+      summary: Aplica o actualiza el estado de preservación legal (Legal Hold)
+      description: |
+        Bloquea la destrucción física o crypto-shredding de documentos o de un tenant completo,
+        garantizando su retención inmutable en el sistema.
+      operationId: applyLegalHold
+      parameters:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LegalHoldRequest'
+      responses:
+        '200':
+          description: Estado de Legal Hold aplicado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalHoldResponse'
+        '400':
+          description: Solicitud inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: No autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Acceso denegado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AuditDossier:
+      type: object
+      required:
+        - dossierId
+        - tenantId
+        - documentId
+        - generatedAt
+        - totalEvents
+        - events
+        - signature
+      properties:
+        dossierId:
+          type: string
+          format: uuid
+          example: "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"
+        tenantId:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        documentId:
+          type: string
+          format: uuid
+          example: "987e6543-e89b-12d3-a456-426614174000"
+        generatedAt:
+          type: string
+          format: date-time
+          example: "2026-10-04T15:30:00Z"
+        totalEvents:
+          type: integer
+          example: 5
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/DossierEvent'
+        signature:
+          type: object
+          required:
+            - algorithm
+            - keyId
+            - signatureValue
+          properties:
+            algorithm:
+              type: string
+              example: "ed25519"
+            keyId:
+              type: string
+              example: "vault:v1:tenant-123-audit-key"
+            signatureValue:
+              type: string
+              example: "z34kL89...mV90xQ=="
+
+    DossierEvent:
+      type: object
+      required:
+        - sequenceId
+        - eventType
+        - occurredAt
+        - currentHash
+        - previousHash
+        - payload
+      properties:
+        sequenceId:
+          type: integer
+          example: 1042
+        eventType:
+          type: string
+          example: "documento.recibido"
+        occurredAt:
+          type: string
+          format: date-time
+          example: "2026-10-04T10:15:00Z"
+        actorId:
+          type: string
+          example: "user-system-01"
+        currentHash:
+          type: string
+          example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        previousHash:
+          type: string
+          example: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+        payload:
+          type: object
+          description: Metadata contextual del evento (Claim-check sin PII)
+
+    ChainVerificationReport:
+      type: object
+      required:
+        - tenantId
+        - verifiedAt
+        - isChainIntact
+        - totalRecordsVerified
+        - wormAnchorsVerified
+        - errorsFound
+      properties:
+        tenantId:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        verifiedAt:
+          type: string
+          format: date-time
+          example: "2026-10-04T16:00:00Z"
+        isChainIntact:
+          type: boolean
+          example: true
+        totalRecordsVerified:
+          type: integer
+          example: 5000
+        wormAnchorsVerified:
+          type: integer
+          example: 5
+        errorsFound:
+          type: array
+          items:
+            $ref: '#/components/schemas/VerificationError'
+
+    VerificationError:
+      type: object
+      required:
+        - sequenceId
+        - errorType
+        - description
+      properties:
+        sequenceId:
+          type: integer
+          example: 1205
+        errorType:
+          type: string
+          enum: [HASH_MISMATCH, SEQUENCE_GAP, WORM_DISCREPANCY]
+          example: "HASH_MISMATCH"
+        description:
+          type: string
+          example: "El hash registrado no coincide con el recálculo SHA-256."
+
+    LegalHoldRequest:
+      type: object
+      required:
+        - action
+        - reason
+      properties:
+        action:
+          type: string
+          enum: [APPLY, RELEASE]
+          example: "APPLY"
+        documentId:
+          type: string
+          format: uuid
+          description: Opcional. Si se omite, aplica a todo el tenant.
+          example: "987e6543-e89b-12d3-a456-426614174000"
+        reason:
+          type: string
+          example: "Requerimiento judicial Ref-2026-894"
+
+    LegalHoldResponse:
+      type: object
+      required:
+        - holdId
+        - tenantId
+        - status
+        - appliedAt
+      properties:
+        holdId:
+          type: string
+          format: uuid
+          example: "f47ac10b-58cc-4372-a567-0e02b2c3d4e5"
+        tenantId:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        documentId:
+          type: string
+          format: uuid
+          example: "987e6543-e89b-12d3-a456-426614174000"
+        status:
+          type: string
+          enum: [ACTIVE, RELEASED]
+          example: "ACTIVE"
+        appliedAt:
+          type: string
+          format: date-time
+          example: "2026-10-04T15:45:00Z"
+        appliedBy:
+          type: string
+          example: "officer-legal-02"
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+        - timestamp
+      properties:
+        code:
+          type: string
+          example: "AUDIT_NOT_FOUND"
+        message:
+          type: string
+          example: "No se encontró el expediente del documento solicitado."
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-10-04T15:30:00Z"
+        details:
+          type: object

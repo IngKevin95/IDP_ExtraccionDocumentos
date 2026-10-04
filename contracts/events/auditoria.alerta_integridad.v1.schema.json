@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/auditoria.alerta_integridad/v1.json",
+  "title": "Auditoria Alerta Integridad Event",
+  "description": "Evento crítico de seguridad emitido cuando audit-service detecta una inconsistencia.",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "sequenceId",
+    "errorType"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "auditoria.alerta_integridad"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sequenceId": {
+      "type": "integer"
+    },
+    "errorType": {
+      "type": "string",
+      "enum": [
+        "HASH_MISMATCH",
+        "SEQUENCE_GAP",
+        "WORM_DISCREPANCY"
+      ]
+    },
+    "details": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}
