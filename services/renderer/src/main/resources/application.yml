@@ -1,8 +1,14 @@
 server:
   port: 8080
+  ssl:
+    client-auth: need
 spring:
   application:
     name: renderer
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
 management:
   endpoints:
     web:
@@ -12,3 +18,9 @@ management:
     health:
       probes:
         enabled: true
+renderer:
+  clamav:
+    host: 127.0.0.1
+    port: 3310
+  limits:
+    max-pages: 100
