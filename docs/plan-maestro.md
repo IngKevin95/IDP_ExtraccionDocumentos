@@ -137,12 +137,14 @@ Cada fase: rama desde `develop`, PR a `develop`, merge `--no-ff`. Ramas grandes 
 
 Orquestador: sesión de Claude Code (Sonnet preferente). Construye y audita OpenCode (`opencode run --model google/<modelo> --agent build|plan`). Opus real solo para desempate de auditorías de seguridad.
 
-| Rol | Constructor (`--agent build`) | Auditor (`--agent plan`, solo lectura) | Respaldo |
+| Rol | Constructor (OpenCode `--agent build`) | Auditor | Respaldo |
 |---|---|---|---|
-| DevOps mecánico (F0) | `antigravity-gemini-3-flash` | `antigravity-claude-sonnet-4-6` | Sonnet sesión |
-| Arquitecto (F1, F2) | `antigravity-claude-sonnet-4-6` / `antigravity-gemini-3.1-pro` | `antigravity-claude-opus-4-6-thinking` | `antigravity-gemini-3.1-pro` |
-| Security (matriz, tenancy, llaves, auditoría, webhooks, F7) | `antigravity-claude-sonnet-4-6` | Doble: `antigravity-claude-opus-4-6-thinking` + `antigravity-gemini-3.1-pro` | Opus sesión si discrepan |
-| DevOps (F3, F8) | `antigravity-gemini-3.1-pro` | `antigravity-claude-sonnet-4-6` + pase Stack | `antigravity-gemini-3-flash` |
-| Backend (F4-F6) | `antigravity-claude-sonnet-4-6` | `antigravity-claude-opus-4-6-thinking` + pase Stack con `antigravity-gemini-3.1-pro` | `antigravity-gemini-3.1-pro` |
+| Arquitecto y specs (F1, F2) | `antigravity-gemini-3.1-pro` | Subagente Claude Sonnet (solo lectura) | `antigravity-gemini-3-flash` |
+| Security (matriz, tenancy, llaves, auditoría, webhooks, F7) | `antigravity-gemini-3.1-pro` | Doble: subagente Claude Sonnet + `antigravity-gemini-3-flash` (`--agent plan`) | Opus solo si discrepan |
+| DevOps (F3, F8) | `antigravity-gemini-3.1-pro` | Subagente Claude Sonnet + pase Stack | `antigravity-gemini-3-flash` |
+| Backend (F4-F6) | `antigravity-gemini-3.1-pro` | Subagente Claude Sonnet + pase Stack | Claude Sonnet |
+| Mecánico (fixtures, boilerplate de tests) | `antigravity-gemini-3-flash` | Auditor de la fase | — |
+
+Nota 2026-10-04: los modelos Claude vía Antigravity (`antigravity-claude-sonnet-4-6`, `antigravity-claude-opus-4-6-thinking`) dejaron de estar disponibles; se reemplazan por Gemini como constructor y Claude Sonnet como auditor.
 
 Ciclo por tarea: prompt autocontenido desde `tasks.md` → constructor en worktree → verificación local (build/tests) → auditor en sesión separada con veredicto `VEREDICTO: APROBADO|CAMBIOS` + hallazgos archivo:línea → hasta 3 vueltas reanudando la sesión del constructor → commit y PR por el orquestador. OpenCode nunca hace commit ni push. Commits sin co-autoría de IA. Logs en `.oc-logs/` (ignorado). `sessionID` de constructor y auditor en cada PR.
