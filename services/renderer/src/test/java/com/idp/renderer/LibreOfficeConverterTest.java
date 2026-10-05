@@ -65,7 +65,13 @@ class LibreOfficeConverterTest {
 
     @Test
     void ac02_timeoutDelProceso_matadoYReportadoComoErrTimeout() throws Exception {
-        LibreOfficeConverter c = new LibreOfficeConverter(props(JAVA, Duration.ofMillis(1)));
+        // Script que realmente se queda dormido: con un binario que falla al instante el resultado dependia
+        // de una carrera entre la salida del proceso y el vencimiento del plazo.
+        boolean windows = System.getProperty("os.name").toLowerCase().contains("win");
+        Path sleeper = dir.resolve(windows ? "sleeper.cmd" : "sleeper.sh");
+        Files.writeString(sleeper, windows ? "@ping -n 30 127.0.0.1 >nul\r\n" : "#!/bin/sh\nsleep 30\n");
+        assertThat(sleeper.toFile().setExecutable(true)).isTrue();
+        LibreOfficeConverter c = new LibreOfficeConverter(props(sleeper.toString(), Duration.ofMillis(300)));
         assertThatThrownBy(() -> c.convertToPdf(docx(), work()))
                 .isInstanceOfSatisfying(RenderException.class, e -> {
                     assertThat(e.status()).isEqualTo(500);

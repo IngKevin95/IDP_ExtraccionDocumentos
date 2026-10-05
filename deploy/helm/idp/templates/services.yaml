@@ -4,6 +4,10 @@
 {{- if and (ne $serviceName "global") (kindIs "map" $serviceValues) }}
 {{- if $serviceValues.enabled }}
 {{- $ctx := dict "Values" (merge (deepCopy $serviceValues) (deepCopy $root.Values.global)) "Chart" (dict "Name" ($serviceName | kebabcase)) "Release" $root.Release "Capabilities" $root.Capabilities -}}
+{{- $wl := include "idp.workload" (dict "root" $root "key" $serviceName "values" $serviceValues) | fromYaml -}}
+{{- $_ := set $ctx.Values "env" $wl.env -}}
+{{- $_ := set $ctx.Values "extraVolumes" $wl.extraVolumes -}}
+{{- $_ := set $ctx.Values "extraVolumeMounts" $wl.extraVolumeMounts -}}
 ---
 {{ include "idp-common.deployment" $ctx }}
 ---

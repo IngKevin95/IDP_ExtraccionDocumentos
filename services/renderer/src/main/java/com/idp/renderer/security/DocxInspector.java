@@ -8,6 +8,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Enumeration;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
@@ -25,6 +27,12 @@ public class DocxInspector {
     private static final int MAX_SCAN_BYTES = 32 << 20;
     private static final int FIELD_WINDOW = 600;
     private static final String[] REMOTE_MARKERS = {"http:", "https:", "ftp:", "file:", "\\\\", "//"};
+
+    private static final Pattern TAG = Pattern.compile("<[^>]*>");
+    private static final Pattern ATTR = Pattern.compile("([^\\s=/<>\"']+)\\s*=\\s*(\"[^\"]*\"|'[^']*')");
+    private static final Pattern SCHEME = Pattern.compile("^[a-zA-Z][a-zA-Z0-9+.\\-]*:");
+    private static final Pattern PREDEFINED_ONLY = Pattern.compile(
+            "(?s)(?:[^&]|&(?:amp|lt|gt|quot|apos);)*");
 
     private final long maxUncompressed;
 
@@ -80,10 +88,13 @@ public class DocxInspector {
                         }
                     }
                     if (scan != null) {
-                        String text = scan.toString(StandardCharsets.ISO_8859_1);
+                        byte[] raw = scan.toByteArray();
+                        rejectOpaqueEncoding(raw);
+                        String text = new String(raw, StandardCharsets.ISO_8859_1);
                         if (rels) {
                             rejectExternalTargets(text);
                         } else {
+                            rejectAttributeEntities(text);
                             rejectRemoteFields(text);
                         }
                     }
@@ -105,11 +116,74 @@ public class DocxInspector {
         }
     }
 
-    /** Relaciones con TargetMode="External" (plantillas o imagenes remotas): inspeccion por tokens, sin XML. */
+    /** BOM UTF-16/32 o bytes NUL (UTF-16 sin BOM): codificaciones que evaden la inspeccion por tokens. */
+    static void rejectOpaqueEncoding(byte[] raw) {
+        if (raw.length >= 2 && ((raw[0] & 0xFF) == 0xFF && (raw[1] & 0xFF) == 0xFE
+                || (raw[0] & 0xFF) == 0xFE && (raw[1] & 0xFF) == 0xFF)) {
+            throw RenderException.activeContent("Codificacion de parte XML no permitida.");
+        }
+        for (byte b : raw) {
+            if (b == 0) {
+                throw RenderException.activeContent("Parte XML con bytes NUL no permitida.");
+            }
+        }
+    }
+
+    /**
+     * Allowlist de relaciones: cada Target debe ser relativo (sin esquema, sin ruta absoluta o UNC) y no puede
+     * existir TargetMode. Inspeccion por tokens, sin parsear XML; cualquier referencia de entidad se rechaza.
+     */
     static void rejectExternalTargets(String rels) {
-        String compact = stripWhitespaceAndQuotes(rels.toLowerCase(Locale.ROOT));
-        if (compact.contains("targetmode=external")) {
-            throw RenderException.activeContent("El documento referencia recursos externos.");
+        rejectDoctype(rels);
+        Matcher tags = TAG.matcher(rels);
+        while (tags.find()) {
+            String tag = tags.group();
+            if (tag.indexOf('&') >= 0) {
+                throw RenderException.activeContent("Referencias de entidad no permitidas en relaciones.");
+            }
+            String lower = tag.toLowerCase(Locale.ROOT);
+            if (!lower.startsWith("<relationship") || lower.startsWith("<relationships")) {
+                continue;
+            }
+            String target = null;
+            Matcher attrs = ATTR.matcher(tag);
+            while (attrs.find()) {
+                String attr = attrs.group(1).toLowerCase(Locale.ROOT);
+                if (attr.equals("targetmode")) {
+                    throw RenderException.activeContent("El documento declara TargetMode.");
+                }
+                if (attr.equals("target")) {
+                    target = attrs.group(2).substring(1, attrs.group(2).length() - 1);
+                }
+            }
+            if (target == null || !isRelative(target)) {
+                throw RenderException.activeContent("El documento referencia recursos externos.");
+            }
+        }
+    }
+
+    private static boolean isRelative(String target) {
+        String t = target.strip();
+        return !t.isEmpty() && !t.startsWith("/") && !t.startsWith("\\") && !t.contains("\\\\")
+                && !SCHEME.matcher(t).find();
+    }
+
+    private static void rejectDoctype(String xml) {
+        String lower = xml.toLowerCase(Locale.ROOT);
+        if (lower.contains("<!doctype") || lower.contains("<!entity")) {
+            throw RenderException.activeContent("DOCTYPE no permitido.");
+        }
+    }
+
+    /** En word/*.xml se rechazan referencias de caracter o entidades no predefinidas dentro de etiquetas. */
+    static void rejectAttributeEntities(String xml) {
+        rejectDoctype(xml);
+        Matcher tags = TAG.matcher(xml);
+        while (tags.find()) {
+            String tag = tags.group();
+            if (tag.indexOf('&') >= 0 && !PREDEFINED_ONLY.matcher(tag).matches()) {
+                throw RenderException.activeContent("Referencias de caracter no permitidas en atributos.");
+            }
         }
     }
 
@@ -129,17 +203,6 @@ public class DocxInspector {
                 from = at + field.length();
             }
         }
-    }
-
-    private static String stripWhitespaceAndQuotes(String s) {
-        StringBuilder sb = new StringBuilder(s.length());
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if (!Character.isWhitespace(c) && c != '"' && c != '\'') {
-                sb.append(c);
-            }
-        }
-        return sb.toString();
     }
 
     private static String stripTags(String s) {

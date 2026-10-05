@@ -39,6 +39,10 @@ spring:
 
 server:
   port: 8088
+  # Tomcat resuelve la IP del cliente desde X-Forwarded-For (RemoteIpValve): request.getRemoteAddr() ya es la IP
+  # real. Es seguro porque solo el edge-gateway alcanza este pod (NetworkPolicy ingress en deploy/helm); sin esa
+  # restriccion el header seria falsificable y el limite por IP eludible.
+  forward-headers-strategy: native
 
 idp:
   security:
@@ -71,6 +75,11 @@ idp:
         transit-mount: ${OPENBAO_TRANSIT_MOUNT:transit}
     revalidation:
       cache-ttl-seconds: 30
+    public-verify:
+      max-body-bytes: ${AUDIT_PUBLIC_VERIFY_MAX_BODY_BYTES:1048576}
+      rate-per-minute: ${AUDIT_PUBLIC_VERIFY_RATE_PER_MINUTE:30}
+      # Tope global (todas las IPs) contra abuso distribuido.
+      global-rate-per-minute: ${AUDIT_PUBLIC_VERIFY_GLOBAL_RATE_PER_MINUTE:600}
 
 management:
   endpoints:

@@ -25,6 +25,7 @@ import org.springframework.http.MediaType;
 class OffboardingApiTest extends ApiTestSupport {
     @Autowired TenantRepository tenants;
     @Autowired OffboardingService offboarding;
+    @Autowired com.idp.tenant.infrastructure.persistence.ApprovalRepository approvalsRepo;
     @Autowired com.idp.tenant.infrastructure.persistence.LegalHoldRepository holdsRepo;
 
     private void legalHold(UUID id, boolean active) throws Exception {
@@ -161,6 +162,46 @@ class OffboardingApiTest extends ApiTestSupport {
         assertEquals(TenantStatus.FAILED, tenants.find(id).orElseThrow().status());
         assertEquals(0, offboarding.shredDueTenants());
         assertFalse(keys.disabled.contains("t-" + id + "-data"));
+    }
+
+    @Test
+    void k4_kekInexistenteSeTrataComoExitoIdempotente() throws Exception {
+        UUID id = createTenant();
+        approveDelete(id);
+        makeOverdue(id);
+        keys.disableFailure = new com.idp.kms.KeyService.KeyNotFoundException("kek ya destruida");
+        try {
+            assertEquals(1, offboarding.shredDueTenants());
+        } finally {
+            keys.disableFailure = null;
+        }
+        assertEquals(TenantStatus.DELETED, tenants.find(id).orElseThrow().status());
+        assertEquals(0, offboarding.shredDueTenants());
+    }
+
+    @Test
+    void k4_aprobacionYaResueltaDevuelveConflicto() throws Exception {
+        UUID tenant = createTenant();
+        approvalsRepo.insert(tenant, "DELETE_TENANT", tenant.toString(), "admin1", java.time.Instant.now());
+        UUID reqId = approvalsRepo.findPending(tenant, "DELETE_TENANT", tenant.toString(),
+                java.time.Instant.now().minusSeconds(60)).orElseThrow().id();
+        assertTrue(approvalsRepo.approve(reqId, "admin2", java.time.Instant.now()));
+        assertFalse(approvalsRepo.approve(reqId, "admin3", java.time.Instant.now()));
+    }
+
+    @Test
+    void k4_servicioDeAprobacionLanzaConflictoSiLaSolicitudSeResolvioEnCarrera() {
+        var repo = org.mockito.Mockito.mock(com.idp.tenant.infrastructure.persistence.ApprovalRepository.class);
+        UUID req = UUID.randomUUID();
+        org.mockito.Mockito.when(repo.findPending(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(java.util.Optional.of(
+                        new com.idp.tenant.infrastructure.persistence.ApprovalRepository.Pending(req, "admin1")));
+        org.mockito.Mockito.when(repo.approve(org.mockito.ArgumentMatchers.eq(req),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(false);
+        var svc = new com.idp.tenant.application.ApprovalService(repo, java.time.Clock.systemUTC());
+        org.junit.jupiter.api.Assertions.assertThrows(com.idp.tenant.domain.Exceptions.ConflictException.class,
+                () -> svc.requestOrApprove(UUID.randomUUID(), "DELETE_TENANT", "t", "admin2"));
     }
 
     @Test

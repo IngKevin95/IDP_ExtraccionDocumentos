@@ -1,5 +1,6 @@
 package com.idp.tenant.application;
 
+import com.idp.tenant.domain.Exceptions.ConflictException;
 import com.idp.tenant.infrastructure.persistence.ApprovalRepository;
 import java.time.Clock;
 import java.time.Duration;
@@ -43,7 +44,9 @@ public class ApprovalService {
         if (pending.get().requestedBy().equals(actor)) {
             return new Result(Outcome.REQUESTED, actor);
         }
-        approvals.approve(pending.get().id(), actor, now);
+        if (!approvals.approve(pending.get().id(), actor, now)) {
+            throw new ConflictException("La solicitud ya fue resuelta");
+        }
         return new Result(Outcome.APPROVED, pending.get().requestedBy());
     }
 }

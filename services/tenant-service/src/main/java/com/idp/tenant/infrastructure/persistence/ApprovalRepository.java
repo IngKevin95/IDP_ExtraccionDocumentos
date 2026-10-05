@@ -32,8 +32,10 @@ public class ApprovalRepository {
                 .param("r", requestedBy).param("n", Db.odt(now)).update();
     }
 
-    public void approve(UUID id, String approvedBy, Instant now) {
-        jdbc.sql("UPDATE approval_request SET status = 'APPROVED', approved_by = :b, approved_at = :n WHERE id = :id")
-                .param("b", approvedBy).param("n", Db.odt(now)).param("id", id).update();
+    /** Transicion atomica PENDING a APPROVED; devuelve false si otra aprobacion ya resolvio la solicitud. */
+    public boolean approve(UUID id, String approvedBy, Instant now) {
+        return jdbc.sql("UPDATE approval_request SET status = 'APPROVED', approved_by = :b, approved_at = :n "
+                        + "WHERE id = :id AND status = 'PENDING'")
+                .param("b", approvedBy).param("n", Db.odt(now)).param("id", id).update() == 1;
     }
 }

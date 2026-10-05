@@ -25,14 +25,14 @@ class PublicVerifyGuardFilterTest {
 
     @Test
     void h3_cuerpoMayorAlLimiteSeRechazaCon413() throws Exception {
-        PublicVerifyGuardFilter f = new PublicVerifyGuardFilter(1024, 100);
+        PublicVerifyGuardFilter f = new PublicVerifyGuardFilter(1024, 100, 1000);
         assertEquals(200, run(f, post(new byte[1024], "1.1.1.1")));
         assertEquals(413, run(f, post(new byte[1025], "1.1.1.1")));
     }
 
     @Test
     void h3_limiteDeTasaPorIpResponde429SinAfectarOtrasIps() throws Exception {
-        PublicVerifyGuardFilter f = new PublicVerifyGuardFilter(1024, 3);
+        PublicVerifyGuardFilter f = new PublicVerifyGuardFilter(1024, 3, 1000);
         for (int i = 0; i < 3; i++) {
             assertEquals(200, run(f, post(new byte[10], "2.2.2.2")));
         }
@@ -42,10 +42,31 @@ class PublicVerifyGuardFilterTest {
 
     @Test
     void h3_soloAplicaALasRutasPublicas() throws Exception {
-        PublicVerifyGuardFilter f = new PublicVerifyGuardFilter(10, 1);
+        PublicVerifyGuardFilter f = new PublicVerifyGuardFilter(10, 1, 1000);
         for (int i = 0; i < 5; i++) {
             MockHttpServletRequest r = new MockHttpServletRequest("GET", "/v1/audit/verify");
             assertEquals(200, run(f, r));
         }
+    }
+
+    @Test
+    void h3_topeGlobalResponde429AunqueCadaIpEsteBajoSuLimite() throws Exception {
+        PublicVerifyGuardFilter f = new PublicVerifyGuardFilter(1024, 100, 3);
+        for (int i = 0; i < 3; i++) {
+            assertEquals(200, run(f, post(new byte[10], "10.0.0." + i)));
+        }
+        assertEquals(429, run(f, post(new byte[10], "10.0.0.99")));
+    }
+
+    @Test
+    void h3_usaLaIpResueltaPorElContenedor() throws Exception {
+        PublicVerifyGuardFilter f = new PublicVerifyGuardFilter(1024, 1, 1000);
+        MockHttpServletRequest a = post(new byte[10], "7.7.7.7");
+        a.addHeader("X-Forwarded-For", "9.9.9.9");
+        MockHttpServletRequest b = post(new byte[10], "7.7.7.7");
+        b.addHeader("X-Forwarded-For", "8.8.8.8");
+        assertEquals(200, run(f, a));
+        // El filtro no relee X-Forwarded-For: el cliente no puede rotar la clave del limite con el header.
+        assertEquals(429, run(f, b));
     }
 }

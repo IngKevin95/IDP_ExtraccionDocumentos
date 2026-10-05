@@ -23,6 +23,15 @@ spec:
         operation: Describe
       - resource: { type: group, name: document-service, patternType: literal }
         operation: Read
+      - resource: { type: topic, name: idp.tenant.events, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: idp.tenant.events, patternType: literal }
+        operation: Describe
+      - resource: { type: group, name: document-service-acceso-revocado-, patternType: prefix }
+        operation: Read
+      - resource: { type: group, name: document-service-pool-evict-, patternType: prefix }
+        operation: Read
+
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaUser
@@ -49,6 +58,15 @@ spec:
         operation: Describe
       - resource: { type: group, name: extraction-service, patternType: literal }
         operation: Read
+      - resource: { type: topic, name: idp.tenant.events, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: idp.tenant.events, patternType: literal }
+        operation: Describe
+      - resource: { type: group, name: extraction-service-acceso-revocado-, patternType: prefix }
+        operation: Read
+      - resource: { type: group, name: extraction-service-pool-evict-, patternType: prefix }
+        operation: Read
+
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaUser
@@ -187,6 +205,15 @@ spec:
         operation: Describe
       - resource: { type: group, name: audit-service, patternType: literal }
         operation: Read
+      - resource: { type: topic, name: idp.tenant.events, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: idp.tenant.events, patternType: literal }
+        operation: Describe
+      - resource: { type: group, name: audit-service-acceso-revocado-, patternType: prefix }
+        operation: Read
+      - resource: { type: group, name: audit-service-pool-evict-, patternType: prefix }
+        operation: Read
+
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaUser
@@ -209,3 +236,13 @@ spec:
         operation: Write
       - resource: { type: topic, name: auditoria.eventos, patternType: literal }
         operation: Describe
+      - resource: { type: topic, name: idp.tenant.events, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: idp.tenant.events, patternType: literal }
+        operation: Describe
+      - resource: { type: topic, name: idp.tenant.events, patternType: literal }
+        operation: Write
+      - resource: { type: group, name: tenant-service-acceso-revocado-, patternType: prefix }
+        operation: Read
+      - resource: { type: group, name: tenant-service-pool-evict-, patternType: prefix }
+        operation: Read

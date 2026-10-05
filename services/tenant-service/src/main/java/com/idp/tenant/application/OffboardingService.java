@@ -109,6 +109,9 @@ public class OffboardingService {
             if (config != null && config.dataKekId() != null) {
                 keyService.disableKek(new TenantId(id.toString()), config.dataKekId());
             }
+        } catch (KeyService.KeyNotFoundException e) {
+            // La KEK ya no existe: el shredding ya ocurrio (reintento tras fallo parcial). Exito idempotente.
+            LOG.info("KEK de datos ya inexistente, shredding idempotente tenant={}", id);
         } catch (IllegalArgumentException | UnsupportedOperationException e) {
             // Error terminal (KEK invalida o KMS sin configurar): reintentar no lo arregla. Se saca de la cola.
             LOG.error("ALERTA shredding fallido terminal, requiere intervencion tenant={} causa={}", id,

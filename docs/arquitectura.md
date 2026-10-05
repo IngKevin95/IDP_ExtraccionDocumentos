@@ -196,6 +196,7 @@ Patrón claim-check estricto: cero PII en eventos Kafka. Se usan identificadores
 |---|---|---|---|---|---|---|
 | `dominio.documentos` | Pipeline | `documentId` | 12 | 7 días | `document-service`, `extraction-service`, `review-service`, `tenant-service`, `notification-service`, `chat-service` | `document-service`, `extraction-service`, `review-service`, `notification-service`, `chat-service`, `quality-service`, `audit-service` |
 | `auditoria.eventos` | Auditoría | `tenantId` | 6 | 365 días | Todos (para eventos exclusivos de seguridad) | `audit-service` |
+| `idp.tenant.events` | Control de tenant | `tenantId` | 3 | 7 días | `tenant-service` (outbox) | `document-service`, `audit-service`, `extraction-service`, `tenant-service` (grupos efímeros `<app>-acceso-revocado-*` y `<app>-pool-evict-*`, `auto.offset.reset=latest`; eventos `acceso.revocado`, `tenant.baja_iniciada`, `tenant.credenciales_rotadas`) |
 
 El `audit-service` consume todos los tópicos de dominio con su propio consumer group independiente. Los eventos exclusivos de seguridad van al tópico `auditoria.eventos`. El orden de la cadena de hash (hash-chain) está determinado por el orden de ingesta en el `audit-service` y es serializado por tenant en su base de datos, no depende del orden de llegada o retención en Kafka. Al ingerir cada evento, `audit-service` asigna el número de secuencia de la cadena por tenant; esa secuencia (no el offset de Kafka) es la que entra al hash y se firma.
 

@@ -23,7 +23,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Proteccion del endpoint publico de verificacion de firma: cuerpo maximo (1 MB por defecto) y limite de tasa
- * por IP (token bucket en memoria). Responde 413 / 429 sin tocar el KMS ni la base.
+ * por IP y global (token bucket en memoria). La IP es la resuelta por Tomcat (forward-headers-strategy=native):
+ * solo el gateway llega al pod por NetworkPolicy, asi que X-Forwarded-For es confiable. El tope global acota
+ * el abuso distribuido (muchas IPs). Responde 413 / 429 sin tocar el KMS ni la base.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
@@ -51,14 +53,19 @@ public class PublicVerifyGuardFilter extends OncePerRequestFilter {
 
     private final long maxBodyBytes;
     private final int perMinute;
+    private final int globalPerMinute;
+    private final Bucket global;
     private final Cache<String, Bucket> buckets = Caffeine.newBuilder()
             .maximumSize(50_000).expireAfterAccess(Duration.ofMinutes(10)).build();
 
     public PublicVerifyGuardFilter(
             @Value("${idp.audit.public-verify.max-body-bytes:1048576}") long maxBodyBytes,
-            @Value("${idp.audit.public-verify.rate-per-minute:30}") int perMinute) {
+            @Value("${idp.audit.public-verify.rate-per-minute:30}") int perMinute,
+            @Value("${idp.audit.public-verify.global-rate-per-minute:600}") int globalPerMinute) {
         this.maxBodyBytes = maxBodyBytes;
         this.perMinute = Math.max(1, perMinute);
+        this.globalPerMinute = Math.max(1, globalPerMinute);
+        this.global = new Bucket(this.globalPerMinute, System.nanoTime());
     }
 
     @Override
@@ -70,8 +77,10 @@ public class PublicVerifyGuardFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         long now = System.nanoTime();
+        // request.getRemoteAddr() ya es la IP resuelta por Tomcat (RemoteIpValve, strategy native).
         Bucket bucket = buckets.get(request.getRemoteAddr(), k -> new Bucket(perMinute, now));
-        if (!bucket.tryTake(perMinute, perMinute / 60_000_000_000d, now)) {
+        if (!bucket.tryTake(perMinute, perMinute / 60_000_000_000d, now)
+                || !global.tryTake(globalPerMinute, globalPerMinute / 60_000_000_000d, now)) {
             response.setHeader("Retry-After", "60");
             response.sendError(429);
             return;
