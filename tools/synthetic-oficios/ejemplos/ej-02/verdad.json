@@ -1,0 +1,90 @@
+{
+  "esquema": "oficio-sintetico/1",
+  "id": "ej-02",
+  "tipologia": "embargos.v1.ej",
+  "codigo": "EJ",
+  "semilla": 7001,
+  "indice": 2,
+  "numero_oficio": "S-2024-2948728",
+  "campos": {
+    "radicado": "66001770400220246547200",
+    "autoridad_emisora": "Juzgado Cuarto Promiscuo Municipal de Pereira",
+    "ciudad": "Pereira",
+    "fecha_oficio": "2024-08-20",
+    "tipo_medida": "Embargo judicial",
+    "banco_destinatario": "Banco Andino Sintético S.A.",
+    "monto_numeros": "170933000.00",
+    "monto_letras": "CIENTO SETENTA Y UN MILLONES SEISCIENTOS TREINTA Y TRES MIL PESOS M/CTE",
+    "limite_inembargabilidad": "4000000.00",
+    "productos_o_cuentas": "cuentas de ahorro",
+    "juzgado": "Juzgado Cuarto Promiscuo Municipal de Pereira",
+    "clase_proceso": "Ejecutivo con garantía real",
+    "demandante": "Comercializadora Los Álamos S.A.S."
+  },
+  "campos_criticos": [
+    "radicado",
+    "tipo_medida",
+    "monto_numeros",
+    "productos_o_cuentas"
+  ],
+  "tablas": {
+    "demandados": [
+      {
+        "nombre": "Inversiones del Caribe S.A.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999766458-1",
+        "monto": "8958000.00",
+        "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Mauricio Salcedo Salcedo",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "1148530408",
+        "monto": "39223000.00",
+        "productos": "Fondo de inversión"
+      },
+      {
+        "nombre": "Luis Cardona Quintero",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "1103087865",
+        "monto": "36817000.00",
+        "productos": "Fondo de inversión"
+      },
+      {
+        "nombre": "Jorge Castaño Vargas",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "90461722",
+        "monto": "44404000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Transportes Cafetera S.A.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "890463233-5",
+        "monto": "41531000.00",
+        "productos": "Cuenta de ahorros"
+      }
+    ]
+  },
+  "suma_filas_demandados": "170933000.00",
+  "defectos": [
+    {
+      "tipo": "MONTO_INCONSISTENTE",
+      "campo": "monto_letras",
+      "detalle": "letras equivalen a 171633000 y numeros a 170933000"
+    }
+  ],
+  "inyeccion_prompt": {
+    "presente": false,
+    "regla_esperada": null
+  },
+  "validadores_esperados": {
+    "radicado_23_digitos": "PASS",
+    "fechas_coherentes": "PASS",
+    "monto_numeros_letras": "FAIL",
+    "juzgado_catalogo": "PASS",
+    "tipo_doc_valido": "PASS",
+    "cedula_nit_condicional": "PASS",
+    "suma_tabla": "PASS"
+  }
+}

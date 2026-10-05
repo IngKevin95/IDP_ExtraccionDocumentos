@@ -1,0 +1,71 @@
+{
+  "esquema": "oficio-sintetico/1",
+  "id": "dj-01",
+  "tipologia": "embargos.v1.dj",
+  "codigo": "DJ",
+  "semilla": 7001,
+  "indice": 1,
+  "numero_oficio": "S-2025-3857742",
+  "campos": {
+    "radicado": "68001560800220256240700",
+    "autoridad_emisora": "Juzgado Primero Civil Municipal de Bucaramanga",
+    "ciudad": "Bucaramanga",
+    "fecha_oficio": "2025-02-26",
+    "tipo_medida": "Desembargo judicial",
+    "banco_destinatario": "Banco Cafetero Demo S.A.",
+    "monto_numeros": "122343000.00",
+    "monto_letras": "CIENTO VEINTIDÓS MILLONES TRESCIENTOS CUARENTA Y TRES MIL PESOS M/CTE",
+    "limite_inembargabilidad": null,
+    "productos_o_cuentas": "cuentas de ahorro programado",
+    "juzgado": "Juzgado Primero Civil Municipal de Bucaramanga",
+    "clase_proceso": "Cobro de pagaré",
+    "demandante": "Inmobiliaria Andina Ltda.",
+    "referencia_oficio_original": "Oficio 2024-881369 del 12 de octubre de 2024"
+  },
+  "campos_criticos": [
+    "radicado",
+    "tipo_medida",
+    "monto_numeros",
+    "productos_o_cuentas"
+  ],
+  "tablas": {
+    "demandados": [
+      {
+        "nombre": "Hernán Guerrero Castaño",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "61239812",
+        "monto": "24927000.00",
+        "productos": "Fondo de inversión"
+      },
+      {
+        "nombre": "Jorge Beltrán Restrepo",
+        "tipo_identificacion": "CE",
+        "numero_identificacion": "37062618",
+        "monto": "48386000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Sandra Duarte Cifuentes",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "54083940",
+        "monto": "49030000.00",
+        "productos": "Ahorro programado"
+      }
+    ]
+  },
+  "suma_filas_demandados": "122343000.00",
+  "defectos": [ ],
+  "inyeccion_prompt": {
+    "presente": false,
+    "regla_esperada": null
+  },
+  "validadores_esperados": {
+    "radicado_23_digitos": "PASS",
+    "fechas_coherentes": "PASS",
+    "monto_numeros_letras": "PASS",
+    "juzgado_catalogo": "PASS",
+    "tipo_doc_valido": "PASS",
+    "cedula_nit_condicional": "PASS",
+    "suma_tabla": "PASS"
+  }
+}

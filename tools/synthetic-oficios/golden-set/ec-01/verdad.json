@@ -1,0 +1,89 @@
+{
+  "esquema": "oficio-sintetico/1",
+  "id": "ec-01",
+  "tipologia": "embargos.v1.ec",
+  "codigo": "EC",
+  "semilla": 20260101,
+  "indice": 1,
+  "numero_oficio": "S-2024-2069468",
+  "campos": {
+    "radicado": "05001750401420222399901",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Oficina de Rentas de Medellín",
+    "ciudad": "Medellín",
+    "fecha_oficio": "2024-12-30",
+    "tipo_medida": "Embargo coactivo",
+    "banco_destinatario": "Banco Cafetero Demo S.A.",
+    "monto_numeros": "226717000.00",
+    "monto_letras": "DOSCIENTOS VEINTISÉIS MILLONES SETECIENTOS DIECISIETE MIL PESOS M/CTE",
+    "limite_inembargabilidad": null,
+    "productos_o_cuentas": "productos de depósito en general, cuentas corrientes y cuentas de ahorro programado",
+    "entidad_coactiva": "Oficina de Rentas de Medellín",
+    "numero_resolucion": "RES-2024-556063"
+  },
+  "campos_criticos": [
+    "radicado",
+    "tipo_medida",
+    "monto_numeros",
+    "productos_o_cuentas"
+  ],
+  "tablas": {
+    "demandados": [
+      {
+        "nombre": "Comercializadora Solar S.A.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "956121932-7",
+        "monto": "32247000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Luis Duarte Salcedo",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "1163250384",
+        "monto": "59365000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Mauricio Cardona Rojas",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "85202137",
+        "monto": "16826000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Carlos Salcedo Zapata",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "83754361",
+        "monto": "12985000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Andrea Rojas Arango",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "14549759",
+        "monto": "45592000.00",
+        "productos": "Fondo de inversión"
+      },
+      {
+        "nombre": "Claudia Duarte Ibáñez",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "41528370",
+        "monto": "59702000.00",
+        "productos": "Cuenta corriente"
+      }
+    ]
+  },
+  "suma_filas_demandados": "226717000.00",
+  "defectos": [ ],
+  "inyeccion_prompt": {
+    "presente": false,
+    "regla_esperada": null
+  },
+  "validadores_esperados": {
+    "radicado_23_digitos": "PASS",
+    "fechas_coherentes": "PASS",
+    "monto_numeros_letras": "PASS",
+    "tipo_doc_valido": "PASS",
+    "cedula_nit_condicional": "PASS",
+    "suma_tabla": "PASS"
+  }
+}

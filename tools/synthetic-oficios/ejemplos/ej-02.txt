@@ -1,0 +1,104 @@
+### Ejemplo ej-02 (oficio sintético, sin datos personales reales)
+--- TEXTO DEL OFICIO ---
+JUZGADO CUARTO PROMISCUO MUNICIPAL DE PEREIRA
+
+Pereira, 20 de agosto de 2024
+Oficio No. S-2024-2948728
+
+Señores
+Banco Andino Sintético S.A.
+
+Referencia: Embargo judicial
+Radicado: 66001770400220246547200
+Clase de proceso: Ejecutivo con garantía real
+Demandante: Comercializadora Los Álamos S.A.S.
+
+El Juzgado Cuarto Promiscuo Municipal de Pereira, dentro del proceso de la referencia, ha decretado
+el embargo y la retención de los dineros depositados o que se llegaren a depositar a cualquier título en
+esa entidad, en los siguientes productos: cuentas de ahorro, de propiedad de las personas
+relacionadas a continuación, hasta por las sumas indicadas.
+
+Relación de demandados:
+
+Nombre / Razón social Tipo ID Número ID Monto ($) Productos
+
+Inversiones del Caribe S.A. NIT 999766458-1 8.958.000 Cuenta corriente
+
+Mauricio Salcedo Salcedo CC 1148530408 39.223.000 Fondo de inversión
+
+Luis Cardona Quintero CC 1103087865 36.817.000 Fondo de inversión
+
+Jorge Castaño Vargas CC 90461722 44.404.000 Cuenta de ahorros
+
+Transportes Cafetera S.A. NIT 890463233-5 41.531.000 Cuenta de ahorros
+
+Valor total a embargar: $ 170.933.000 (CIENTO SETENTA Y UN MILLONES SEISCIENTOS
+TREINTA Y TRES MIL PESOS M/CTE).
+Límite de inembargabilidad: $ 4.000.000.
+
+Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
+
+Atentamente,
+
+______________________________
+Secretaría del despacho
+
+DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - ej-02 - pág. 1
+
+--- SALIDA ESPERADA (JSON) ---
+{
+  "campos": {
+    "radicado": "66001770400220246547200",
+    "autoridad_emisora": "Juzgado Cuarto Promiscuo Municipal de Pereira",
+    "ciudad": "Pereira",
+    "fecha_oficio": "2024-08-20",
+    "tipo_medida": "Embargo judicial",
+    "banco_destinatario": "Banco Andino Sintético S.A.",
+    "monto_numeros": "170933000.00",
+    "monto_letras": "CIENTO SETENTA Y UN MILLONES SEISCIENTOS TREINTA Y TRES MIL PESOS M/CTE",
+    "limite_inembargabilidad": "4000000.00",
+    "productos_o_cuentas": "cuentas de ahorro",
+    "juzgado": "Juzgado Cuarto Promiscuo Municipal de Pereira",
+    "clase_proceso": "Ejecutivo con garantía real",
+    "demandante": "Comercializadora Los Álamos S.A.S."
+  },
+  "tablas": {
+    "demandados": [
+      {
+        "nombre": "Inversiones del Caribe S.A.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999766458-1",
+        "monto": "8958000.00",
+        "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Mauricio Salcedo Salcedo",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "1148530408",
+        "monto": "39223000.00",
+        "productos": "Fondo de inversión"
+      },
+      {
+        "nombre": "Luis Cardona Quintero",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "1103087865",
+        "monto": "36817000.00",
+        "productos": "Fondo de inversión"
+      },
+      {
+        "nombre": "Jorge Castaño Vargas",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "90461722",
+        "monto": "44404000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Transportes Cafetera S.A.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "890463233-5",
+        "monto": "41531000.00",
+        "productos": "Cuenta de ahorros"
+      }
+    ]
+  }
+}

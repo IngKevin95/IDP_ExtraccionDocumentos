@@ -1,0 +1,98 @@
+{
+  "esquema": "oficio-sintetico/1",
+  "id": "dj-02",
+  "tipologia": "embargos.v1.dj",
+  "codigo": "DJ",
+  "semilla": 20260101,
+  "indice": 2,
+  "numero_oficio": "S-2024-7631455",
+  "campos": {
+    "radicado": "66001570200820221986301",
+    "autoridad_emisora": "Juzgado Sexto de Familia de Pereira",
+    "ciudad": "Pereira",
+    "fecha_oficio": "2024-09-23",
+    "tipo_medida": "Desembargo judicial",
+    "banco_destinatario": "Banco Altiplano Sintético S.A.",
+    "monto_numeros": "163426000.00",
+    "monto_letras": "CIENTO SESENTA Y CUATRO MILLONES VEINTISÉIS MIL PESOS M/CTE",
+    "limite_inembargabilidad": null,
+    "productos_o_cuentas": "cuentas corrientes",
+    "juzgado": "Juzgado Sexto de Familia de Pereira",
+    "clase_proceso": "Ejecución de sentencia",
+    "demandante": "Inversiones Andina S.A.S.",
+    "referencia_oficio_original": "Oficio 2024-552710 del 21 de abril de 2024"
+  },
+  "campos_criticos": [
+    "radicado",
+    "tipo_medida",
+    "monto_numeros",
+    "productos_o_cuentas"
+  ],
+  "tablas": {
+    "demandados": [
+      {
+        "nombre": "Marcela Zapata Quintero",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "93795641",
+        "monto": "27772000.00",
+        "productos": "Ahorro programado"
+      },
+      {
+        "nombre": "Andrea Pardo Ospina",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "51635851",
+        "monto": "16873000.00",
+        "productos": "Ahorro programado"
+      },
+      {
+        "nombre": "Mauricio Restrepo Castaño",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "1003639361",
+        "monto": "18757000.00",
+        "productos": "Ahorro programado"
+      },
+      {
+        "nombre": "Paula Restrepo Rojas",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "44057214",
+        "monto": "28072000.00",
+        "productos": "Fondo de inversión"
+      },
+      {
+        "nombre": "Viviana Mendoza Navarro",
+        "tipo_identificacion": "CE",
+        "numero_identificacion": "11108117",
+        "monto": "47242000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Óscar Navarro Guerrero",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "1066446156",
+        "monto": "24710000.00",
+        "productos": "Fondo de inversión"
+      }
+    ]
+  },
+  "suma_filas_demandados": "163426000.00",
+  "defectos": [
+    {
+      "tipo": "MONTO_INCONSISTENTE",
+      "campo": "monto_letras",
+      "detalle": "letras equivalen a 164026000 y numeros a 163426000"
+    }
+  ],
+  "inyeccion_prompt": {
+    "presente": false,
+    "regla_esperada": null
+  },
+  "validadores_esperados": {
+    "radicado_23_digitos": "PASS",
+    "fechas_coherentes": "PASS",
+    "monto_numeros_letras": "FAIL",
+    "juzgado_catalogo": "PASS",
+    "tipo_doc_valido": "PASS",
+    "cedula_nit_condicional": "PASS",
+    "suma_tabla": "PASS"
+  }
+}

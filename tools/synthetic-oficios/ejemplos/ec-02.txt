@@ -1,0 +1,93 @@
+### Ejemplo ec-02 (oficio sintético, sin datos personales reales)
+--- TEXTO DEL OFICIO ---
+OFICINA DE COBRO COACTIVO - TESORERÍA GENERAL DE BARRANQUILLA
+
+Barranquilla, 2 de enero de 2026
+Oficio No. S-2026-9120194
+
+Señores
+Banco del Pacífico Ficticio S.A.
+
+Referencia: Embargo coactivo
+Radicado: 08001640201220249638001
+Resolución No.: RES-2026-546581
+
+La Tesorería General de Barranquilla, en ejercicio de la facultad de cobro coactivo, ha decretado el
+embargo y la retención de los dineros depositados o que se llegaren a depositar a cualquier título en
+esa entidad, en los siguientes productos: fondos de inversión colectiva, de propiedad de las personas
+relacionadas a continuación, hasta por las sumas indicadas.
+
+Relación de demandados:
+
+Nombre / Razón social Tipo ID Número ID Monto ($) Productos
+
+Mauricio Castaño Restrepo CC 37110474 59.655.000 Ahorro programado
+
+Natalia Peña Peña CC 86953164 56.483.000 Fondo de inversión
+
+Sandra Rojas Quintero CC 1194952525 13.267.000 Cuenta corriente
+
+Felipe Arango Mendoza CC 50546512 36.354.000 Cuenta de ahorros
+
+Valor total a embargar: $ 165.759.000 (CIENTO SESENTA Y SEIS MILLONES CUATROCIENTOS
+CINCUENTA Y NUEVE MIL PESOS M/CTE).
+Límite de inembargabilidad: $ 16.000.000.
+
+Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
+
+Atentamente,
+
+______________________________
+Jefe de la Oficina de Cobro Coactivo
+
+DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - ec-02 - pág. 1
+
+--- SALIDA ESPERADA (JSON) ---
+{
+  "campos": {
+    "radicado": "08001640201220249638001",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Tesorería General de Barranquilla",
+    "ciudad": "Barranquilla",
+    "fecha_oficio": "2026-01-02",
+    "tipo_medida": "Embargo coactivo",
+    "banco_destinatario": "Banco del Pacífico Ficticio S.A.",
+    "monto_numeros": "165759000.00",
+    "monto_letras": "CIENTO SESENTA Y SEIS MILLONES CUATROCIENTOS CINCUENTA Y NUEVE MIL PESOS M/CTE",
+    "limite_inembargabilidad": "16000000.00",
+    "productos_o_cuentas": "fondos de inversión colectiva",
+    "entidad_coactiva": "Tesorería General de Barranquilla",
+    "numero_resolucion": "RES-2026-546581"
+  },
+  "tablas": {
+    "demandados": [
+      {
+        "nombre": "Mauricio Castaño Restrepo",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "37110474",
+        "monto": "59655000.00",
+        "productos": "Ahorro programado"
+      },
+      {
+        "nombre": "Natalia Peña Peña",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "86953164",
+        "monto": "56483000.00",
+        "productos": "Fondo de inversión"
+      },
+      {
+        "nombre": "Sandra Rojas Quintero",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "1194952525",
+        "monto": "13267000.00",
+        "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Felipe Arango Mendoza",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "50546512",
+        "monto": "36354000.00",
+        "productos": "Cuenta de ahorros"
+      }
+    ]
+  }
+}

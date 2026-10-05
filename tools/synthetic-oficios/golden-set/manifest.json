@@ -1,0 +1,260 @@
+{
+  "generador": "synthetic-oficios/1",
+  "semilla": 20260101,
+  "modo": "AMBOS",
+  "plan": "CICLICO",
+  "oficios": [
+    {
+      "id": "ec-01",
+      "tipologia": "embargos.v1.ec",
+      "defectos": [ ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "959e299d102932e44799c4f6679a6e5ccd459f943c4eeab6488109d4e8e7cfec",
+        "oficio.pdf": "a405d1981fdc986ef850fdbd6fe8bf35522e15475cfe80d0a5777d8f61d22410",
+        "texto.txt": "534ee1e288d89096bc2b02ea6c6a5d51f0dee634b06a5770a440c1d9b0f384db"
+      }
+    },
+    {
+      "id": "ec-02",
+      "tipologia": "embargos.v1.ec",
+      "defectos": [
+        "MONTO_INCONSISTENTE"
+      ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "8ef26000bc7d0a849c48464667642e55ddcb3d5c505d406bc42c283c10ab5ebc",
+        "oficio.pdf": "f6f8b76d0e0e203558c8463c1853ebe0b1fa5c960147a25d40e4fcae96d32800",
+        "texto.txt": "d1e7e83157d3f26a3daa41255d3c40cdd0e4ab6581bdf5fc067825050fbd616b"
+      }
+    },
+    {
+      "id": "ec-03",
+      "tipologia": "embargos.v1.ec",
+      "defectos": [
+        "TABLA_NO_SUMA"
+      ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "530babdaeb857c4524ea05b5f24ae41c09fd8af998b7696ed8f1866e34950761",
+        "oficio.pdf": "d2bd70accccd70690f281a8dac816bfbadb21828964071117fd2f57268fd1d02",
+        "texto.txt": "2672c55f92f1667a5ba04baa33396dee918402c6b1dad08f2bff1f20cd76ef15"
+      }
+    },
+    {
+      "id": "ec-04",
+      "tipologia": "embargos.v1.ec",
+      "defectos": [
+        "INJECTION_PROMPT"
+      ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "07243dededabc8df49d46263f63b4e0907be458d09c2167cbf83310862f602d1",
+        "oficio.pdf": "c1de5d1ec286358c23ebed17be171dd0d03f385bce80735fed2af3907ad8f71c",
+        "texto.txt": "7e08fa93101ef15f7e421827a5e0e8a6e6d4bbea2638e2301aee6e4b8b6294b4"
+      }
+    },
+    {
+      "id": "ec-05",
+      "tipologia": "embargos.v1.ec",
+      "defectos": [
+        "CAMPO_FALTANTE"
+      ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "ea9622a2b06048a234cbf0f6be5928e60e6001160f2e262953ba10e6d7fb86ab",
+        "oficio.pdf": "66683b007b0f9dd74d37debd0b661a94daacbc35ce7cedb7bffeb3e99eba9444",
+        "texto.txt": "b1c4ca3992a67d6edda42dc306a719a8a9c51aa7350c3f24783e4ba34051db83"
+      }
+    },
+    {
+      "id": "ej-01",
+      "tipologia": "embargos.v1.ej",
+      "defectos": [ ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "0d27847c57082d10e272118efb0f18bcb3c17d4c5ba7e35f2e9dbc21d49b7bdc",
+        "oficio.pdf": "053097267a07e31b52522da3564219d6145bf629a1aa6635ab3641c14c274bcb",
+        "texto.txt": "34b4bedcbdd52621378ee71f345e42420c0c16db083f234c7b5de2c5e1f7e632"
+      }
+    },
+    {
+      "id": "ej-02",
+      "tipologia": "embargos.v1.ej",
+      "defectos": [
+        "MONTO_INCONSISTENTE"
+      ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "c8de90038b077bf8365312dd4140da379409f8d46243e272e99c95b0acd19f3d",
+        "oficio.pdf": "6809dbe2ad96c701fe94339e575907fdc1db7185ed98b04d62b46e85643c3752",
+        "texto.txt": "0f4001b88b9ca841f3b4560d1d2c791012d69507aa0c8a0c2587c1a90c8ab98c"
+      }
+    },
+    {
+      "id": "ej-03",
+      "tipologia": "embargos.v1.ej",
+      "defectos": [
+        "TABLA_NO_SUMA"
+      ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "ad8c029bb6cd983502692c1e17ee019d5e7e94df84ef57e3a488e353f158edd9",
+        "oficio.pdf": "0d61f43e273876ef295bb5a87cc0fe5c48a91ca935f3017cce851fa174298cfa",
+        "texto.txt": "adc29dbfd9cd56260a71f44098ae6e52cc565c9bf3afafeebe6538b9d9cc9fa3"
+      }
+    },
+    {
+      "id": "ej-04",
+      "tipologia": "embargos.v1.ej",
+      "defectos": [
+        "INJECTION_PROMPT"
+      ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "a7cea3f44b6c1190e821147a6c585ce9a584275a621aabd8f3d294efdf73dd1f",
+        "oficio.pdf": "ba9215af1fb12419c4364353848fa2ba3aa6d6b54e480d417fb5e2207ae01521",
+        "texto.txt": "21ac69a8232c9101dd9ab0f2f998cb53194c3395f2ab2f90554a08163fde6e7a"
+      }
+    },
+    {
+      "id": "ej-05",
+      "tipologia": "embargos.v1.ej",
+      "defectos": [
+        "CAMPO_FALTANTE"
+      ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "268f1537d5e836cee5b4f73e4eeb4708492441bbf9f310e08ee318fe8f13af49",
+        "oficio.pdf": "b06efb9db7ac0cec6421c206ee0ffcc91063f2caa587b2a6bab62a53a58bb7d3",
+        "texto.txt": "5532e6b586c6c775bcf92b5a1388cd9c697d671b1568c7f404ae28d0a2df3b3f"
+      }
+    },
+    {
+      "id": "dc-01",
+      "tipologia": "embargos.v1.dc",
+      "defectos": [ ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "441c9815f74891981fcef5f5c99b0287a7d45902b5904d94cdcb54191263e92a",
+        "oficio.pdf": "30d7731df5bb65829c5c3e76007789d433be67a162b4fc40677fdcba223ebce3",
+        "texto.txt": "32534d53496938036ce1cb70c8d2d25acdcc2c3d4518ae0af3e5bc0fb29b3621"
+      }
+    },
+    {
+      "id": "dc-02",
+      "tipologia": "embargos.v1.dc",
+      "defectos": [
+        "MONTO_INCONSISTENTE"
+      ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "57395efc8a04d560b27c485ad6166d7166a742ed6e3d5ad0ea2aa831af7f41a0",
+        "oficio.pdf": "0ed2795e54f960c906c428d79552ebcac50de487e5ea817def5915958d990af7",
+        "texto.txt": "54b3d10d4249293cca03682d2591be738c6db9986f4cf6e2181f377442a406e8"
+      }
+    },
+    {
+      "id": "dc-03",
+      "tipologia": "embargos.v1.dc",
+      "defectos": [
+        "TABLA_NO_SUMA"
+      ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "90ee5e8589d1f4b2d36f60553c92b3f0a45a1f960b1b9064c0ead3d34954568e",
+        "oficio.pdf": "878fb6ab05a5fca57382f08749a6dcedbee866a29939a4801e83c0b9b2ecdf55",
+        "texto.txt": "6c13179b17863e183384e3e717c5d749ede9a3d56a1244c0b7b5ddf28083bf27"
+      }
+    },
+    {
+      "id": "dc-04",
+      "tipologia": "embargos.v1.dc",
+      "defectos": [
+        "INJECTION_PROMPT"
+      ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "384fd36d317b90638d06fb5062aabd059bcdf680059a21fa1b4fc4b6ddebd8f3",
+        "oficio.pdf": "1a3e2c8392706ed149d8d62140277a5b0f0ff2c28f202176989ab6ecd454b0b5",
+        "texto.txt": "674371cc229a37ca6f0a936166c1496e6ad5fcaa223e2033f7608e0dab1c1718"
+      }
+    },
+    {
+      "id": "dc-05",
+      "tipologia": "embargos.v1.dc",
+      "defectos": [
+        "CAMPO_FALTANTE"
+      ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "61f3352b7c7ccfbab630d7718380027362697e32ec4a79af0c83e7fe18296d3e",
+        "oficio.pdf": "de75888f8896645911f093ccf1f128792e57000ff8cbc0d33e877648806f55a3",
+        "texto.txt": "b73d375b0458b6e3b865caaac80b8f25c3d1eeacf79fa2d9bfe010154e701f3c"
+      }
+    },
+    {
+      "id": "dj-01",
+      "tipologia": "embargos.v1.dj",
+      "defectos": [ ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "ccd3e957ab916ee5ac215fe4ed50e9394384da0685bb4e2092061cf531855ce4",
+        "oficio.pdf": "b9b17960068aec6d41d4d2f5cc0d4657772c96b91dc7e1832181f3548c9ea940",
+        "texto.txt": "318273d4c10e86998939b70bf70bddd4104983219cc72ea60d846d8597e190c3"
+      }
+    },
+    {
+      "id": "dj-02",
+      "tipologia": "embargos.v1.dj",
+      "defectos": [
+        "MONTO_INCONSISTENTE"
+      ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "a73ef078a7d32a6da47350291ad7f8c23121695ba501ea4bd1550d9f48f01617",
+        "oficio.pdf": "4fd29476cfc98bf1e5789ed602dbcd10b68f919726eb2dd5c0260755feef2643",
+        "texto.txt": "8a52380eef60ccf2715f13c59dcb65fd1ad9a73cefe4829623153e5cded39eb0"
+      }
+    },
+    {
+      "id": "dj-03",
+      "tipologia": "embargos.v1.dj",
+      "defectos": [
+        "TABLA_NO_SUMA"
+      ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "bae9fbc90be38d8110a307f26906a867b226adbb71a0adb3fd99429b1972fe2f",
+        "oficio.pdf": "f784a90b3e209b009d045767ecdbdb77df4c8602bcf659b72c72648baba2559e",
+        "texto.txt": "60d078a6934f74c2e7e8223bb5d6043bf6de86a7b5268c75f3b80f6510b92105"
+      }
+    },
+    {
+      "id": "dj-04",
+      "tipologia": "embargos.v1.dj",
+      "defectos": [
+        "INJECTION_PROMPT"
+      ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "c151d4ad2bc9bb330059f72cc6e1b8fd256a05ea308f88f80bd43d8311da648c",
+        "oficio.pdf": "d06d05269952f9daf8a2c8db7a436b1b89d097e9900a4be488002b2ddb2deeda",
+        "texto.txt": "713037df5ef0baa4b4d144132c8d24068880de773620057b192f4ecb0fbb8c86"
+      }
+    },
+    {
+      "id": "dj-05",
+      "tipologia": "embargos.v1.dj",
+      "defectos": [
+        "CAMPO_FALTANTE"
+      ],
+      "escaneado": true,
+      "sha256": {
+        "verdad.json": "3ed14ca048aef2792230aee426c6559bbaee37904aff1375a39bcaa14e81abc2",
+        "oficio.pdf": "9e1d22f4e42b0e4454acdb8b487598d6b4ea3492d3a40ee59cefb7d209371510",
+        "texto.txt": "02ed244a7a9c9aa71515403cb73794a10e16e8a1a2ed497cd8042bcdddf8892e"
+      }
+    }
+  ]
+}

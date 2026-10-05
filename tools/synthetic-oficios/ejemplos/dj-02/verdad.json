@@ -1,0 +1,84 @@
+{
+  "esquema": "oficio-sintetico/1",
+  "id": "dj-02",
+  "tipologia": "embargos.v1.dj",
+  "codigo": "DJ",
+  "semilla": 7001,
+  "indice": 2,
+  "numero_oficio": "S-2025-9653484",
+  "campos": {
+    "radicado": "66001690200620259616301",
+    "autoridad_emisora": "Juzgado Cuarto de Familia de Pereira",
+    "ciudad": "Pereira",
+    "fecha_oficio": "2025-01-03",
+    "tipo_medida": "Desembargo judicial",
+    "banco_destinatario": "Banca Horizonte de Prueba S.A.",
+    "monto_numeros": "157231000.00",
+    "monto_letras": "CIENTO CINCUENTA Y SIETE MILLONES SEISCIENTOS TREINTA Y UN MIL PESOS M/CTE",
+    "limite_inembargabilidad": null,
+    "productos_o_cuentas": "cuentas de ahorro programado y cuentas corrientes",
+    "juzgado": "Juzgado Cuarto de Familia de Pereira",
+    "clase_proceso": "Ejecución de sentencia",
+    "demandante": "Servicios Horizonte Ltda.",
+    "referencia_oficio_original": "Oficio 2024-178702 del 29 de agosto de 2024"
+  },
+  "campos_criticos": [
+    "radicado",
+    "tipo_medida",
+    "monto_numeros",
+    "productos_o_cuentas"
+  ],
+  "tablas": {
+    "demandados": [
+      {
+        "nombre": "Inmobiliaria Andina Ltda.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "839144488-2",
+        "monto": "22437000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Camilo Salcedo Vargas",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "16794660",
+        "monto": "39606000.00",
+        "productos": "Ahorro programado"
+      },
+      {
+        "nombre": "Servicios Solar Ltda.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "990020183-7",
+        "monto": "48175000.00",
+        "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Diana Ibáñez Navarro",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "23729728",
+        "monto": "47013000.00",
+        "productos": "Cuenta corriente"
+      }
+    ]
+  },
+  "suma_filas_demandados": "157231000.00",
+  "defectos": [
+    {
+      "tipo": "MONTO_INCONSISTENTE",
+      "campo": "monto_letras",
+      "detalle": "letras equivalen a 157631000 y numeros a 157231000"
+    }
+  ],
+  "inyeccion_prompt": {
+    "presente": false,
+    "regla_esperada": null
+  },
+  "validadores_esperados": {
+    "radicado_23_digitos": "PASS",
+    "fechas_coherentes": "PASS",
+    "monto_numeros_letras": "FAIL",
+    "juzgado_catalogo": "PASS",
+    "tipo_doc_valido": "PASS",
+    "cedula_nit_condicional": "PASS",
+    "suma_tabla": "PASS"
+  }
+}
