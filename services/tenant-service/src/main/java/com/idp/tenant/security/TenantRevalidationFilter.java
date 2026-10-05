@@ -47,7 +47,8 @@ public class TenantRevalidationFilter extends OncePerRequestFilter {
             return;
         }
         // Un token del emisor de plataforma no es un token de usuario de tenant (A3).
-        if (jwt.getToken().getIssuer() != null && jwt.getToken().getIssuer().toString().equals(platformIssuer)) {
+        var tokenIssuer = jwt.getToken().getIssuer();
+        if (tokenIssuer != null && tokenIssuer.toString().equals(platformIssuer)) {
             deny(response);
             return;
         }

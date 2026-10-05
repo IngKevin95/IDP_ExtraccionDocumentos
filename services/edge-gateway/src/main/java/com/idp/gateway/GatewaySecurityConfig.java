@@ -42,9 +42,12 @@ public class GatewaySecurityConfig {
     }
 
     static OAuth2TokenValidator<Jwt> audienceValidator(String audience) {
-        return jwt -> jwt.getAudience() != null && jwt.getAudience().contains(audience)
-                ? OAuth2TokenValidatorResult.success()
-                : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Audiencia no valida", null));
+        return jwt -> {
+            var aud = jwt.getAudience();
+            return aud != null && aud.contains(audience)
+                    ? OAuth2TokenValidatorResult.success()
+                    : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Audiencia no valida", null));
+        };
     }
 
     private static void require(String value, String property) {
