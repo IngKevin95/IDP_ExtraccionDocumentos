@@ -57,6 +57,11 @@ public class ReviewIntakeHandler {
             LOG.debug("Tarea {} ya existe, evento ignorado", taskId);
             return;
         }
+        String typology = e.payload().path("typology").asText(null);
+        boolean blind = e.payload().path("blindSample").asBoolean(false);
+        if (typology != null || blind) {
+            repo.setOrigin(taskId, typology, blind);
+        }
         Map<String, FieldCandidate> unique = new LinkedHashMap<>();
         for (FieldCandidate c : fieldSource.candidates(documentId, taskId)) {
             unique.putIfAbsent(c.fieldName(), c);

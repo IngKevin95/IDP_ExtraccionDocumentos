@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 class ReviewQueueSlaIntegrationTest extends AbstractReviewIntegrationTest {
 
     @Autowired SlaEscalationService escalation;
+    @Autowired com.idp.events.EventSchemaValidator validator;
     @Autowired MeterRegistry meters;
 
     private String path(UUID taskId, String suffix) {
@@ -101,6 +102,25 @@ class ReviewQueueSlaIntegrationTest extends AbstractReviewIntegrationTest {
         JsonNode page = body(getAs("ana", "/v1/review/queue?size=2&page=1")).path("content");
         assertThat(page).hasSize(1);
         assertThat(body(getAs("ana", "/v1/review/tasks?escalated=true")).path("totalElements").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    void ac10_alEscalarSePublicaRevisionEscaladaPorOutboxConElSchema() throws Exception {
+        UUID taskId = createTask();
+        OffsetDateTime breached = now().minusMinutes(1);
+        setDue(taskId, breached);
+
+        escalation.escalateTenant(tenant);
+        escalation.escalateTenant(tenant);
+
+        var events = outbox("revision.escalada");
+        assertThat(events).hasSize(1);
+        assertThat(events.get(0).path("taskId").asText()).isEqualTo(taskId.toString());
+        assertThat(events.get(0).path("level").asInt()).isEqualTo(1);
+        assertThat(events.get(0).path("tenantId").asText()).isEqualTo(tenant);
+        assertThat(java.time.Instant.parse(events.get(0).path("slaBreachedAt").asText()).toEpochMilli())
+                .isEqualTo(breached.toInstant().toEpochMilli());
+        validator.validateFlat(events.get(0));
     }
 
     @Test

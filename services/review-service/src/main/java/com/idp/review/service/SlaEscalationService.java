@@ -1,6 +1,8 @@
 package com.idp.review.service;
 
 import com.idp.review.config.ReviewProperties;
+import com.idp.review.domain.ReviewTask;
+import com.idp.review.infra.ReviewEvents;
 import com.idp.review.infra.ReviewRepository;
 import com.idp.tenant.context.TenantContextHolder;
 import com.idp.tenant.context.TenantDirectory;
@@ -27,15 +29,17 @@ public class SlaEscalationService {
     private static final int BATCH = 200;
 
     private final ReviewRepository repo;
+    private final ReviewEvents events;
     private final TenantDirectory tenants;
     private final ReviewProperties props;
     private final TransactionTemplate tx;
     private final MeterRegistry meters;
     private final Clock clock;
 
-    public SlaEscalationService(ReviewRepository repo, TenantDirectory tenants, ReviewProperties props,
+    public SlaEscalationService(ReviewRepository repo, ReviewEvents events, TenantDirectory tenants, ReviewProperties props,
                                 TransactionTemplate tx, MeterRegistry meters, Clock clock) {
         this.repo = repo;
+        this.events = events;
         this.tenants = tenants;
         this.props = props;
         this.tx = tx;
@@ -56,6 +60,16 @@ public class SlaEscalationService {
         return total;
     }
 
+    /** Escala y publica revision.escalada por outbox en la misma transaccion. */
+    private boolean escalateOne(String tenantId, UUID id, OffsetDateTime now, int max) {
+        ReviewTask before = repo.findTask(tenantId, id).orElse(null);
+        if (before == null || !repo.escalate(id, now, now.plus(props.escalationInterval()), max)) {
+            return false;
+        }
+        repo.findTask(tenantId, id).ifPresent(after -> events.escalada(after, before.slaDueAt()));
+        return true;
+    }
+
     public int escalateTenant(String tenantId) {
         String previous = TenantContextHolder.getTenantId();
         TenantContextHolder.setTenantId(tenantId);
@@ -65,7 +79,7 @@ public class SlaEscalationService {
             List<UUID> due = tx.execute(s -> repo.overdueTaskIds(now, max, BATCH));
             int escalated = 0;
             for (UUID id : due == null ? List.<UUID>of() : due) {
-                Boolean done = tx.execute(s -> repo.escalate(id, now, now.plus(props.escalationInterval()), max));
+                Boolean done = tx.execute(s -> escalateOne(tenantId, id, now, max));
                 if (Boolean.TRUE.equals(done)) {
                     escalated++;
                     meters.counter("idp_review_escalated_total").increment();

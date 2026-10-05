@@ -111,6 +111,21 @@ public class ReviewRepository {
                 t.id()) == 1;
     }
 
+    /** Metadatos de origen de la tarea (opcionales en el evento de entrada). */
+    public record Origin(String typology, boolean blindSample) {
+    }
+
+    public void setOrigin(UUID taskId, String typology, boolean blindSample) {
+        jdbc.update("update review_task set typology = ?, blind_sample = ? where id = ?", typology, blindSample,
+                taskId);
+    }
+
+    public Origin origin(UUID taskId) {
+        return jdbc.query("select typology, blind_sample from review_task where id = ?",
+                (rs, i) -> new Origin(rs.getString("typology"), rs.getBoolean("blind_sample")), taskId)
+                .stream().findFirst().orElse(new Origin(null, false));
+    }
+
     public void insertField(ReviewField f) {
         jdbc.update("insert into review_field (" + FIELD_COLS + ") values (?,?,?,?,?,?,?,?,?,?)", f.id(),
                 f.taskId(), f.fieldName(), f.page(), f.boundingBox(), f.originalValue(), f.confidence(),

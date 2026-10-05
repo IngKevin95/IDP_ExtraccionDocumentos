@@ -48,6 +48,10 @@ class ReviewFlowIntegrationTest extends AbstractReviewIntegrationTest {
         assertThat(e.path("reviewerId").asText()).isEqualTo("ana");
         assertThat(e.path("criticalCorrection").asBoolean()).isFalse();
         assertThat(e.has("secondReviewerId")).isFalse();
+        assertThat(e.path("correctedFields")).hasSize(1);
+        assertThat(e.path("correctedFields").get(0).path("field").asText()).isEqualTo("direccion");
+        assertThat(e.path("correctedFields").get(0).path("correctionType").asText()).isEqualTo("VALOR");
+        assertThat(e.toString()).doesNotContain("Calle 1");
         assertThat(e.path("taskId").asText()).isEqualTo(taskId.toString());
         assertThat(e.path("tenantId").asText()).isEqualTo(tenant);
         assertEventMatchesSchema(e);
@@ -287,6 +291,6 @@ class ReviewFlowIntegrationTest extends AbstractReviewIntegrationTest {
         String raw = inTenant(tenant, () -> jdbc.queryForObject(
                 "select payload from outbox where event_type = 'revision.completada'", String.class));
 
-        assertThat(raw).doesNotContain("valor-secreto-123").doesNotContain("monto");
+        assertThat(raw).doesNotContain("valor-secreto-123").doesNotContain("fieldName").doesNotContain("correctedValue");
     }
 }

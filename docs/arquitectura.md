@@ -85,7 +85,7 @@ graph TD
 - **Responsabilidad:** Cola de revisión manual (HITL), regla de cuatro ojos para campos críticos (monto, identificación, cuenta/producto, tipo de medida).
 - **Datos:** `review_task`, `correction`.
 - **API:** `GET /tasks`, `POST /tasks/{id}/approve`.
-- **Eventos:** Consume `extraccion.requiere_revision`. Publica `revision.completada`.
+- **Eventos:** Consume `extraccion.requiere_revision`. Publica `revision.completada` y `revision.escalada` (SLA vencido).
 - **Privilegios:** Validación de rol revisor y segundo aprobador distinto para campos críticos.
 - **Escalado:** Bajo/Medio.
 - **Controles SEC:** SEC-009, SEC-034, SEC-050.
@@ -112,7 +112,7 @@ graph TD
 - **Responsabilidad:** Webhooks HMAC seguros, reintentos DLT, validación anti-SSRF rigurosa (bloqueo RFC1918, loopback, CGNAT, metadata; DNS pinning; redirects deshabilitados).
 - **Datos:** Configuración webhooks.
 - **API:** CRUD de webhooks por tenant.
-- **Eventos:** Consume `extraccion.aprobada`. Publica `webhook.entregado`, `webhook.fallido`.
+- **Eventos:** Consume `extraccion.aprobada` y `revision.escalada`. Publica `webhook.entregado`, `webhook.fallido`.
 - **Privilegios:** Única salida a internet (egress controlado).
 - **Escalado:** Medio.
 - **Controles SEC:** SEC-027, SEC-028, SEC-050.
@@ -164,7 +164,8 @@ Patrón claim-check estricto: cero PII en eventos Kafka. Se usan identificadores
 | `extraccion.completada` | Evento | `extraction-service` | `documentId`, `tenantId` |
 | `extraccion.requiere_revision`| Evento | `extraction-service` | `documentId`, `taskId`, `tenantId` |
 | `ia.ejecucion_registrada` | Evento | `extraction-service` | `documentId`, `modelVersion`, `promptVersion`, `configHash`, `signatureRef` (SEC-049) |
-| `revision.completada` | Evento | `review-service` | `documentId`, `taskId`, `action` |
+| `revision.completada` | Evento | `review-service` | `documentId`, `taskId`, `action` (opcionales: `typology`, `blindSample`, `correctedFields[]` solo nombre y tipo) |
+| `revision.escalada` | Evento | `review-service` (consumidor: `notification-service`) | `documentId`, `taskId`, `level`, `slaBreachedAt` |
 | `extraccion.aprobada` | Evento | `document-service` | `documentId`, `tenantId`, `finalScore` |
 | `seguridad.acceso_denegado` | Evento | (Cualquier servicio) | `tenantId`, `userId`, `recurso` |
 | `seguridad.prompt_injection_detectado`| Evento| `extraction-service`, `chat-service` | `documentId`, `tenantId` |

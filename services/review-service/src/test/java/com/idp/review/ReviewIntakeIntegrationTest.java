@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 class ReviewIntakeIntegrationTest extends AbstractReviewIntegrationTest {
 
     @Autowired ReviewProperties props;
+    @Autowired com.idp.events.EventSchemaValidator validator;
 
     private int tasks() {
         return inTenant(tenant, () -> jdbc.queryForObject("select count(*) from review_task", Integer.class));
@@ -44,6 +45,25 @@ class ReviewIntakeIntegrationTest extends AbstractReviewIntegrationTest {
         assertThat(fieldRows).extracting(r -> r.get("FIELD_NAME")).containsExactly("direccion", "monto_numeros");
         assertThat(fieldRows).extracting(r -> r.get("CRITICAL")).containsExactly(false, true);
         assertThat(fieldRows).extracting(r -> r.get("STATUS")).containsOnly("PENDING");
+    }
+
+    @Test
+    void ac01_tipologiaYMuestreoCiegoDelEventoQuedanEnLaTareaYSalenEnRevisionCompletada() throws Exception {
+        reviewer("ana");
+        UUID taskId = UUID.randomUUID();
+        var n = (com.fasterxml.jackson.databind.node.ObjectNode) JSON.readTree(requiereRevision(tenant,
+                UUID.randomUUID().toString(), UUID.randomUUID().toString(), taskId.toString()));
+        n.put("typology", "EC");
+        n.put("blindSample", true);
+        validator.validateFlat(n);
+        listener.onMessage(n.toString());
+
+        assertThat(status(post("ana", "/v1/review/tasks/" + taskId + "/approve"))).isEqualTo(200);
+
+        var e = outbox("revision.completada").get(0);
+        assertThat(e.path("typology").asText()).isEqualTo("EC");
+        assertThat(e.path("blindSample").asBoolean()).isTrue();
+        validator.validateFlat(e);
     }
 
     @Test

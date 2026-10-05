@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.idp.example/events/extraccion.requiere_revision/v1.json",
-  "title": "Extraccion Requiere Revision Event",
-  "description": "Evento emitido cuando un documento es derivado a la cola HITL por fallo en score o validadores.",
+  "$id": "https://schemas.idp.example/events/revision.escalada/v1.json",
+  "title": "Revision Escalada Event",
+  "description": "Evento emitido cuando una tarea de revision humana vence su SLA y sube de nivel de escalamiento. Sin PII (SEC-050): solo identificadores y marcas de tiempo.",
   "type": "object",
   "required": [
     "eventId",
@@ -12,7 +12,9 @@
     "tenantId",
     "correlationId",
     "documentId",
-    "taskId"
+    "taskId",
+    "level",
+    "slaBreachedAt"
   ],
   "properties": {
     "eventId": {
@@ -21,7 +23,7 @@
     },
     "eventType": {
       "type": "string",
-      "const": "extraccion.requiere_revision"
+      "const": "revision.escalada"
     },
     "schemaVersion": {
       "type": "integer",
@@ -47,14 +49,15 @@
       "type": "string",
       "format": "uuid"
     },
-    "typology": {
-      "type": "string",
-      "pattern": "^[A-Z]{2,4}$",
-      "description": "Tipologia del oficio (opcional, metadato para review-service y quality-service)."
+    "level": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Nuevo nivel de escalamiento de la tarea."
     },
-    "blindSample": {
-      "type": "boolean",
-      "description": "true si la tarea proviene de muestreo ciego de un oficio auto-aprobado (opcional)."
+    "slaBreachedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Instante de vencimiento del SLA que origino el escalamiento."
     }
   },
   "additionalProperties": false

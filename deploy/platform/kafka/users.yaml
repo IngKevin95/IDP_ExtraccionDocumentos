@@ -75,6 +75,7 @@ metadata:
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
+  # Productor de revision.completada y revision.escalada (topico dominio.documentos).
 spec:
   authentication:
     type: tls
@@ -151,6 +152,7 @@ metadata:
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
+  # Consumidor de revision.escalada (topico dominio.documentos).
 spec:
   authentication:
     type: tls

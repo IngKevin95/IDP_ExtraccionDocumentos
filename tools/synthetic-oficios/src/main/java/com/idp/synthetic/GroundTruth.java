@@ -62,6 +62,36 @@ final class GroundTruth {
         return m;
     }
 
+    /**
+     * Formato importable por quality-service (GoldenSetLoader): {@code {id, tipologia, sintetico:true, tags, verdad}}.
+     * La verdad es plana (campo a texto, nombres ^[a-z][a-z0-9_]{0,63}$): campos del documento sin los ausentes
+     * (null) y las celdas de la tabla como {@code demandados_<fila 1-based>_<columna>}.
+     */
+    static Map<String, Object> golden(OficioData o, TipologiaDef def) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", o.id());
+        m.put("tipologia", o.tipo().name());
+        m.put("sintetico", true);
+        m.put("tags", o.defectos().stream().map(d -> d.tipo().name().toLowerCase(java.util.Locale.ROOT)).distinct()
+            .toList());
+        Map<String, String> verdad = new LinkedHashMap<>();
+        o.campos().forEach((k, v) -> {
+            if (v != null) {
+                verdad.put(k, v);
+            }
+        });
+        for (int i = 0; i < o.demandados().size(); i++) {
+            final int fila = i + 1;
+            o.demandados().get(i).forEach((k, v) -> {
+                if (v != null) {
+                    verdad.put("demandados_" + fila + "_" + k, v);
+                }
+            });
+        }
+        m.put("verdad", verdad);
+        return m;
+    }
+
     /** Resultado esperado de cada validador de dominio sobre los valores del documento (agregado por validador). */
     static Map<String, String> validadoresEsperados(OficioData o, TipologiaDef def) {
         Map<String, String> r = new LinkedHashMap<>();

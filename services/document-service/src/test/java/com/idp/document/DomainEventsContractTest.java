@@ -52,6 +52,12 @@ class DomainEventsContractTest {
     }
 
     @Test
+    void ac03_aprobadaIncluyeTipologia() {
+        events.aprobada(doc(), "HUMAN_REVIEWER");
+        assertThat(published.get(0).payload().path("typology").asText()).isEqualTo("EC");
+    }
+
+    @Test
     void sec050_unEventoFueraDeContratoSeRechaza() {
         DocumentRecord d = doc();
         assertThatThrownBy(() -> events.rechazado(d, "MOTIVO_INVENTADO")).isInstanceOf(EventValidationException.class);

@@ -46,6 +46,13 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- GoldenSetLoader: el test comprueba que el export con formato-golden se importa (sin ciclo: quality no depende de la herramienta). -->
+        <dependency>
+            <groupId>com.idp</groupId>
+            <artifactId>quality-service</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

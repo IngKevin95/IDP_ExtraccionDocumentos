@@ -171,7 +171,7 @@ public class ReviewTaskService {
             if (needsSecond) {
                 meters.counter("idp_review_second_approval_requested_total").increment();
             } else {
-                events.completada(updated, ReviewEvents.APROBADO, caller.userId(), null, false);
+                emitCompleted(updated, ReviewEvents.APROBADO, caller.userId(), null, false, true);
                 completed(updated, ReviewEvents.APROBADO);
             }
             return updated;
@@ -199,7 +199,7 @@ public class ReviewTaskService {
                 throw failure(load(caller, taskId), caller, Expected.SECOND_ONLY);
             }
             ReviewTask updated = load(caller, taskId);
-            events.completada(updated, ReviewEvents.APROBADO, first, caller.userId(), true);
+            emitCompleted(updated, ReviewEvents.APROBADO, first, caller.userId(), true, true);
             completed(updated, ReviewEvents.APROBADO);
             return updated;
         });
@@ -218,13 +218,21 @@ public class ReviewTaskService {
                 throw failure(load(caller, taskId), caller, Expected.OPEN);
             }
             ReviewTask updated = load(caller, taskId);
-            events.completada(updated, ReviewEvents.RECHAZADO, caller.userId(), null, false);
+            emitCompleted(updated, ReviewEvents.RECHAZADO, caller.userId(), null, false, false);
             completed(updated, ReviewEvents.RECHAZADO);
             return updated;
         });
     }
 
     // ---- utilidades ------------------------------------------------------------------------------------------
+
+    /** Publica revision.completada con tipologia, muestreo ciego y correcciones (el rechazo las descarta). */
+    private void emitCompleted(ReviewTask task, String action, String reviewer, String second, boolean critical,
+                               boolean withCorrections) {
+        ReviewRepository.Origin origin = repo.origin(task.id());
+        events.completada(task, action, reviewer, second, critical, origin.typology(), origin.blindSample(),
+                withCorrections ? repo.corrections(task.id()) : List.of());
+    }
 
     private void completed(ReviewTask task, String action) {
         meters.counter("idp_review_completed_total", "action", action).increment();

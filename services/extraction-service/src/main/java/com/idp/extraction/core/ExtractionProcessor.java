@@ -95,7 +95,8 @@ public final class ExtractionProcessor {
             LOG.info("Extraccion ya finalizada para el documento; comando ignorado");
             return;
         }
-        Context ctx = new Context(cmd, tenant, documentId, UUID.randomUUID(), new ExtractionRun(tenant));
+        Context ctx = new Context(cmd, tenant, documentId, UUID.randomUUID(), new ExtractionRun(tenant),
+            System.nanoTime());
 
         if (typologies.active(hint).isEmpty()) {
             terminalReview(ctx, Status.UNSUPPORTED, null, "Tipologia no soportada");
@@ -231,13 +232,39 @@ public final class ExtractionProcessor {
         ObjectNode p = mapper.createObjectNode();
         p.put("documentId", ctx.documentId.toString());
         if (Status.COMPLETED.equals(status)) {
+            if (typology != null) {
+                p.put("typology", typology.code());
+            }
+            p.put("modelPromptKey", modelPromptKey(ctx.run));
+            p.put("latencyMs", Math.max(0L, (System.nanoTime() - ctx.startNanos) / 1_000_000L));
+            p.put("costMicros", costMicros(ctx.run));
             publish(ctx, "extraccion.completada", "result", p);
         } else {
             p.put("taskId", taskId.toString());
+            if (typology != null) {
+                p.put("typology", typology.code());
+            }
             publish(ctx, "extraccion.requiere_revision", "result", p);
         }
         publishConsumption(ctx, status);
         meters.counter("idp.extraction.outcome", "outcome", status).increment();
+    }
+
+    /** Par modelo+prompt como en el registro firmado (modelos observados y version de prompt), solo charset del esquema. */
+    private static String modelPromptKey(ExtractionRun run) {
+        String models = run.modelVersions().isEmpty() ? "unknown" : String.join("/", run.modelVersions());
+        String key = (models + ":" + PromptTemplates.VERSION).replaceAll("[^A-Za-z0-9._:/-]", "_");
+        return key.length() > 120 ? key.substring(key.length() - 120) : key;
+    }
+
+    private long costMicros(ExtractionRun run) {
+        return costOf(run).movePointRight(6).setScale(0, RoundingMode.HALF_UP).longValueExact();
+    }
+
+    private BigDecimal costOf(ExtractionRun run) {
+        return settings.priceInputPer1k().multiply(BigDecimal.valueOf(run.tokensIn()))
+            .add(settings.priceOutputPer1k().multiply(BigDecimal.valueOf(run.tokensOut())))
+            .divide(BigDecimal.valueOf(1000), 6, RoundingMode.HALF_UP);
     }
 
     /** SEC-049: evento sin PII con versiones, huella de configuracion y referencia a la firma del registro. */
@@ -291,9 +318,7 @@ public final class ExtractionProcessor {
 
     private ExtractionRecord extractionRecord(Context ctx, String status, TypologyDef typology, BigDecimal overall,
                                               UUID taskId, String detail) {
-        BigDecimal cost = settings.priceInputPer1k().multiply(BigDecimal.valueOf(ctx.run.tokensIn()))
-            .add(settings.priceOutputPer1k().multiply(BigDecimal.valueOf(ctx.run.tokensOut())))
-            .divide(BigDecimal.valueOf(1000), 6, RoundingMode.HALF_UP);
+        BigDecimal cost = costOf(ctx.run);
         String models = String.join(",", ctx.run.modelVersions());
         Instant now = clock.instant();
         return new ExtractionRecord(ctx.extractionId, ctx.documentId, ctx.cmd.tenantId(), status,
@@ -302,6 +327,7 @@ public final class ExtractionProcessor {
             ctx.run.tokensOut(), cost, taskId, detail, now);
     }
 
-    private record Context(EventEnvelope cmd, TenantId tenant, UUID documentId, UUID extractionId, ExtractionRun run) {
+    private record Context(EventEnvelope cmd, TenantId tenant, UUID documentId, UUID extractionId, ExtractionRun run,
+                           long startNanos) {
     }
 }

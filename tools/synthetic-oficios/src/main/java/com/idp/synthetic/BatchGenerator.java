@@ -21,8 +21,14 @@ public final class BatchGenerator {
 
     public enum Modo { NATIVO, ESCANEADO, AMBOS }
 
+    /** {@code formatoGolden}: ademas escribe {@code golden/<id>.json} importable por quality-service. */
     public record Opciones(Path salida, long semilla, int cantidad, int desde, List<Tipo> tipos, Modo modo,
-                           Plan plan, boolean fewShot) {
+                           Plan plan, boolean fewShot, boolean formatoGolden) {
+
+        public Opciones(Path salida, long semilla, int cantidad, int desde, List<Tipo> tipos, Modo modo,
+                        Plan plan, boolean fewShot) {
+            this(salida, semilla, cantidad, desde, tipos, modo, plan, fewShot, false);
+        }
     }
 
     private final OficioGenerator generador = new OficioGenerator();
@@ -80,6 +86,10 @@ public final class BatchGenerator {
                     Files.write(dir.resolve("oficio-escaneado.pdf"), OficioPdfWriter.bytes(escaneado));
                 }
             }
+        }
+        if (op.formatoGolden()) {
+            Path golden = Files.createDirectories(op.salida().resolve("golden"));
+            Files.write(golden.resolve(data.id() + ".json"), GroundTruth.json(GroundTruth.golden(data, def)));
         }
         if (op.fewShot()) {
             Files.write(op.salida().resolve(data.id() + ".txt"), fewShot(data, texto));

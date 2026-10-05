@@ -87,7 +87,13 @@ class ExtractionServiceAcTest {
         JsonNode completada = readTree(env.outboxPayload(tenant, "extraccion.completada"));
         assertThat(completada.path("documentId").asText()).isEqualTo(doc.toString());
         assertThat(completada.fieldNames()).toIterable().containsExactlyInAnyOrder("eventId", "eventType",
-            "schemaVersion", "occurredAt", "tenantId", "correlationId", "documentId");
+            "schemaVersion", "occurredAt", "tenantId", "correlationId", "documentId", "typology", "modelPromptKey",
+            "latencyMs", "costMicros");
+        assertThat(completada.path("typology").asText()).isEqualTo("EC");
+        assertThat(completada.path("modelPromptKey").asText()).endsWith(":" + PromptTemplates.VERSION);
+        assertThat(completada.path("latencyMs").asLong()).isGreaterThanOrEqualTo(0);
+        assertThat(completada.path("costMicros").asLong()).isEqualTo(375_000L);
+        new com.idp.events.EventSchemaValidator(new com.idp.events.EventSerde()).validateFlat(completada);
 
         // 3 llamadas LLM (clasificacion, campos, tabla de 1 pagina) de 100 + 50 tokens.
         ExtractionRecord e = extraction();

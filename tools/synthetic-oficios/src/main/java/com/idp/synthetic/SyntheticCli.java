@@ -13,13 +13,14 @@ import java.util.Locale;
 /**
  * CLI reproducible: misma semilla, mismos oficios.
  * Uso: java -jar synthetic-oficios-exec.jar --salida DIR [--semilla N] [--cantidad N] [--desde N]
- * [--tipologias EC,EJ,DC,DJ] [--modo nativo|escaneado|ambos] [--plan ciclico|limpio] [--few-shot].
+ * [--tipologias EC,EJ,DC,DJ] [--modo nativo|escaneado|ambos] [--plan ciclico|limpio] [--few-shot]
+ * [--formato-golden] (ademas escribe golden/ID.json importable por quality-service).
  */
 public final class SyntheticCli {
 
     static final String USO = "Uso: --salida DIR [--semilla N=42] [--cantidad N=5] [--desde N=1] "
         + "[--tipologias EC,EJ,DC,DJ] [--modo nativo|escaneado|ambos=ambos] [--plan ciclico|limpio=ciclico] "
-        + "[--few-shot]";
+        + "[--few-shot] [--formato-golden]";
 
     private SyntheticCli() {
     }
@@ -61,10 +62,15 @@ public final class SyntheticCli {
         Modo modo = Modo.AMBOS;
         Plan plan = Plan.CICLICO;
         boolean fewShot = false;
+        boolean formatoGolden = false;
         for (int i = 0; i < args.length; i++) {
             String a = args[i];
             if (a.equals("--few-shot")) {
                 fewShot = true;
+                continue;
+            }
+            if (a.equals("--formato-golden")) {
+                formatoGolden = true;
                 continue;
             }
             if (i + 1 >= args.length) {
@@ -93,6 +99,6 @@ public final class SyntheticCli {
         if (cantidad < 1 || desde < 1 || tipos.isEmpty()) {
             throw new IllegalArgumentException("cantidad y desde deben ser >= 1 y debe haber tipologias");
         }
-        return new Opciones(salida, semilla, cantidad, desde, tipos, modo, plan, fewShot);
+        return new Opciones(salida, semilla, cantidad, desde, tipos, modo, plan, fewShot, formatoGolden);
     }
 }
