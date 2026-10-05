@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- tenant-service: colaboradores (repositorios, servicios, puertos) inyectados por constructor de Spring;
+     son beans compartidos por diseno, no estado interno expuesto. DTOs inmutables de la API. -->
+<FindBugsFilter>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+</FindBugsFilter>

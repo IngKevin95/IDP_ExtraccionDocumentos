@@ -3,6 +3,31 @@ server:
 spring:
   application:
     name: extraction-service
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: extraction-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  flyway:
+    # El esquema del silo lo aplica tenant-context por tenant (db/migration/tenant), no el arranque del servicio.
+    enabled: false
+  ai:
+    model:
+      # Seleccione el proveedor por despliegue: google-genai (Vertex AI Gemini) u openai (compatible con OpenAI).
+      chat: ${EXTRACTION_AI_PROVIDER:none}
+      # Solo se usa el modelo de chat multimodal; el resto de capacidades de los starters quedan apagadas.
+      embedding: none
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
 management:
   endpoints:
     web:
@@ -12,3 +37,13 @@ management:
     health:
       probes:
         enabled: true
+  health:
+    db:
+      # El DataSource es enrutado por tenant: sin tenant en contexto no hay conexion que sondear.
+      enabled: false
+extraction:
+  openbao:
+    token: ${OPENBAO_TOKEN:}
+  storage:
+    access-key: ${EXTRACTION_S3_ACCESS_KEY:}
+    secret-key: ${EXTRACTION_S3_SECRET_KEY:}
