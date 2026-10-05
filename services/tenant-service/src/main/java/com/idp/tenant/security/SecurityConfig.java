@@ -43,7 +43,7 @@ public class SecurityConfig {
         if (platformIssuer == null || platformIssuer.isBlank()) {
             throw new IllegalStateException("idp.security.platform-issuer es obligatorio");
         }
-        http.csrf(c -> c.disable())
+        http.csrf(c -> c.ignoringRequestMatchers(new com.idp.security.NoAmbientCredentialsRequestMatcher()))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
                         .requestMatchers(HttpMethod.GET, "/actuator/health/**", "/actuator/health",

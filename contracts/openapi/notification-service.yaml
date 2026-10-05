@@ -113,7 +113,7 @@ components:
         secret:
           type: string
           description: "Secreto HMAC-SHA256 asignado. Solo se retorna en la creación."
-          example: "sk_live_1234567890abcdef"
+          example: "c2VjcmV0by1kZS1lamVtcGxvLW5vLXJlYWw"
         createdAt:
           type: string
           format: date-time

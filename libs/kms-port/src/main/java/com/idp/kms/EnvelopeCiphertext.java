@@ -23,7 +23,9 @@ public record EnvelopeCiphertext(byte[] wrappedDek, byte[] encryptedData) {
 
     /** Formato: [len wrappedDek:int][wrappedDek][encryptedData]. */
     public byte[] toBytes() {
-        ByteBuffer b = ByteBuffer.allocate(4 + wrappedDek.length + encryptedData.length);
+        // addExact: una suma que desborde int debe fallar, no producir un buffer de tamano incorrecto.
+        int total = Math.addExact(Math.addExact(Integer.BYTES, wrappedDek.length), encryptedData.length);
+        ByteBuffer b = ByteBuffer.allocate(total);
         b.putInt(wrappedDek.length).put(wrappedDek).put(encryptedData);
         return b.array();
     }

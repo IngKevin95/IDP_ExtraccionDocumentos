@@ -50,7 +50,10 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, TenantAuthorizer authorizer) throws Exception {
-        http.csrf(c -> c.disable())
+        // El endpoint publico de verificacion no tiene sesion ni credenciales: se excluye junto a las peticiones bearer.
+        http.csrf(c -> c.ignoringRequestMatchers(new com.idp.security.NoAmbientCredentialsRequestMatcher(),
+                        org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher.withDefaults()
+                                .matcher(HttpMethod.POST, PUBLIC_PREFIX + "**")))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
                         .requestMatchers(HttpMethod.GET, "/actuator/health/**", "/actuator/health",

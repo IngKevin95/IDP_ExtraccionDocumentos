@@ -55,12 +55,30 @@ public class GatewaySecurityConfig {
 
     @Bean
     SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
-        return http.csrf(ServerHttpSecurity.CsrfSpec::disable)
+        // CSRF solo aplica a peticiones con credenciales ambientales (cookie o Basic); las bearer y las anonimas no.
+        return http.csrf(c -> c.requireCsrfProtectionMatcher(exchange -> {
+                    var h = exchange.getRequest().getHeaders();
+                    boolean ignorable = noAmbientCredentials(
+                            h.getFirst(org.springframework.http.HttpHeaders.AUTHORIZATION),
+                            h.getFirst(org.springframework.http.HttpHeaders.COOKIE));
+                    return ignorable
+                            ? org.springframework.security.web.server.util.matcher.ServerWebExchangeMatcher.MatchResult.notMatch()
+                            : org.springframework.security.web.server.util.matcher.ServerWebExchangeMatcher.MatchResult.match();
+                }))
                 .authorizeExchange(a -> a
                         .pathMatchers(HttpMethod.GET, "/actuator/health/**", "/actuator/health",
                                 "/actuator/prometheus").permitAll()
                         .anyExchange().authenticated())
                 .oauth2ResourceServer(o -> o.jwt(j -> { }))
                 .build();
+    }
+
+    /** Misma regla que NoAmbientCredentialsRequestMatcher (libs/security); el gateway no depende de esa lib. */
+    static boolean noAmbientCredentials(String authorization, String cookie) {
+        if (authorization != null && authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            return true;
+        }
+        boolean basic = authorization != null && authorization.regionMatches(true, 0, "Basic ", 0, 6);
+        return !basic && (cookie == null || cookie.isBlank());
     }
 }
