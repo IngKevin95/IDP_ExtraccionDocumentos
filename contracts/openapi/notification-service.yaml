@@ -69,7 +69,157 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /v1/webhooks/{webhookId}/secret/rotate:
+    post:
+      summary: Iniciar rotación del secreto HMAC
+      description: |
+        Genera un secreto nuevo (mostrado una sola vez) y deja el anterior activo hasta `previousSecretExpiresAt`
+        o hasta `DELETE .../secret/previous`. Durante la rotación cada envío lleva una firma por secreto en
+        `X-Hub-Signature-256` (separadas por coma).
+      operationId: rotateWebhookSecret
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+      responses:
+        '200':
+          description: Secreto nuevo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookRotationResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /v1/webhooks/{webhookId}/secret/previous:
+    delete:
+      summary: Cerrar la rotación revocando el secreto anterior
+      operationId: revokePreviousWebhookSecret
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+      responses:
+        '204':
+          description: Secreto anterior revocado
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /v1/webhooks/policy:
+    get:
+      summary: Política del tenant (allowlist de hosts y reintentos)
+      operationId: getWebhookPolicy
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Política vigente (por defecto, sin hosts permitidos)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookPolicy'
+    put:
+      summary: Actualizar la política del tenant
+      operationId: updateWebhookPolicy
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookPolicy'
+      responses:
+        '200':
+          description: Política actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookPolicy'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /v1/webhooks/{webhookId}/deliveries:
+    get:
+      summary: Historial de entregas del webhook
+      operationId: listWebhookDeliveries
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [PENDIENTE, ENTREGADO, FALLIDO, CANCELADO]
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Página de entregas (la más reciente primero)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDeliveryPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/webhooks/{webhookId}/deliveries/{deliveryId}/retry:
+    post:
+      summary: Reintento manual de una entrega fallida (DLT)
+      operationId: retryWebhookDelivery
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+        - name: deliveryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Entrega reencolada (PENDIENTE, contador de intentos en cero)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDelivery'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
 components:
+  parameters:
+    WebhookId:
+      name: webhookId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
   securitySchemes:
     bearerAuth:
       type: http
@@ -86,7 +236,7 @@ components:
         url:
           type: string
           format: uri
-          description: "URL destino (debe ser HTTPS, IP pública). SSRF loopback será rechazado asíncronamente."
+          description: "URL destino: HTTPS, host en la allowlist del tenant (PUT /v1/webhooks/policy), sin credenciales ni IP literal. Se revalida (anti-SSRF, DNS fijado) en cada envío; un destino que resuelva a red privada falla con SSRF_BLOCKED."
           example: "https://core.banco.com/api/webhooks/idp"
         events:
           type: array
@@ -95,6 +245,7 @@ components:
             enum:
               - extraccion.aprobada
               - documento.rechazado
+              - revision.completada
           minItems: 1
     
     WebhookResponse:
@@ -134,6 +285,135 @@ components:
         createdAt:
           type: string
           format: date-time
+        rotating:
+          type: boolean
+          description: true mientras el secreto anterior sigue activo.
+        previousSecretExpiresAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    WebhookRotationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        secret:
+          type: string
+          description: "Secreto nuevo. Solo se retorna en esta respuesta."
+        previousSecretExpiresAt:
+          type: string
+          format: date-time
+
+    WebhookPolicy:
+      type: object
+      required: [allowedHosts, maxAttempts, initialBackoffSeconds, backoffMultiplier, maxBackoffSeconds]
+      properties:
+        allowedHosts:
+          type: array
+          maxItems: 50
+          description: "Hosts receptores permitidos: exacto o comodín `*.dominio` (subdominios, no el apex). Vacío = ningún destino."
+          items:
+            type: string
+        maxAttempts:
+          type: integer
+          minimum: 1
+          maximum: 10
+        initialBackoffSeconds:
+          type: integer
+          minimum: 1
+          maximum: 3600
+        backoffMultiplier:
+          type: number
+          minimum: 1
+          maximum: 10
+        maxBackoffSeconds:
+          type: integer
+          maximum: 86400
+
+    WebhookDelivery:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Id estable de la entrega; se envía como X-Hub-Event-Id y como `id` del cuerpo (clave de deduplicación del receptor)."
+        webhookId:
+          type: string
+          format: uuid
+        documentId:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+        status:
+          type: string
+          enum: [PENDIENTE, ENTREGADO, FALLIDO, CANCELADO]
+        attempts:
+          type: integer
+        nextAttemptAt:
+          type: string
+          format: date-time
+        lastAttemptAt:
+          type: string
+          format: date-time
+          nullable: true
+        deliveredAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastHttpStatus:
+          type: integer
+          nullable: true
+        errorCode:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    WebhookDeliveryPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookDelivery'
+        limit:
+          type: integer
+        offset:
+          type: integer
+        total:
+          type: integer
+
+    WebhookOutboundPayload:
+      type: object
+      description: |
+        Cuerpo del POST saliente (claim-check, sin PII). Cabeceras: `X-Hub-Timestamp` (epoch segundos),
+        `X-Hub-Event-Id` (= `id`), `X-Hub-Signature-256` = `sha256=` + HMAC-SHA256(secreto, timestamp + cuerpo), una
+        firma por secreto activo separadas por coma. El receptor debe rechazar timestamps fuera de su ventana y
+        deduplicar por `id`.
+      required: [id, eventType, occurredAt, documentId, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+          enum: [extraccion.aprobada, documento.rechazado, revision.completada]
+        occurredAt:
+          type: string
+          format: date-time
+        documentId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [APROBADA, RECHAZADO, REVISION_APROBADO, REVISION_RECHAZADO]
+        reasonCode:
+          type: string
+          description: Solo en documento.rechazado.
 
     ErrorResponse:
       type: object
@@ -158,6 +438,18 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
     Unauthorized:
       description: Token faltante, expirado o inválido
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Rol insuficiente o token sin tenant válido
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Estado incompatible con la operación (rotación en curso, entrega no fallida, límite de suscripciones)
       content:
         application/json:
           schema:
