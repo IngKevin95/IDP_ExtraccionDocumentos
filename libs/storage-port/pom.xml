@@ -16,6 +16,10 @@
             <artifactId>tenant-context</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.idp</groupId>
+            <artifactId>kms-port</artifactId>
+        </dependency>
+        <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3</artifactId>
             <version>${aws-sdk.version}</version>

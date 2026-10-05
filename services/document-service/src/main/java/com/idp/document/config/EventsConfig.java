@@ -10,6 +10,7 @@ import com.idp.events.OutboxPublisher;
 import com.idp.events.OutboxRelay;
 import com.idp.events.OutboxRepository;
 import com.idp.events.TenantOutboxAccess;
+import com.idp.tenant.context.TenantDirectory;
 import java.time.Clock;
 import java.time.Duration;
 import javax.sql.DataSource;
@@ -75,13 +76,13 @@ public class EventsConfig {
     @ConditionalOnProperty(value = "idp.document.relay.enabled", matchIfMissing = true)
     OutboxRelayJob outboxRelayJob(TenantOutboxAccess access, KafkaTemplate<String, String> kafka,
                                   @Value("${idp.topic:dominio.documentos}") String topic,
-                                  @Value("${idp.tenants:}") String tenants) {
-        OutboxRelay relay = new OutboxRelay(access, () -> TenantDbProperties.parseTenants(tenants), kafka,
+                                  TenantDirectory tenants) {
+        OutboxRelay relay = new OutboxRelay(access, tenants::activeTenants, kafka,
                 eventType -> topic, 100, Duration.ofSeconds(10));
         return new OutboxRelayJob(relay);
     }
 
-    /** Planifica el relay del outbox de los tenants configurados (los tenants se reparten por ShedLock a futuro). */
+    /** Planifica el relay del outbox de los tenants activos del directorio. */
     public static final class OutboxRelayJob {
         private final OutboxRelay relay;
 

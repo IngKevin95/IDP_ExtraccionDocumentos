@@ -221,10 +221,12 @@ public final class ExtractionProcessor {
         ExtractionRecord record = extractionRecord(ctx, status, typology, overall, taskId, detail);
         repository.save(record, fields);
         if (ctx.run.llmCalls() > 0) {
-            aiRegistry.record(ctx.cmd.tenantId(), ctx.documentId, ctx.extractionId, ctx.run, new AiExecutionRegistry.Config(PromptTemplates.VERSION,
+            ExtractionRepository.AiRecord ai = aiRegistry.record(ctx.cmd.tenantId(), ctx.documentId, ctx.extractionId,
+                ctx.run, new AiExecutionRegistry.Config(PromptTemplates.VERSION,
                     typology == null ? "UNKNOWN" : typology.code(), typology == null ? null : typology.version(),
                     calibratorId, settings.classificationMinConfidence(), "tau_auto/tau_revisar-cascada"),
                 clock.instant());
+            publishAiExecution(ctx, ai);
         }
         ObjectNode p = mapper.createObjectNode();
         p.put("documentId", ctx.documentId.toString());
@@ -236,6 +238,27 @@ public final class ExtractionProcessor {
         }
         publishConsumption(ctx, status);
         meters.counter("idp.extraction.outcome", "outcome", status).increment();
+    }
+
+    /** SEC-049: evento sin PII con versiones, huella de configuracion y referencia a la firma del registro. */
+    private void publishAiExecution(Context ctx, ExtractionRepository.AiRecord ai) {
+        ObjectNode p = mapper.createObjectNode();
+        p.put("documentId", ctx.documentId.toString());
+        String models = ctx.run.modelVersions().stream().sorted().collect(java.util.stream.Collectors.joining(","));
+        p.put("modelVersion", models.isEmpty() ? "unknown" : models);
+        p.put("promptVersion", PromptTemplates.VERSION);
+        p.put("configHash", sha256Hex(ai.payload()));
+        p.put("signatureRef", ai.keyId() + ":" + ai.id());
+        publish(ctx, "ia.ejecucion_registrada", "ia", p);
+    }
+
+    private static String sha256Hex(String data) {
+        try {
+            return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                .digest(data.getBytes(StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private void publishConsumption(Context ctx, String status) {

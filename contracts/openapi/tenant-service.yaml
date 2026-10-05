@@ -496,8 +496,11 @@ components:
         - TENANT_ADMIN
         - OPERADOR
         - REVISOR
-        - APROBADOR
+        - DATA_STEWARD
         - AUDITOR
+        - OFICIAL_SEGURIDAD
+        - COMPLIANCE
+        - RIESGO_MODELO
         - BREAK_GLASS
 
     UserAssignRequest:

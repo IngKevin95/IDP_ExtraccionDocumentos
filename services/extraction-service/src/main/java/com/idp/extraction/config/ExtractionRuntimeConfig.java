@@ -21,12 +21,14 @@ import com.idp.extraction.security.PromptInjectionDetector;
 import com.idp.extraction.store.DocumentStoragePort;
 import com.idp.extraction.store.ExtractionRepository;
 import com.idp.extraction.store.JdbcExtractionRepository;
-import com.idp.extraction.store.S3DocumentStorageAdapter;
+import com.idp.extraction.store.EncryptedDocumentStorageAdapter;
 import com.idp.extraction.typology.TypologyRegistry;
 import com.idp.extraction.validation.ValidatorRegistry;
+import com.idp.kms.EnvelopeCrypto;
 import com.idp.kms.KeyService;
 import com.idp.kms.OpenBaoTransitKeyService;
 import com.idp.llm.LlmProvider;
+import com.idp.storage.EncryptedArtifactStore;
 import com.idp.storage.ObjectStore;
 import com.idp.storage.S3Clients;
 import com.idp.storage.S3ObjectStore;
@@ -113,9 +115,11 @@ public class ExtractionRuntimeConfig {
     }
 
     @Bean
-    DocumentStoragePort documentStorage(ObjectStore store, ExtractionProperties props) {
+    DocumentStoragePort documentStorage(ObjectStore store, KeyService keys, ExtractionProperties props,
+                                        ObjectMapper idpObjectMapper) {
         ExtractionProperties.Storage s = props.storage();
-        return new S3DocumentStorageAdapter(store, s.pageTemplate(), s.textTemplate(), s.maxPages());
+        return new EncryptedDocumentStorageAdapter(
+            new EncryptedArtifactStore(store, new EnvelopeCrypto(keys), s.kekId()), idpObjectMapper, s.maxPages());
     }
 
     @Bean

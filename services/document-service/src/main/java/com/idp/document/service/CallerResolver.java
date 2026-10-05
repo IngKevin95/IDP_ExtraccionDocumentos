@@ -1,6 +1,6 @@
 package com.idp.document.service;
 
-import com.idp.document.domain.Role;
+import com.idp.security.Roles;
 import com.idp.security.TenantAuthorizer;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class CallerResolver {
 
-    private static final String[] ROLES = {Role.OPERATOR, Role.DATA_STEWARD, Role.ADMIN};
+    private static final String[] ROLES = {Roles.OPERADOR, Roles.DATA_STEWARD, Roles.TENANT_ADMIN};
 
     private final TenantAuthorizer authorizer;
 

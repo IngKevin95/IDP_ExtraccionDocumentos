@@ -76,7 +76,7 @@ public class DocumentQueryService {
                 sign(d.tenantId(), d.id(), exp).getBytes(StandardCharsets.UTF_8))) {
             throw new AccessDeniedException("Enlace de descarga invalido o vencido");
         }
-        return new Content(vault.get(d.tenantId(), d.id(), d.objectStoreKey()), d.mimeType());
+        return new Content(vault.getOriginal(d.tenantId(), d.id()), d.mimeType());
     }
 
     private String sign(String tenantId, UUID id, long exp) {

@@ -2,7 +2,7 @@ package com.idp.document.web;
 
 import com.idp.document.domain.Classification;
 import com.idp.document.domain.DocumentStatus;
-import com.idp.document.domain.Role;
+import com.idp.security.Roles;
 import com.idp.document.domain.Typology;
 import com.idp.document.service.Caller;
 import com.idp.document.service.CallerResolver;
@@ -41,7 +41,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class DocumentController {
 
     private static final Pattern RADICADO = Pattern.compile("\\d{23}");
-    private static final String[] ANY = {Role.OPERATOR, Role.DATA_STEWARD, Role.ADMIN};
+    private static final String[] ANY = {Roles.OPERADOR, Roles.DATA_STEWARD, Roles.TENANT_ADMIN};
 
     private final CallerResolver callers;
     private final DocumentIngestionService ingestion;
@@ -64,7 +64,7 @@ public class DocumentController {
             @RequestParam(value = "version", defaultValue = "1") int version,
             @RequestParam(value = "classification", defaultValue = "CONFIDENCIAL") String classification,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
-        Caller caller = callers.require(jwt, Role.OPERATOR, Role.ADMIN);
+        Caller caller = callers.require(jwt, Roles.OPERADOR, Roles.TENANT_ADMIN);
         Typology t = parse(Typology.class, typology, "typology");
         Classification c = parse(Classification.class, classification, "classification");
         if (!RADICADO.matcher(radicado).matches()) {
@@ -121,13 +121,13 @@ public class DocumentController {
 
     @PostMapping("/{documentId}/approve-confidential")
     public DocumentResponse approveConfidential(@AuthenticationPrincipal Jwt jwt, @PathVariable("documentId") UUID documentId) {
-        Caller caller = callers.require(jwt, Role.DATA_STEWARD);
+        Caller caller = callers.require(jwt, Roles.DATA_STEWARD);
         return DocumentResponse.of(lifecycle.approveConfidential(caller, documentId));
     }
 
     @DeleteMapping("/{documentId}")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable("documentId") UUID documentId) {
-        lifecycle.purge(callers.require(jwt, Role.ADMIN), documentId);
+        lifecycle.purge(callers.require(jwt, Roles.TENANT_ADMIN), documentId);
         return ResponseEntity.noContent().build();
     }
 

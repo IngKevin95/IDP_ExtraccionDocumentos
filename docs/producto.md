@@ -65,7 +65,7 @@ El acceso a la información sigue el principio de mínimo privilegio estricto.
 ## 5. Requisitos funcionales
 
 ### 5.1 Ingesta y orquestación
-* **RF-101 Estados canónicos:** El documento transita obligatoriamente los estados: RECIBIDO, RECHAZADO, RENDERIZADO, EN_EXTRACCION, EN_REVISION, APROBADO, FALLIDO.
+* **RF-101 Estados canónicos:** El documento transita obligatoriamente los estados: RECIBIDO, RECHAZADO, RENDERIZADO, EN_EXTRACCION, EN_REVISION, APROBADO_PENDIENTE_STEWARD, APROBADO, FALLIDO. APROBADO_PENDIENTE_STEWARD aplica a documentos Altamente Confidenciales hasta que un Data Steward distinto de quien cargó el documento los aprueba.
 * **RF-102 Ingesta idempotente y validación fail-fast:** API recibe oficios asegurando unicidad por hash de archivo y por tupla (tipología, radicado, versión). Los esquemas de extracción se configuran en YAML con validación fail-fast.
 * **RF-103 Sandbox de rasterizado:** Todo PDF/DOCX/imagen se renderiza a imágenes (PNG) y se extrae su capa de texto nativa en un pod aislado (sin credenciales, sin egress). Rechaza archivos con malware vía sidecar ClamAV.
 

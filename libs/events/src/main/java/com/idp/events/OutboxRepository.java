@@ -17,9 +17,11 @@ public class OutboxRepository {
 
     /** Inserta en estado PENDING; ignora duplicados por eventId. Devuelve filas insertadas. */
     public int insert(UUID eventId, String partitionKey, String eventType, UUID tenantId, String payload) {
+        // Sentencia portable (PostgreSQL y H2): INSERT ... SELECT ... WHERE NOT EXISTS en lugar de ON CONFLICT.
         return jdbc.update("insert into outbox (id, partition_key, event_type, tenant_id, payload) "
-            + "values (?, ?, ?, ?, ?) on conflict (id) do nothing",
-            eventId, partitionKey, eventType, tenantId, payload);
+            + "select cast(? as uuid), cast(? as varchar(255)), cast(? as varchar(120)), cast(? as uuid), "
+            + "cast(? as text) where not exists (select 1 from outbox o where o.id = cast(? as uuid))",
+            eventId, partitionKey, eventType, tenantId, payload, eventId);
     }
 
     /** Bloquea hasta {@code limit} filas pendientes saltando las bloqueadas por otras instancias. */

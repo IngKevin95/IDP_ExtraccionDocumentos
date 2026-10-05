@@ -42,9 +42,11 @@ public final class IdempotentEventConsumer {
         TenantContextHolder.setTenantId(event.tenantId().toString());
         try {
             return tx.execute(status -> {
-                int inserted = jdbc.update(
-                    "insert into processed_event (event_id) values (?) on conflict (event_id) do nothing",
-                    event.eventId());
+                // Portable (PostgreSQL y H2): sin ON CONFLICT.
+                int inserted = jdbc.update("insert into processed_event (event_id) "
+                    + "select cast(? as uuid) where not exists "
+                    + "(select 1 from processed_event p where p.event_id = cast(? as uuid))",
+                    event.eventId(), event.eventId());
                 if (inserted == 0) {
                     return Result.DUPLICATE;
                 }

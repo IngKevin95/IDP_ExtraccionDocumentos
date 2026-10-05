@@ -72,7 +72,7 @@ class ExtractionServiceAcTest {
         assertThat(fields()).noneMatch(FieldRecord::requiresReview);
         assertThat(fields()).anyMatch(f -> "demandados".equals(f.tableName()) && f.rowIndex() == 1
             && f.fieldName().equals("numero_identificacion") && "900123456-8".equals(f.valueText()));
-        assertThat(env.outboxTypes(tenant)).contains("extraccion.completada").doesNotContain("extraccion.requiere_revision");
+        assertThat(env.outboxTypes(tenant)).contains("extraccion.completada", "ia.ejecucion_registrada").doesNotContain("extraccion.requiere_revision");
         assertThat(field("radicado").evidenceQuote()).isEqualTo("11001310300520240012300");
         assertThat(field("radicado").boundingBoxJson()).isEqualTo("[0.1,0.2,0.3,0.05]");
     }

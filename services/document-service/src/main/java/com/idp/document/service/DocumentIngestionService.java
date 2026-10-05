@@ -98,8 +98,7 @@ public class DocumentIngestionService {
         }
 
         UUID id = UUID.randomUUID();
-        String key = ArtifactVault.originalKey(id);
-        vault.put(tenant, id, key, mime, c.content());
+        String key = vault.putOriginal(tenant, id, c.content());
         OffsetDateTime now = OffsetDateTime.now(clock);
         DocumentRecord doc = new DocumentRecord(id, tenant, hash, c.typology().name(), c.radicado(), c.version(),
                 DocumentStatus.RECIBIDO, c.classification(), key, mime, (long) c.content().length,
@@ -157,12 +156,10 @@ public class DocumentIngestionService {
         List<PageArtifact> artifacts = new ArrayList<>();
         try {
             for (RendererClient.Page p : result.pages()) {
-                String k = ArtifactVault.pageKey(doc.id(), p.number());
-                vault.put(doc.tenantId(), doc.id(), k, "image/png", p.png());
+                String k = vault.putPage(doc.tenantId(), doc.id(), p.number(), p.png());
                 artifacts.add(new PageArtifact(UUID.randomUUID(), doc.id(), PageArtifact.PAGE_PNG, p.number(), k));
             }
-            String tk = ArtifactVault.textLayerKey(doc.id());
-            vault.put(doc.tenantId(), doc.id(), tk, "application/json", result.textLayer());
+            String tk = vault.putTextLayer(doc.tenantId(), doc.id(), result.textLayer());
             artifacts.add(new PageArtifact(UUID.randomUUID(), doc.id(), PageArtifact.TEXT_LAYER, 0, tk));
         } catch (RuntimeException e) {
             LOG.error("No se pudieron guardar los artefactos del documento {}: {}", doc.id(),

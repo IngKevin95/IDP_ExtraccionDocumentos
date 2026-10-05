@@ -4,6 +4,7 @@ import com.idp.tenant.context.OpenBaoTenantCredentialProvider;
 import com.idp.tenant.context.TenantConnection;
 import com.idp.tenant.context.TenantCredentialProvider;
 import com.idp.tenant.context.TenantDataSourceRouter;
+import com.idp.tenant.context.TenantDirectory;
 import com.idp.tenant.context.TenantNotAvailableException;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
@@ -64,8 +65,8 @@ public class PersistenceConfig {
 
     @Bean
     @ConditionalOnProperty("idp.document.migrate-on-startup")
-    ApplicationRunner migrateTenantsOnStartup(TenantSchemaMigrator migrator, @Value("${idp.tenants:}") String tenants) {
-        return args -> TenantDbProperties.parseTenants(tenants).forEach(migrator::migrate);
+    ApplicationRunner migrateTenantsOnStartup(TenantSchemaMigrator migrator, TenantDirectory tenants) {
+        return args -> tenants.activeTenants().forEach(migrator::migrate);
     }
 
     /** Aplica db/migration al silo de un tenant (aprovisionamiento o arranque). */

@@ -3,7 +3,7 @@ package com.idp.tenant.security;
 import com.idp.security.TenantAuthorizer;
 import com.idp.tenant.context.TenantContextHolder;
 import com.idp.tenant.domain.Tenant;
-import com.idp.tenant.domain.TenantRole;
+import com.idp.security.Roles;
 import com.idp.tenant.domain.TenantStatus;
 import com.idp.tenant.infrastructure.persistence.TenantRepository;
 import jakarta.servlet.FilterChain;
@@ -58,7 +58,7 @@ public class TenantRevalidationFilter extends OncePerRequestFilter {
         }
         Tenant tenant = tenants.find(tenantId).orElse(null);
         if (tenant == null || tenant.status() != TenantStatus.ACTIVE
-                || !authorizer.authorize(tenantId.toString(), jwt.getName(), TenantRole.TENANT_ADMIN.name())) {
+                || !authorizer.authorize(tenantId.toString(), jwt.getName(), Roles.TENANT_ADMIN)) {
             deny(response);
             return;
         }

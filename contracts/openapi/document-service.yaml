@@ -16,6 +16,15 @@ paths:
       summary: Ingesta un nuevo oficio o documento
       description: Permite cargar un documento binario (PDF, DOCX, PNG, JPG, TIFF) con metadatos asociados. Realiza verificación de idempotencia por hash SHA-256 y tupla de negocio.
       operationId: ingestDocument
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Clave de idempotencia opcional (máx. 128 caracteres). Reusarla con otro contenido responde 409 DOC_IDEMPOTENCY_KEY_REUSED.
+          schema:
+            type: string
+            maxLength: 128
+            example: "a3f1c2d4-7b6e-4c1a-9d52-0e8f3b7a1c64"
       requestBody:
         required: true
         content:
@@ -69,6 +78,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no posee el rol Operador o Administrador de Tenant vigente (DOC_FORBIDDEN).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: >-
+            Conflicto. DOC_IDEMPOTENCY_KEY_REUSED (la Idempotency-Key ya se usó con otro contenido) o
+            DOC_DUPLICATE_BUSINESS_KEY (ya existe un documento con la misma tipología, radicado y versión y contenido distinto).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '415':
           description: Tipo de contenido o magic bytes no soportados.
           content:
@@ -105,6 +128,12 @@ paths:
             type: integer
             default: 0
       responses:
+        '403':
+          description: El usuario no posee un rol con acceso a documentos (DOC_FORBIDDEN).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: Lista paginada de documentos.
           content:
@@ -150,8 +179,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocumentResponse'
+        '403':
+          description: El usuario no posee un rol con acceso a documentos (DOC_FORBIDDEN).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
-          description: Documento no encontrado o no pertenece al tenant (SEC-003).
+          description: Documento no encontrado, no pertenece al tenant (SEC-003) o es Altamente Confidencial de otro cargador.
           content:
             application/json:
               schema:
@@ -159,7 +194,7 @@ paths:
 
     delete:
       summary: Elimina un documento por Habeas Data (Purga)
-      description: Dispara la purga física del binario en Object Storage y aplica tombstone en BD.
+      description: Requiere rol Administrador de Tenant. Dispara la purga física de los binarios cifrados en Object Storage y aplica tombstone en BD.
       operationId: deleteDocument
       parameters:
         - name: documentId
@@ -172,6 +207,12 @@ paths:
       responses:
         '204':
           description: Purga ejecutada exitosamente.
+        '403':
+          description: Requiere rol Administrador de Tenant (DOC_FORBIDDEN).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Documento no encontrado o no pertenece al tenant.
           content:
@@ -181,7 +222,8 @@ paths:
 
   /v1/documents/{documentId}/download:
     get:
-      summary: Genera una URL presignada para descargar el archivo binario
+      summary: Genera un enlace firmado de corta vida para descargar el archivo original
+      description: Los objetos están cifrados con sobre, por lo que no se emite una URL presignada del bucket. El enlace apunta a GET /v1/documents/{documentId}/content con vencimiento (exp) y firma HMAC (sig).
       operationId: getDownloadUrl
       parameters:
         - name: documentId
@@ -205,11 +247,78 @@ paths:
                   downloadUrl:
                     type: string
                     format: uri
-                    example: "https://storage.provider.com/bucket-tenant-a/oficio-123.pdf?token=abc"
+                    example: "https://api.idp.example/v1/documents/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d/content?exp=1791115500&sig=4f2a9c0e7d"
                   expiresAt:
                     type: string
                     format: date-time
                     example: "2026-10-04T12:15:00Z"
+        '403':
+          description: El usuario no posee un rol con acceso a documentos (DOC_FORBIDDEN).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Documento no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/documents/{documentId}/content:
+    get:
+      summary: Descarga el archivo original descifrado mediante el enlace firmado
+      description: Destino del enlace devuelto por /download. Exige JWT del mismo tenant, además de exp y sig válidos.
+      operationId: getDocumentContent
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+        - name: exp
+          in: query
+          required: true
+          description: Vencimiento del enlace en epoch seconds.
+          schema:
+            type: integer
+            format: int64
+            example: 1791115500
+        - name: sig
+          in: query
+          required: true
+          description: Firma HMAC-SHA256 (hex) de tenant, documento y vencimiento.
+          schema:
+            type: string
+            example: "4f2a9c0e7d1b8a3c5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5"
+      responses:
+        '200':
+          description: Contenido binario del documento con su tipo MIME original.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/tiff:
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: Enlace vencido o con firma inválida, o rol sin acceso (DOC_FORBIDDEN).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Documento no encontrado.
           content:
@@ -220,6 +329,7 @@ paths:
   /v1/documents/{documentId}/approve-confidential:
     post:
       summary: Aprobación por Data Steward para documentos Altamente Confidenciales
+      description: Solo aplica a documentos en estado APROBADO_PENDIENTE_STEWARD. El Data Steward debe ser distinto de quien cargó el documento.
       operationId: approveConfidentialDocument
       parameters:
         - name: documentId
@@ -237,13 +347,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/DocumentResponse'
         '403':
-          description: El usuario no posee el rol Data Steward.
+          description: El usuario no posee el rol Data Steward o es quien cargó el documento (DOC_FORBIDDEN).
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Documento no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: El documento no está pendiente de aprobación (DOC_INVALID_STATE).
           content:
             application/json:
               schema:
@@ -259,6 +375,7 @@ components:
   schemas:
     DocumentStatus:
       type: string
+      description: Estados canónicos (docs/arquitectura.md). APROBADO_PENDIENTE_STEWARD aplica a documentos ALTAMENTE_CONFIDENCIAL pendientes de aprobación del Data Steward.
       enum:
         - RECIBIDO
         - RECHAZADO
@@ -289,7 +406,8 @@ components:
           example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
         tenantId:
           type: string
-          example: "tenant-banco-01"
+          format: uuid
+          example: "3f8e1c52-6a47-4d0b-9c1e-5b2a7d9e4f10"
         hashSha256:
           type: string
           example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -325,6 +443,17 @@ components:
       properties:
         errorCode:
           type: string
+          enum:
+            - DOC_INVALID_FORMAT
+            - DOC_FILE_TOO_LARGE
+            - DOC_INVALID_METADATA
+            - DOC_NOT_FOUND
+            - DOC_FORBIDDEN
+            - DOC_IDEMPOTENCY_KEY_REUSED
+            - DOC_DUPLICATE_BUSINESS_KEY
+            - DOC_INVALID_STATE
+            - DOC_HTTP_ERROR
+            - DOC_INTERNAL_ERROR
           example: "DOC_INVALID_FORMAT"
         message:
           type: string

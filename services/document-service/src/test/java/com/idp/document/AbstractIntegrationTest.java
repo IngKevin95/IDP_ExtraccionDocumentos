@@ -37,6 +37,7 @@ abstract class AbstractIntegrationTest {
     @Autowired TestBeans.InMemoryObjectStore store;
     @Autowired TestBeans.MutableRoleSource roles;
     @Autowired TestBeans.FakeRenderer renderer;
+    @Autowired com.idp.kms.EnvelopeCrypto crypto;
 
     @BeforeEach
     void resetRenderer() {

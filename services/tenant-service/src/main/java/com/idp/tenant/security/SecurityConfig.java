@@ -25,7 +25,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-    public static final String PLATFORM_ADMIN = "PLATFORM_ADMIN";
+    public static final String PLATFORM_ADMIN = com.idp.security.Roles.PLATFORM_ADMIN;
 
     @Bean
     TenantAuthorizer tenantAuthorizer(CachingRoleAssignmentVerifier verifier) {

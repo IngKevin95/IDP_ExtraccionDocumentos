@@ -3,7 +3,7 @@ package com.idp.document.service;
 import com.idp.document.domain.DocumentRecord;
 import com.idp.document.domain.DocumentStatus;
 import com.idp.document.domain.PageArtifact;
-import com.idp.document.domain.Role;
+import com.idp.security.Roles;
 import com.idp.document.infra.ArtifactVault;
 import com.idp.document.infra.DocumentRepository;
 import com.idp.document.infra.DomainEvents;
@@ -50,7 +50,7 @@ public class DocumentLifecycleService {
         }
         return tx.execute(s -> {
             DocumentRecord approved = states.transition(doc, DocumentStatus.APROBADO);
-            events.aprobada(approved, "DATA_STEWARD");
+            events.aprobada(approved, Roles.DATA_STEWARD);
             return approved;
         });
     }
@@ -60,7 +60,7 @@ public class DocumentLifecycleService {
      * el tombstone en BD y el evento documento.purgado.
      */
     public void purge(Caller caller, UUID documentId) {
-        if (!caller.has(Role.ADMIN)) {
+        if (!caller.has(Roles.TENANT_ADMIN)) {
             throw new AccessDeniedException("Rol insuficiente");
         }
         DocumentRecord doc = repo.findById(caller.tenantId(), documentId).orElseThrow(DocumentNotFoundException::new);

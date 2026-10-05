@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/ia.ejecucion_registrada/v1.json",
+  "title": "IA Ejecucion Registrada Event",
+  "description": "Evento emitido por extraction-service al persistir el registro firmado de una ejecucion de IA (SEC-049). Sin PII: solo versiones, huella de configuracion y referencia a la firma.",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "documentId",
+    "modelVersion",
+    "promptVersion",
+    "configHash",
+    "signatureRef"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "ia.ejecucion_registrada"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "documentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "modelVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Versiones de modelo usadas, separadas por coma y ordenadas."
+    },
+    "promptVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50
+    },
+    "configHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 (hex) del registro canonico firmado (prompts, tipologia, calibrador, ruteo)."
+    },
+    "signatureRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Referencia opaca al registro firmado: <keyId>:<aiRecordId>."
+    }
+  },
+  "additionalProperties": false
+}

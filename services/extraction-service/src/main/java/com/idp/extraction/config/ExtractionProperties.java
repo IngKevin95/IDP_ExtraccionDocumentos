@@ -17,7 +17,8 @@ public record ExtractionProperties(
     @DefaultValue Calibration calibration,
     @DefaultValue Relay relay,
     @DefaultValue Db db,
-    @DefaultValue Openbao openbao) {
+    @DefaultValue Openbao openbao,
+    @DefaultValue Control control) {
 
     public record Classification(@DefaultValue("0.7") double minConfidence) {
     }
@@ -31,22 +32,27 @@ public record ExtractionProperties(
     public record Storage(@DefaultValue("") String endpoint, @DefaultValue("us-east-1") String region,
                           @DefaultValue("idp-documents") String bucket, @DefaultValue("") String accessKey,
                           @DefaultValue("") String secretKey, @DefaultValue("true") boolean pathStyle,
-                          @DefaultValue("documents/%s/pages/page_%d.png") String pageTemplate,
-                          @DefaultValue("documents/%s/text/page_%d.txt") String textTemplate,
+                          @DefaultValue("documents") String kekId,
                           @DefaultValue("100") int maxPages) {
     }
 
     public record Registry(@DefaultValue("ai-registry") String signingKeyId) {
     }
 
-    public record Kafka(@DefaultValue("dominio.documentos") String commandTopic) {
+    public record Kafka(@DefaultValue("dominio.documentos") String commandTopic,
+                        @DefaultValue("dominio.documentos") String domainTopic) {
     }
 
     /** {@code resource}: JSON de la curva isotonica (file: o classpath:); vacio = calibracion identidad. */
     public record Calibration(@DefaultValue("") String resource) {
     }
 
-    /** Relay del outbox hacia Kafka para los tenants listados. */
+    /** Base de control de la plataforma (directorio de tenants). Sin {@code url} se usa {@code relay.tenants}. */
+    public record Control(@DefaultValue("") String url, @DefaultValue("") String username,
+                          @DefaultValue("") String password, @DefaultValue("PT30S") Duration directoryTtl) {
+    }
+
+    /** Relay del outbox hacia Kafka; los tenants salen del directorio (base de control) o, en desarrollo, de la lista. */
     public record Relay(@DefaultValue("false") boolean enabled, @DefaultValue List<String> tenants,
                         @DefaultValue("PT1S") Duration interval) {
     }

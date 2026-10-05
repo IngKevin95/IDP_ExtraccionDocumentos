@@ -25,7 +25,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    public static final String AUDITOR = "AUDITOR";
+    public static final String AUDITOR = com.idp.security.Roles.AUDITOR;
     public static final String PUBLIC_PREFIX = "/v1/audit/public/";
 
     @Bean

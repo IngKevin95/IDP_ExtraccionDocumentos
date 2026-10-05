@@ -116,7 +116,7 @@ public final class ExtractionTestEnv {
             c -> {
                 DriverManagerDataSource ds = new DriverManagerDataSource(c.jdbcUrl(), c.username(), c.password());
                 initSchema(ds);
-                return new H2CompatDataSource(ds);
+                return ds;
             });
         this.jdbc = new JdbcTemplate(router);
         this.tx = new TransactionTemplate(new DataSourceTransactionManager(router));

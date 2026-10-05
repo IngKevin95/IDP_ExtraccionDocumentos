@@ -7,7 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.idp.document.domain.Role;
+import com.idp.security.Roles;
 import com.idp.document.infra.PipelineEventListener;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
@@ -23,7 +23,7 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
     @Autowired MeterRegistry meters;
 
     private String operator(String tenant, String user) {
-        roles.grant(tenant, user, Role.OPERATOR);
+        roles.grant(tenant, user, Roles.OPERADOR);
         return user;
     }
 
@@ -122,6 +122,12 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
         byte[] storedOriginal = store.raw(tenant, "documents/" + id + "/original.enc");
         assertThat(storedOriginal).isNotEqualTo(content);
         assertThat(new String(storedOriginal, StandardCharsets.ISO_8859_1)).doesNotContain("%PDF-");
+        // un lector independiente (como el de extraction-service) descifra por rutas canonicas y AAD compartidos
+        var reader = new com.idp.storage.EncryptedArtifactStore(store, crypto, "documents");
+        UUID docId = UUID.fromString(id);
+        assertThat(reader.get(tenant, docId, com.idp.storage.ArtifactKind.PAGE_PNG, 1)).containsExactly(1, 2, 3);
+        assertThat(reader.get(tenant, docId, com.idp.storage.ArtifactKind.PAGE_PNG, 2)).containsExactly(4, 5);
+        assertThat(reader.get(tenant, docId, com.idp.storage.ArtifactKind.ORIGINAL, 0)).isEqualTo(content);
         assertThat(inTenant(tenant, () -> jdbc.queryForObject(
                 "select count(*) from page_artifact where document_id = ?", Integer.class, UUID.fromString(id))))
                 .isEqualTo(3);
@@ -240,9 +246,9 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
     void ac07_altamenteConfidencialExigeDataStewardDistintoDelCargador() throws Exception {
         String tenant = newTenant();
         operator(tenant, "ana");
-        roles.grant(tenant, "ana", Role.DATA_STEWARD); // el cargador tambien es steward: no puede auto-aprobar
-        roles.grant(tenant, "bruno", Role.DATA_STEWARD);
-        roles.grant(tenant, "carla", Role.OPERATOR);
+        roles.grant(tenant, "ana", Roles.DATA_STEWARD); // el cargador tambien es steward: no puede auto-aprobar
+        roles.grant(tenant, "bruno", Roles.DATA_STEWARD);
+        roles.grant(tenant, "carla", Roles.OPERADOR);
         MvcResult r = upload(tenant, "ana", pdf(), "a.pdf", radicado(), 1, "ALTAMENTE_CONFIDENCIAL", null);
         String id = body(r).path("id").asText();
 
@@ -275,7 +281,7 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
         String tenant = newTenant();
         operator(tenant, "ana");
         operator(tenant, "carla");
-        roles.grant(tenant, "bruno", Role.DATA_STEWARD);
+        roles.grant(tenant, "bruno", Roles.DATA_STEWARD);
         String id = body(upload(tenant, "ana", pdf(), "a.pdf", radicado(), 1, "ALTAMENTE_CONFIDENCIAL", null))
                 .path("id").asText();
 
@@ -333,7 +339,7 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
     void ac09_purgaBorraBinariosAnulaCamposYEmiteDocumentoPurgado() throws Exception {
         String tenant = newTenant();
         operator(tenant, "ana");
-        roles.grant(tenant, "root", Role.ADMIN);
+        roles.grant(tenant, "root", Roles.TENANT_ADMIN);
         String id = uploadOk(tenant, "ana");
         assertThat(store.keys(tenant)).hasSize(4);
 

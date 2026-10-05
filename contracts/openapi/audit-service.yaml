@@ -52,6 +52,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Se detectó una inconsistencia en la cadena de auditoría (AUDIT_CHAIN_CORRUPT).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Servicio de firma o almacenamiento inmutable no disponible (AUDIT_DEPENDENCY_UNAVAILABLE).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /v1/audit/verify:
     get:
@@ -96,15 +108,97 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Almacenamiento inmutable no disponible (AUDIT_DEPENDENCY_UNAVAILABLE).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /v1/audit/legal-hold:
+  /v1/audit/public/verify-signature:
     post:
-      summary: Aplica o actualiza el estado de preservación legal (Legal Hold)
+      summary: Verificación pública de la firma de un expediente exportado
       description: |
-        Bloquea la destrucción física o crypto-shredding de documentos o de un tenant completo,
-        garantizando su retención inmutable en el sistema.
-      operationId: applyLegalHold
-      parameters:
+        Sin autenticación (SEC-042). Recibe un expediente exportado por GET /v1/audit/dossiers/{documentId} y comprueba
+        su firma ed25519 con la llave de verificación y el hash de cada evento. Solo devuelve el veredicto, sin datos del tenant.
+      operationId: verifyDossierSignature
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuditDossier'
+      responses:
+        '200':
+          description: Veredicto de la verificación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignatureVerificationResponse'
+        '400':
+          description: Expediente inválido o mal formado (AUDIT_BAD_REQUEST)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Servicio de verificación no disponible (AUDIT_DEPENDENCY_UNAVAILABLE).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/audit/retention/purge-check:
+    post:
+      summary: Compuerta de retención previa a un expurgo o destrucción de KEK
+      description: |
+        Debe consultarse antes de cualquier purga. Con un legal hold activo responde 409 LEGAL_HOLD_ACTIVE y
+        deja el rechazo encadenado en la auditoría.
+      operationId: checkPurgeAllowed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurgeCheckRequest'
+      responses:
+        '200':
+          description: La destrucción está permitida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurgeCheckResponse'
+        '400':
+          description: Solicitud inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: No autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Acceso denegado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Destrucción bloqueada por legal hold activo (LEGAL_HOLD_ACTIVE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/audit/legal-holds:
+    post:
+      summary: Alias de /v1/audit/legal-hold
+      description: Alias de la especificación de plataforma; mismo contrato y comportamiento que /v1/audit/legal-hold.
+      operationId: applyLegalHoldAlias
       requestBody:
         required: true
         content:
@@ -136,6 +230,57 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No hay legal hold activo para ese alcance (RELEASE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/audit/legal-hold:
+    post:
+      summary: Aplica o actualiza el estado de preservación legal (Legal Hold)
+      description: |
+        Bloquea la destrucción física o crypto-shredding de documentos o de un tenant completo,
+        garantizando su retención inmutable en el sistema.
+      operationId: applyLegalHold
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LegalHoldRequest'
+      responses:
+        '200':
+          description: Estado de Legal Hold aplicado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalHoldResponse'
+        '400':
+          description: Solicitud inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: No autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Acceso denegado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No hay legal hold activo para ese alcance (RELEASE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   securitySchemes:
@@ -156,6 +301,19 @@ components:
         - events
         - signature
       properties:
+        purged:
+          type: boolean
+          description: Verdadero si el documento fue purgado; los payloads de sus eventos van redactados salvo documento.purgado.
+          example: false
+        anchors:
+          type: array
+          description: Anclajes WORM que cubren los eventos del documento.
+          items:
+            $ref: '#/components/schemas/WormAnchor'
+        unanchoredEvents:
+          type: integer
+          description: Eventos del expediente aún no cubiertos por un anclaje WORM.
+          example: 0
         dossierId:
           type: string
           format: uuid
@@ -204,11 +362,22 @@ components:
         - occurredAt
         - currentHash
         - previousHash
+        - payloadSha256
+        - redacted
         - payload
       properties:
         sequenceId:
           type: integer
           example: 1042
+        eventId:
+          type: string
+          format: uuid
+          example: "0b6f5c1e-8a3d-4e2f-b7c9-1d4a6e8f2b30"
+        correlationId:
+          type: string
+          format: uuid
+          nullable: true
+          example: "5d2c9a77-3e1b-4f60-8a4d-9c7e1b2f3a45"
         eventType:
           type: string
           example: "documento.recibido"
@@ -218,6 +387,7 @@ components:
           example: "2026-10-04T10:15:00Z"
         actorId:
           type: string
+          description: Identificador opaco del actor (sin PII).
           example: "user-system-01"
         currentHash:
           type: string
@@ -225,6 +395,14 @@ components:
         previousHash:
           type: string
           example: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+        payloadSha256:
+          type: string
+          description: SHA-256 del payload original; se conserva aunque el payload se redacte por purga.
+          example: "2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae"
+        redacted:
+          type: boolean
+          description: Verdadero si el payload fue redactado por purga del documento.
+          example: false
         payload:
           type: object
           description: Metadata contextual del evento (Claim-check sin PII)
@@ -296,7 +474,82 @@ components:
           example: "987e6543-e89b-12d3-a456-426614174000"
         reason:
           type: string
+          maxLength: 2000
           example: "Requerimiento judicial Ref-2026-894"
+        reasonCode:
+          type: string
+          description: Opcional. Código del evento legalhold.aplicado; por defecto REGULATORY_REQUIREMENT.
+          example: "REGULATORY_REQUIREMENT"
+
+    PurgeCheckRequest:
+      type: object
+      properties:
+        documentId:
+          type: string
+          format: uuid
+          description: Opcional. Si se omite, la consulta aplica a todo el tenant.
+          example: "987e6543-e89b-12d3-a456-426614174000"
+        reason:
+          type: string
+          maxLength: 2000
+          example: "Solicitud Habeas Data HD-2026-114"
+
+    PurgeCheckResponse:
+      type: object
+      required:
+        - allowed
+      properties:
+        allowed:
+          type: boolean
+          example: true
+
+    SignatureVerificationResponse:
+      type: object
+      required:
+        - valid
+        - signatureValid
+        - eventHashesValid
+      properties:
+        valid:
+          type: boolean
+          description: Verdadero si la firma y los hashes de los eventos son válidos.
+          example: true
+        signatureValid:
+          type: boolean
+          example: true
+        eventHashesValid:
+          type: boolean
+          example: true
+
+    WormAnchor:
+      type: object
+      required:
+        - anchorId
+        - startSequenceId
+        - endSequenceId
+        - fileUri
+        - manifestHash
+        - signature
+      properties:
+        anchorId:
+          type: string
+          format: uuid
+          example: "c3a1d5e7-2b4f-4a69-8d10-6e7f8a9b0c1d"
+        startSequenceId:
+          type: integer
+          example: 1001
+        endSequenceId:
+          type: integer
+          example: 2000
+        fileUri:
+          type: string
+          example: "s3://idp-audit-worm/123e4567-e89b-12d3-a456-426614174000/anchors/1001-2000.json"
+        manifestHash:
+          type: string
+          example: "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+        signature:
+          type: string
+          example: "z34kL89...mV90xQ=="
 
     LegalHoldResponse:
       type: object
@@ -339,6 +592,12 @@ components:
       properties:
         code:
           type: string
+          enum:
+            - AUDIT_NOT_FOUND
+            - AUDIT_BAD_REQUEST
+            - LEGAL_HOLD_ACTIVE
+            - AUDIT_CHAIN_CORRUPT
+            - AUDIT_DEPENDENCY_UNAVAILABLE
           example: "AUDIT_NOT_FOUND"
         message:
           type: string

@@ -6,7 +6,7 @@ import com.idp.tenant.domain.Exceptions.ForbiddenException;
 import com.idp.tenant.domain.Exceptions.NotFoundException;
 import com.idp.tenant.domain.RoleAssignment;
 import com.idp.tenant.domain.Tenant;
-import com.idp.tenant.domain.TenantRole;
+import com.idp.security.Roles;
 import com.idp.tenant.domain.TenantStatus;
 import com.idp.tenant.infrastructure.persistence.RoleAssignmentRepository;
 import com.idp.tenant.infrastructure.persistence.TenantRepository;
@@ -59,7 +59,7 @@ public class BreakGlassService {
         }
         Instant now = Instant.now(clock);
         Instant expiresAt = now.plus(Duration.ofMinutes(ttlMinutes));
-        RoleAssignment ra = new RoleAssignment(UUID.randomUUID(), tenantId, userId, TenantRole.BREAK_GLASS.name(),
+        RoleAssignment ra = new RoleAssignment(UUID.randomUUID(), tenantId, userId, Roles.SOPORTE,
                 requester, approvedBy, expiresAt, now, null, null, null, justification);
         roles.insert(ra);
         events.breakglassOtorgado(tenantId, userId, approvedBy, expiresAt);
@@ -71,7 +71,7 @@ public class BreakGlassService {
     @Transactional
     public int expireDue() {
         Instant now = Instant.now(clock);
-        List<RoleAssignment> due = roles.findExpiredActiveByRole(TenantRole.BREAK_GLASS.name(), now);
+        List<RoleAssignment> due = roles.findExpiredActiveByRole(Roles.SOPORTE, now);
         for (RoleAssignment r : due) {
             roles.softDelete(r.id(), "system", "EXPIRED", now);
             events.breakglassExpirado(r.tenantId(), r.userId());

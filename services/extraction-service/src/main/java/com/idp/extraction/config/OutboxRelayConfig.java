@@ -2,11 +2,17 @@ package com.idp.extraction.config;
 
 import com.idp.events.JdbcTenantOutboxAccess;
 import com.idp.events.OutboxRelay;
-import java.util.List;
+import com.idp.tenant.context.JdbcTenantDirectory;
+import com.idp.tenant.context.StaticTenantDirectory;
+import com.idp.tenant.context.TenantDirectory;
+import com.zaxxer.hikari.HikariDataSource;
+import java.time.Clock;
+import java.time.Duration;
 import javax.sql.DataSource;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -18,9 +24,24 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class OutboxRelayConfig {
 
     @Bean
-    OutboxRelay outboxRelay(DataSource tenantDataSource, ExtractionProperties props, KafkaTemplate<String, String> kafka) {
-        List<String> tenants = List.copyOf(props.relay().tenants());
-        return new OutboxRelay(new JdbcTenantOutboxAccess(tenantDataSource), () -> tenants, kafka);
+    TenantDirectory tenantDirectory(ExtractionProperties props, Clock clock) {
+        ExtractionProperties.Control c = props.control();
+        if (c.url().isBlank()) {
+            return new StaticTenantDirectory(props.relay().tenants());
+        }
+        HikariDataSource ds = new HikariDataSource();
+        ds.setJdbcUrl(c.url());
+        ds.setUsername(c.username());
+        ds.setPassword(c.password());
+        ds.setMaximumPoolSize(2);
+        return new JdbcTenantDirectory(new JdbcTemplate(ds), c.directoryTtl(), clock);
+    }
+
+    @Bean
+    OutboxRelay outboxRelay(DataSource tenantDataSource, TenantDirectory tenants, ExtractionProperties props,
+                            KafkaTemplate<String, String> kafka) {
+        return new OutboxRelay(new JdbcTenantOutboxAccess(tenantDataSource), tenants::activeTenants, kafka,
+            eventType -> props.kafka().domainTopic(), 100, Duration.ofSeconds(10));
     }
 
     @Bean

@@ -25,11 +25,6 @@ import org.springframework.context.annotation.Primary;
 public class TestBeans {
 
     @Bean
-    static org.springframework.beans.factory.config.BeanPostProcessor h2PostgresCompat() {
-        return H2PostgresCompat.beanPostProcessor();
-    }
-
-    @Bean
     @Primary
     InMemoryObjectStore testObjectStore() {
         return new InMemoryObjectStore();
