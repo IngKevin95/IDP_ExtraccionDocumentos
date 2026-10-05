@@ -59,11 +59,20 @@ class EncryptedDocumentStorageAdapterTest {
 
     private final MemoryStore bucket = new MemoryStore();
     private final EnvelopeCrypto crypto = new EnvelopeCrypto(new InMemoryKeyService());
-    private final EncryptedArtifactStore producer = new EncryptedArtifactStore(bucket, crypto, "documents");
-    private final EncryptedDocumentStorageAdapter reader = new EncryptedDocumentStorageAdapter(
-        new EncryptedArtifactStore(bucket, crypto, "documents"), new ObjectMapper(), 100);
+    private final com.idp.tenant.context.TenantKeyResolver keyResolver = org.mockito.Mockito.mock(com.idp.tenant.context.TenantKeyResolver.class);
+    
+    private final EncryptedArtifactStore producer;
+    private final EncryptedDocumentStorageAdapter reader;
     private final String tenant = UUID.randomUUID().toString();
     private final UUID doc = UUID.randomUUID();
+
+    public EncryptedDocumentStorageAdapterTest() {
+        org.mockito.Mockito.when(keyResolver.resolve(org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn(new com.idp.tenant.context.TenantKeyResolver.TenantKeys("t-kek", "a-kek"));
+        producer = new EncryptedArtifactStore(bucket, crypto, keyResolver);
+        reader = new EncryptedDocumentStorageAdapter(
+            new EncryptedArtifactStore(bucket, crypto, keyResolver), new ObjectMapper(), 100);
+    }
 
     @Test
     void readsPagesAndNativeTextWrittenByDocumentService() {

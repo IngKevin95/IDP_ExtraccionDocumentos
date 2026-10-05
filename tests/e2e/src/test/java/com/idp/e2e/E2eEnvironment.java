@@ -104,12 +104,15 @@ final class E2eEnvironment {
         try (Connection c = DriverManager.getConnection(CONTROL_URL, "sa", "")) {
             c.createStatement().execute("create table tenants (id uuid primary key, status varchar(20) not null)");
             c.createStatement().execute("create table silo_location (tenant_id uuid primary key)");
+            c.createStatement().execute("create table tenant_config (tenant_id uuid primary key, "
+                + "data_kek_id varchar(255), audit_kek_id varchar(255))");
             c.createStatement().execute("create table role_assignment (id uuid primary key, tenant_id uuid not null, "
                 + "user_id varchar(255) not null, role varchar(50) not null, expires_at timestamp with time zone, "
                 + "deleted_at timestamp with time zone)");
             for (String t : List.of(TENANT_A, TENANT_B)) {
                 c.createStatement().execute("insert into tenants values ('" + t + "', 'ACTIVE')");
                 c.createStatement().execute("insert into silo_location values ('" + t + "')");
+                c.createStatement().execute("insert into tenant_config values ('" + t + "', 'documents', 'audit')");
             }
             grant(c, TENANT_A, OPERATOR_A, com.idp.security.Roles.OPERADOR);
             grant(c, TENANT_B, OPERATOR_B, com.idp.security.Roles.OPERADOR);
@@ -151,6 +154,7 @@ final class E2eEnvironment {
             p.put("spring.ai.model." + m, "none");
         }
         p.put("management.endpoints.web.exposure.include", "health");
+        p.put("idp.security.dev-mode", "true");
         return p;
     }
 
@@ -165,7 +169,7 @@ final class E2eEnvironment {
         p.put("idp.tenant-db.jdbc-url-template", "jdbc:h2:mem:doc_{tenant};MODE=PostgreSQL;DB_CLOSE_DELAY=-1");
         p.put("idp.tenant-db.username", "sa");
         p.put("idp.tenant-db.password", "");
-        p.put("idp.document.download-secret", "e2e-download-secret");
+        p.put("idp.document.download-secret", "e2e-download-secret-that-is-at-least-32-bytes-long");
         p.put("idp.document.relay.interval", "200ms");
         p.put("services.renderer.url", "http://localhost:1");
         return p;

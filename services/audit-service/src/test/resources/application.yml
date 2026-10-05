@@ -27,3 +27,5 @@ idp:
       max-age-hours: 24
     worm:
       retention-days: 3650
+  security:
+    dev-mode: true

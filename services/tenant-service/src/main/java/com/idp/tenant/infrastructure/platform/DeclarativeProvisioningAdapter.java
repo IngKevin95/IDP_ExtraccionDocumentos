@@ -44,7 +44,7 @@ public class DeclarativeProvisioningAdapter implements ProvisioningPort {
 
     @Override
     public KeyIds createKeys(UUID tenantId) {
-        KeyIds keys = new KeyIds("tenants/" + tenantId + "/kek-data", "tenants/" + tenantId + "/kek-audit");
+        KeyIds keys = new KeyIds("t-" + tenantId + "-data", "t-" + tenantId + "-audit");
         LOG.info("provisioning desired keys tenant={} data={} audit={}", tenantId, keys.dataKekId(), keys.auditKekId());
         return keys;
     }

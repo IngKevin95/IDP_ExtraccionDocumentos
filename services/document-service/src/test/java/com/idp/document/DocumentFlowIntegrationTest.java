@@ -123,7 +123,13 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
         assertThat(storedOriginal).isNotEqualTo(content);
         assertThat(new String(storedOriginal, StandardCharsets.ISO_8859_1)).doesNotContain("%PDF-");
         // un lector independiente (como el de extraction-service) descifra por rutas canonicas y AAD compartidos
-        var reader = new com.idp.storage.EncryptedArtifactStore(store, crypto, "documents");
+        var keyResolver = new com.idp.tenant.context.TenantKeyResolver(null, java.time.Duration.ZERO, java.time.Clock.systemUTC()) {
+            @Override
+            public TenantKeys resolve(String tenantId) {
+                return new TenantKeys("documents", "audit");
+            }
+        };
+        var reader = new com.idp.storage.EncryptedArtifactStore(store, crypto, keyResolver);
         UUID docId = UUID.fromString(id);
         assertThat(reader.get(tenant, docId, com.idp.storage.ArtifactKind.PAGE_PNG, 1)).containsExactly(1, 2, 3);
         assertThat(reader.get(tenant, docId, com.idp.storage.ArtifactKind.PAGE_PNG, 2)).containsExactly(4, 5);
@@ -394,9 +400,10 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void descargaGeneraEnlaceFirmadoQueEntregaElBinarioDescifrado() throws Exception {
+    void descargaGeneraEnlaceFirmadoQueEntregaElBinarioDescifradoYFallaConOtroUsuario() throws Exception {
         String tenant = newTenant();
         operator(tenant, "ana");
+        operator(tenant, "beto");
         byte[] content = pdf();
         String id = body(upload(tenant, "ana", content)).path("id").asText();
 
@@ -409,9 +416,13 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
         MvcResult ok = mvc.perform(get(path).with(token(tenant, "ana"))).andReturn();
         MvcResult tampered = mvc.perform(get(path.substring(0, path.indexOf("sig=")) + "sig=deadbeef").with(token(tenant, "ana")))
                 .andReturn();
+        MvcResult otherUser = mvc.perform(get(path).with(token(tenant, "beto"))).andReturn();
 
         assertThat(ok.getResponse().getStatus()).isEqualTo(200);
         assertThat(ok.getResponse().getContentAsByteArray()).isEqualTo(content);
+        assertThat(ok.getResponse().getHeader("Content-Disposition")).isEqualTo("attachment");
+        assertThat(ok.getResponse().getHeader("X-Content-Type-Options")).isEqualTo("nosniff");
         assertThat(tampered.getResponse().getStatus()).isEqualTo(403);
+        assertThat(otherUser.getResponse().getStatus()).isEqualTo(403);
     }
 }

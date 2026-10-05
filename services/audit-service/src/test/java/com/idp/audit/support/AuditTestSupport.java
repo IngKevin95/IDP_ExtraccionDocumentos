@@ -46,8 +46,11 @@ public abstract class AuditTestSupport {
         store.failPuts = false;
     }
 
-    protected static UUID newTenant() {
-        return UUID.randomUUID();
+    protected UUID newTenant() {
+        UUID tenant = UUID.randomUUID();
+        jdbc.sql("insert into tenant_config (tenant_id, data_kek_id, audit_kek_id) values (?, 'data', 'audit-signing')")
+            .param(1, tenant.toString()).update();
+        return tenant;
     }
 
     /** Evento valido segun contracts/events: extraccion.aprobada. */

@@ -49,11 +49,18 @@ public class InfraConfig {
     }
 
     @Bean
-    @ConditionalOnProperty("idp.openbao.address")
+    @ConditionalOnExpression("!'${idp.openbao.address:}'.isEmpty()")
     KeyService keyService(RestClient.Builder builder, @Value("${idp.openbao.address}") String address,
                           @Value("${idp.openbao.token}") String token,
-                          @Value("${idp.openbao.transit-mount:transit}") String mount) {
-        return new OpenBaoTransitKeyService(builder, address, () -> token, mount);
+                          @Value("${idp.openbao.transit-mount:transit}") String mount,
+                          @Value("${idp.security.dev-mode:false}") boolean devMode,
+                          @Value("${idp.openbao.ssl-bundle:}") String sslBundleName,
+                          ObjectProvider<SslBundles> bundles) {
+        SSLContext ssl = null;
+        if (sslBundleName != null && !sslBundleName.isBlank()) {
+            ssl = bundles.getObject().getBundle(sslBundleName).createSslContext();
+        }
+        return new OpenBaoTransitKeyService(builder, address, () -> token, mount, devMode, ssl);
     }
 
     @Bean
@@ -88,6 +95,24 @@ public class InfraConfig {
     TenantDirectory jdbcTenantDirectory(@Qualifier("controlDataSource") HikariDataSource controlDataSource,
                                         Clock clock, @Value("${idp.tenant-directory.ttl:30s}") Duration ttl) {
         return new JdbcTenantDirectory(new JdbcTemplate(controlDataSource), ttl, clock);
+    }
+
+    @Bean
+    @ConditionalOnProperty("idp.control-db.url")
+    com.idp.tenant.context.TenantKeyResolver tenantKeyResolver(@Qualifier("controlDataSource") HikariDataSource controlDataSource,
+                                        Clock clock, @Value("${idp.tenant-directory.ttl:30s}") Duration ttl) {
+        return new com.idp.tenant.context.TenantKeyResolver(new JdbcTemplate(controlDataSource), ttl, clock);
+    }
+
+    @Bean
+    @ConditionalOnExpression("'${idp.control-db.url:}'.isEmpty()")
+    com.idp.tenant.context.TenantKeyResolver staticTenantKeyResolver(Clock clock, DocumentProperties props) {
+        return new com.idp.tenant.context.TenantKeyResolver(null, java.time.Duration.ZERO, clock) {
+            @Override
+            public com.idp.tenant.context.TenantKeyResolver.TenantKeys resolve(String tenantId) {
+                return new com.idp.tenant.context.TenantKeyResolver.TenantKeys(props.kekId(), "audit-signing");
+            }
+        };
     }
 
     /** Fallback de desarrollo: lista estatica {@code idp.tenants}. */

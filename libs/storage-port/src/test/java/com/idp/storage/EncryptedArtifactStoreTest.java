@@ -47,10 +47,19 @@ class EncryptedArtifactStoreTest {
 
     private final MemoryStore raw = new MemoryStore();
     private final EnvelopeCrypto crypto = new EnvelopeCrypto(new InMemoryKeyService());
-    private final EncryptedArtifactStore writer = new EncryptedArtifactStore(raw, crypto, "documents");
-    private final EncryptedArtifactStore reader = new EncryptedArtifactStore(raw, crypto, "documents");
+    private final com.idp.tenant.context.TenantKeyResolver keyResolver = org.mockito.Mockito.mock(com.idp.tenant.context.TenantKeyResolver.class);
+    
+    private final EncryptedArtifactStore writer;
+    private final EncryptedArtifactStore reader;
     private final UUID doc = UUID.randomUUID();
     private final String tenant = UUID.randomUUID().toString();
+
+    public EncryptedArtifactStoreTest() {
+        org.mockito.Mockito.when(keyResolver.resolve(org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn(new com.idp.tenant.context.TenantKeyResolver.TenantKeys("t-kek", "a-kek"));
+        writer = new EncryptedArtifactStore(raw, crypto, keyResolver);
+        reader = new EncryptedArtifactStore(raw, crypto, keyResolver);
+    }
 
     @Test
     void canonicalPaths() {

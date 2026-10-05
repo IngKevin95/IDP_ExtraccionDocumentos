@@ -7,4 +7,8 @@ public class TenantContextMissingException extends SecurityException {
     public TenantContextMissingException() {
         super("Acceso a base de datos sin contexto de tenant");
     }
+
+    public TenantContextMissingException(String message) {
+        super(message);
+    }
 }

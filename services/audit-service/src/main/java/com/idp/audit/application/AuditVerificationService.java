@@ -48,17 +48,17 @@ public class AuditVerificationService {
     private final KeyService keys;
     private final AuditAlertService alerts;
     private final Clock clock;
-    private final String signingKeyId;
+    private final com.idp.tenant.context.TenantKeyResolver keyResolver;
 
     public AuditVerificationService(AuditRepository repo, ImmutableStore store, KeyService keys,
                                     AuditAlertService alerts, Clock clock,
-                                    @Value("${idp.audit.signing-key-id:audit-signing}") String signingKeyId) {
+                                    com.idp.tenant.context.TenantKeyResolver keyResolver) {
         this.repo = repo;
         this.store = store;
         this.keys = keys;
         this.alerts = alerts;
         this.clock = clock;
-        this.signingKeyId = signingKeyId;
+        this.keyResolver = keyResolver;
     }
 
     @Transactional(readOnly = true)
@@ -152,6 +152,7 @@ public class AuditVerificationService {
     private void verifyAnchors(UUID tenantId, List<WormAnchor> all, List<WormAnchor> selected,
                                List<VerificationError> errors) {
         TenantId tenant = new TenantId(tenantId.toString());
+        String signingKeyId = keyResolver.resolve(tenantId.toString()).auditKekId();
         for (WormAnchor a : selected) {
             try {
                 JsonNode doc = readAnchor(tenant, a.fileUri());

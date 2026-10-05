@@ -63,9 +63,15 @@ import org.springframework.web.client.RestClient;
 public class ExtractionRuntimeConfig {
 
     @Bean
-    TenantCredentialProvider tenantCredentialProvider(RestClient.Builder builder, ExtractionProperties props) {
+    TenantCredentialProvider tenantCredentialProvider(RestClient.Builder builder, ExtractionProperties props,
+                                                      @org.springframework.beans.factory.annotation.Value("${idp.security.dev-mode:false}") boolean devMode,
+                                                      ObjectProvider<org.springframework.boot.ssl.SslBundles> bundles) {
         ExtractionProperties.Openbao o = props.openbao();
-        return new OpenBaoTenantCredentialProvider(builder, o.address(), o::token, o.credsPath(), o.jdbcUrl());
+        javax.net.ssl.SSLContext ssl = null;
+        if (o.sslBundle() != null && !o.sslBundle().isBlank()) {
+            ssl = bundles.getObject().getBundle(o.sslBundle()).createSslContext();
+        }
+        return new OpenBaoTenantCredentialProvider(builder, o.address(), o::token, o.credsPath(), o.jdbcUrl(), devMode, ssl);
     }
 
     @Bean
@@ -115,17 +121,42 @@ public class ExtractionRuntimeConfig {
     }
 
     @Bean
-    DocumentStoragePort documentStorage(ObjectStore store, KeyService keys, ExtractionProperties props,
-                                        ObjectMapper idpObjectMapper) {
-        ExtractionProperties.Storage s = props.storage();
-        return new EncryptedDocumentStorageAdapter(
-            new EncryptedArtifactStore(store, new EnvelopeCrypto(keys), s.kekId()), idpObjectMapper, s.maxPages());
+    com.idp.tenant.context.TenantKeyResolver tenantKeyResolver(ExtractionProperties props, Clock clock) {
+        ExtractionProperties.Control c = props.control();
+        if (c.url().isBlank()) {
+            return new com.idp.tenant.context.TenantKeyResolver(null, c.directoryTtl(), clock) {
+                @Override
+                public com.idp.tenant.context.TenantKeyResolver.TenantKeys resolve(String tenantId) {
+                    return new com.idp.tenant.context.TenantKeyResolver.TenantKeys(props.storage().kekId(), props.registry().signingKeyId());
+                }
+            };
+        }
+        com.zaxxer.hikari.HikariDataSource ds = new com.zaxxer.hikari.HikariDataSource();
+        ds.setJdbcUrl(c.url());
+        ds.setUsername(c.username());
+        ds.setPassword(c.password());
+        ds.setMaximumPoolSize(2);
+        return new com.idp.tenant.context.TenantKeyResolver(new JdbcTemplate(ds), c.directoryTtl(), clock);
     }
 
     @Bean
-    KeyService keyService(RestClient.Builder builder, ExtractionProperties props) {
+    DocumentStoragePort documentStorage(ObjectStore store, KeyService keys, ExtractionProperties props,
+                                        ObjectMapper idpObjectMapper, com.idp.tenant.context.TenantKeyResolver keyResolver) {
+        ExtractionProperties.Storage s = props.storage();
+        return new EncryptedDocumentStorageAdapter(
+            new EncryptedArtifactStore(store, new EnvelopeCrypto(keys), keyResolver), idpObjectMapper, s.maxPages());
+    }
+
+    @Bean
+    KeyService keyService(RestClient.Builder builder, ExtractionProperties props,
+                          @org.springframework.beans.factory.annotation.Value("${idp.security.dev-mode:false}") boolean devMode,
+                          ObjectProvider<org.springframework.boot.ssl.SslBundles> bundles) {
         ExtractionProperties.Openbao o = props.openbao();
-        return new OpenBaoTransitKeyService(builder, o.address(), o::token, o.transitMount());
+        javax.net.ssl.SSLContext ssl = null;
+        if (o.sslBundle() != null && !o.sslBundle().isBlank()) {
+            ssl = bundles.getObject().getBundle(o.sslBundle()).createSslContext();
+        }
+        return new OpenBaoTransitKeyService(builder, o.address(), o::token, o.transitMount(), devMode, ssl);
     }
 
     @Bean

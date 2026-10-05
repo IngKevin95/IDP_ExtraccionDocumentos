@@ -17,6 +17,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -37,6 +38,24 @@ public class AppConfig {
     }
 
     @Bean
+    @ConditionalOnProperty("idp.control-db.url")
+    com.idp.tenant.context.TenantKeyResolver tenantKeyResolver(JdbcTemplate controlDb, Clock clock,
+                                                               @Value("${idp.tenant-directory.ttl:30s}") Duration ttl) {
+        return new com.idp.tenant.context.TenantKeyResolver(controlDb, ttl, clock);
+    }
+
+    @Bean
+    @ConditionalOnExpression("'${idp.control-db.url:}'.isEmpty()")
+    com.idp.tenant.context.TenantKeyResolver staticTenantKeyResolver(Clock clock, @Value("${idp.audit.signing-key-id:audit-signing}") String signingKeyId) {
+        return new com.idp.tenant.context.TenantKeyResolver(null, Duration.ZERO, clock) {
+            @Override
+            public TenantKeys resolve(String tenantId) {
+                return new TenantKeys("documents", signingKeyId);
+            }
+        };
+    }
+
+    @Bean
     EventSerde eventSerde() {
         return new EventSerde();
     }
@@ -54,12 +73,19 @@ public class AppConfig {
 
     /** Adaptador OpenBao Transit (ed25519 de auditoria, separado de las KEK) cuando hay direccion configurada. */
     @Bean
-    @ConditionalOnProperty(name = "idp.audit.kms.openbao.address")
+    @ConditionalOnExpression("!'${idp.audit.kms.openbao.address:}'.isEmpty()")
     KeyService openBaoKeyService(RestClient.Builder builder,
                                  @Value("${idp.audit.kms.openbao.address}") String address,
                                  @Value("${idp.audit.kms.openbao.token:}") String token,
-                                 @Value("${idp.audit.kms.openbao.transit-mount:transit}") String mount) {
-        return new OpenBaoTransitKeyService(builder, address, () -> token, mount);
+                                 @Value("${idp.audit.kms.openbao.transit-mount:transit}") String mount,
+                                 @Value("${idp.security.dev-mode:false}") boolean devMode,
+                                 @Value("${idp.audit.kms.openbao.ssl-bundle:}") String sslBundleName,
+                                 org.springframework.beans.factory.ObjectProvider<org.springframework.boot.ssl.SslBundles> bundles) {
+        javax.net.ssl.SSLContext ssl = null;
+        if (sslBundleName != null && !sslBundleName.isBlank()) {
+            ssl = bundles.getObject().getBundle(sslBundleName).createSslContext();
+        }
+        return new OpenBaoTransitKeyService(builder, address, () -> token, mount, devMode, ssl);
     }
 
     /** Respaldo sin KMS configurado: toda operacion falla de forma explicita (nunca firma en local). */

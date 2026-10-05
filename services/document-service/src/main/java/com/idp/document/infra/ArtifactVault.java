@@ -17,8 +17,8 @@ public class ArtifactVault {
 
     private final EncryptedArtifactStore store;
 
-    public ArtifactVault(ObjectStore objects, EnvelopeCrypto crypto, DocumentProperties props) {
-        this.store = new EncryptedArtifactStore(objects, crypto, props.kekId());
+    public ArtifactVault(ObjectStore objects, EnvelopeCrypto crypto, com.idp.tenant.context.TenantKeyResolver keyResolver) {
+        this.store = new EncryptedArtifactStore(objects, crypto, keyResolver);
     }
 
     public String putOriginal(String tenantId, UUID documentId, byte[] plain) {

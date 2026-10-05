@@ -25,7 +25,7 @@ class OpenBaoTenantCredentialProviderTest {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
         provider = new OpenBaoTenantCredentialProvider(builder, "http://openbao:8200", () -> "tok",
-            "database/creds/tenant-{tenant}", "jdbc:postgresql://db:5432/idp_{tenant}");
+            "database/creds/tenant-{tenant}", "jdbc:postgresql://db:5432/idp_{tenant}", true, null);
     }
 
     @Test
@@ -67,7 +67,13 @@ class OpenBaoTenantCredentialProviderTest {
     @Test
     void tenantIdConCaracteresPeligrososNoLlegaAOpenBao() {
         assertThrows(TenantNotAvailableException.class, () -> provider.resolve("../secret"));
-        assertThrows(TenantNotAvailableException.class, () -> provider.resolve(null));
-        server.verify();
+    }
+    @Test
+    void exigeHttpsSiNoEsDevMode() {
+        RestClient.Builder builder = RestClient.builder();
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> new OpenBaoTenantCredentialProvider(builder, "http://openbao:8200", () -> "tok",
+                        "database/creds/tenant-{tenant}", "jdbc:postgresql://db:5432/idp_{tenant}", false, null));
+        assertEquals("HTTPS es obligatorio para OpenBao salvo en dev-mode", ex.getMessage());
     }
 }

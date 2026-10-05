@@ -27,6 +27,9 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestBeans.class)
+@org.springframework.test.context.TestPropertySource(properties = {
+    "idp.tenant-db.jdbc-url-template=jdbc:h2:mem:{tenant};MODE=PostgreSQL;DB_CLOSE_DELAY=-1"
+})
 abstract class AbstractIntegrationTest {
 
     static final ObjectMapper JSON = new ObjectMapper();
@@ -38,6 +41,7 @@ abstract class AbstractIntegrationTest {
     @Autowired TestBeans.MutableRoleSource roles;
     @Autowired TestBeans.FakeRenderer renderer;
     @Autowired com.idp.kms.EnvelopeCrypto crypto;
+    @Autowired com.idp.tenant.context.TenantKeyResolver keyResolver;
 
     @BeforeEach
     void resetRenderer() {

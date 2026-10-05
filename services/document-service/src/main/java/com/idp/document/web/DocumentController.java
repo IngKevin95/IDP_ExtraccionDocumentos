@@ -116,7 +116,11 @@ public class DocumentController {
     public ResponseEntity<byte[]> content(@AuthenticationPrincipal Jwt jwt, @PathVariable("documentId") UUID documentId,
             @RequestParam("exp") long exp, @RequestParam("sig") String sig) {
         Content c = queries.content(callers.require(jwt, ANY), documentId, exp, sig);
-        return ResponseEntity.ok().contentType(MediaType.parseMediaType(c.mimeType())).body(c.bytes());
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment")
+                .header("X-Content-Type-Options", "nosniff")
+                .contentType(MediaType.parseMediaType(c.mimeType()))
+                .body(c.bytes());
     }
 
     @PostMapping("/{documentId}/approve-confidential")

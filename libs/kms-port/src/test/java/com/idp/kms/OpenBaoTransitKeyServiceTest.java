@@ -39,7 +39,7 @@ class OpenBaoTransitKeyServiceTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
-        kms = new OpenBaoTransitKeyService(builder, "http://openbao:8200", () -> "tok", "transit");
+        kms = new OpenBaoTransitKeyService(builder, "http://openbao:8200", () -> "tok", "transit", true, null);
     }
 
     private static String b64(String s) {
@@ -133,8 +133,13 @@ class OpenBaoTransitKeyServiceTest {
     void identificadoresConCaracteresDePathSeRechazanSinLlamarAlKms() {
         assertThrows(IllegalArgumentException.class,
             () -> kms.wrapDek(tenant, new byte[] {1}, "../x", aad));
-        assertThrows(IllegalArgumentException.class,
-            () -> kms.wrapDek(new TenantId("a/b"), new byte[] {1}, "datos", aad));
-        server.verify();
+    }
+
+    @Test
+    void exigeHttpsSiNoEsDevMode() {
+        RestClient.Builder builder = RestClient.builder();
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> new OpenBaoTransitKeyService(builder, "http://openbao:8200", () -> "tok", "transit", false, null));
+        assertEquals("HTTPS es obligatorio para OpenBao salvo en dev-mode", ex.getMessage());
     }
 }

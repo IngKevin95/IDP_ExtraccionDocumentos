@@ -155,7 +155,13 @@ class OficioE2eTest {
         assertThatThrownBy(() -> crypto.decrypt(new TenantId(TENANT_B), "documents",
             EncryptedArtifactStore.aad(TENANT_B, docId, ArtifactKind.ORIGINAL, 0), envelope))
             .isInstanceOf(RuntimeException.class);
-        assertThatThrownBy(() -> new EncryptedArtifactStore(Overrides.Shared.STORE, crypto, "documents")
+        com.idp.tenant.context.TenantKeyResolver dummyResolver = new com.idp.tenant.context.TenantKeyResolver(null, java.time.Duration.ZERO, java.time.Clock.systemUTC()) {
+            @Override
+            public com.idp.tenant.context.TenantKeyResolver.TenantKeys resolve(String tenantId) {
+                return new com.idp.tenant.context.TenantKeyResolver.TenantKeys("documents", "audit");
+            }
+        };
+        assertThatThrownBy(() -> new EncryptedArtifactStore(Overrides.Shared.STORE, crypto, dummyResolver)
             .get(TENANT_B, docId, ArtifactKind.ORIGINAL, 0)).isInstanceOf(RuntimeException.class);
     }
 

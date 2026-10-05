@@ -23,17 +23,18 @@ public final class EncryptedArtifactStore {
 
     private final ObjectStore store;
     private final EnvelopeCrypto crypto;
-    private final String kekId;
+    private final com.idp.tenant.context.TenantKeyResolver keyResolver;
 
-    public EncryptedArtifactStore(ObjectStore store, EnvelopeCrypto crypto, String kekId) {
+    public EncryptedArtifactStore(ObjectStore store, EnvelopeCrypto crypto, com.idp.tenant.context.TenantKeyResolver keyResolver) {
         this.store = store;
         this.crypto = crypto;
-        this.kekId = kekId;
+        this.keyResolver = keyResolver;
     }
 
     /** Cifra y guarda el artefacto en su ruta canonica; devuelve la ruta. */
     public String put(String tenantId, UUID documentId, ArtifactKind kind, int page, byte[] plain) {
         String key = ArtifactPaths.key(kind, documentId, page);
+        String kekId = keyResolver.resolve(tenantId).dataKekId();
         EnvelopeCiphertext env = crypto.encrypt(new TenantId(tenantId), kekId, aad(tenantId, documentId, kind, page),
                 plain);
         byte[] bytes = env.toBytes();
@@ -58,6 +59,7 @@ public final class EncryptedArtifactStore {
         if (raw.length > maxEncryptedBytes) {
             throw new ObjectStore.StorageException("Objeto excede el tamano maximo permitido");
         }
+        String kekId = keyResolver.resolve(tenantId).dataKekId();
         return crypto.decrypt(new TenantId(tenantId), kekId, aad(tenantId, documentId, kind, page),
                 EnvelopeCiphertext.fromBytes(raw));
     }

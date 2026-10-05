@@ -16,21 +16,21 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(NotFoundException.class)
     ProblemDetail notFound(NotFoundException e) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "Recurso no encontrado");
     }
 
     @ExceptionHandler(ConflictException.class)
     ProblemDetail conflict(ConflictException e) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Conflicto de estado");
     }
 
     @ExceptionHandler(BadRequestException.class)
     ProblemDetail badRequest(BadRequestException e) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Solicitud invalida");
     }
 
     @ExceptionHandler(ForbiddenException.class)
     ProblemDetail forbidden(ForbiddenException e) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Acceso denegado");
     }
 }

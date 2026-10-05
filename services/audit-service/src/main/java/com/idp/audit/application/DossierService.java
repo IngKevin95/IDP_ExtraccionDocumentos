@@ -40,17 +40,17 @@ public class DossierService {
     private final Clock clock;
     private final AuditMetrics metrics;
     private final AuditAlertService alerts;
-    private final String signingKeyId;
+    private final com.idp.tenant.context.TenantKeyResolver keyResolver;
 
     public DossierService(AuditRepository repo, KeyService keys, Clock clock, AuditMetrics metrics,
                           AuditAlertService alerts,
-                          @Value("${idp.audit.signing-key-id:audit-signing}") String signingKeyId) {
+                          com.idp.tenant.context.TenantKeyResolver keyResolver) {
         this.repo = repo;
         this.keys = keys;
         this.clock = clock;
         this.metrics = metrics;
         this.alerts = alerts;
-        this.signingKeyId = signingKeyId;
+        this.keyResolver = keyResolver;
     }
 
     /** Devuelve el expediente firmado como JSON. El tenant llega siempre del JWT revalidado. */
@@ -93,6 +93,7 @@ public class DossierService {
         }
         d.put("unanchoredEvents", entries.stream().filter(e -> !e.wormAnchored()).count());
 
+        String signingKeyId = keyResolver.resolve(tenantId.toString()).auditKekId();
         byte[] signature = keys.sign(new TenantId(tenantId.toString()), CanonicalJson.bytes(d), signingKeyId)
                 .getData();
         ObjectNode sig = d.putObject("signature");
@@ -153,6 +154,7 @@ public class DossierService {
         try {
             UUID tenantId = UUID.fromString(dossier.path("tenantId").asText());
             JsonNode sig = dossier.path("signature");
+            String signingKeyId = keyResolver.resolve(tenantId.toString()).auditKekId();
             if (signingKeyId.equals(sig.path("keyId").asText())
                     && WormAnchorService.SIGNATURE_ALGORITHM.equals(sig.path("algorithm").asText())) {
                 ObjectNode unsigned = dossier.deepCopy();

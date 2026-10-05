@@ -82,14 +82,14 @@ class OffboardingApiTest extends ApiTestSupport {
 
         // plazo aun no cumplido: no se destruye nada
         offboarding.shredDueTenants();
-        assertFalse(keys.disabled.contains("tenants/" + id + "/kek-data"));
+        assertFalse(keys.disabled.contains("t-" + id + "-data"));
         assertEquals(TenantStatus.PENDING_DELETION, tenants.find(id).orElseThrow().status());
 
         makeOverdue(id);
         offboarding.shredDueTenants();
 
-        assertTrue(keys.disabled.contains("tenants/" + id + "/kek-data"));
-        assertFalse(keys.disabled.contains("tenants/" + id + "/kek-audit"));
+        assertTrue(keys.disabled.contains("t-" + id + "-data"));
+        assertFalse(keys.disabled.contains("t-" + id + "-audit"));
         assertEquals(TenantStatus.DELETED, tenants.find(id).orElseThrow().status());
     }
 
@@ -102,12 +102,12 @@ class OffboardingApiTest extends ApiTestSupport {
 
         offboarding.shredDueTenants();
 
-        assertFalse(keys.disabled.contains("tenants/" + id + "/kek-data"));
+        assertFalse(keys.disabled.contains("t-" + id + "-data"));
         assertEquals(TenantStatus.PENDING_DELETION, tenants.find(id).orElseThrow().status());
 
         legalHold(id, false);
         offboarding.shredDueTenants();
-        assertTrue(keys.disabled.contains("tenants/" + id + "/kek-data"));
+        assertTrue(keys.disabled.contains("t-" + id + "-data"));
     }
 
     @Test

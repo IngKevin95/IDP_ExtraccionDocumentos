@@ -36,8 +36,8 @@ class TenantProvisioningApiTest extends ApiTestSupport {
         assertEquals(List.of("APPLY:database:OK", "APPLY:bucket:OK", "APPLY:keys:OK", "APPLY:openbao-role:OK"),
                 tenants.findSteps(id));
         var config = tenants.findConfig(id).orElseThrow();
-        assertEquals("tenants/" + id + "/kek-data", config.dataKekId());
-        assertEquals("tenants/" + id + "/kek-audit", config.auditKekId());
+        assertEquals("t-" + id + "-data", config.dataKekId());
+        assertEquals("t-" + id + "-audit", config.auditKekId());
         assertTrue(tenants.findSilo(id).isPresent());
 
         JsonNode ev = event(id, "tenant.aprovisionado");

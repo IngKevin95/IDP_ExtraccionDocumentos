@@ -44,14 +44,14 @@ public class WormAnchorService {
     private final KeyService keys;
     private final Clock clock;
     private final AuditMetrics metrics;
-    private final String signingKeyId;
+    private final com.idp.tenant.context.TenantKeyResolver keyResolver;
     private final Duration retention;
     private final int batchSize;
     private final Duration maxAge;
 
     public WormAnchorService(AuditRepository repo, ImmutableStore store, KeyService keys, Clock clock,
                              AuditMetrics metrics,
-                             @Value("${idp.audit.signing-key-id:audit-signing}") String signingKeyId,
+                             com.idp.tenant.context.TenantKeyResolver keyResolver,
                              @Value("${idp.audit.worm.retention-days:3650}") long retentionDays,
                              @Value("${idp.audit.anchor.batch-size:1000}") int batchSize,
                              @Value("${idp.audit.anchor.max-age-hours:24}") long maxAgeHours) {
@@ -60,7 +60,7 @@ public class WormAnchorService {
         this.keys = keys;
         this.clock = clock;
         this.metrics = metrics;
-        this.signingKeyId = signingKeyId;
+        this.keyResolver = keyResolver;
         this.retention = Duration.ofDays(retentionDays);
         this.batchSize = batchSize;
         this.maxAge = Duration.ofHours(maxAgeHours);
@@ -108,6 +108,7 @@ public class WormAnchorService {
         byte[] manifestBytes = CanonicalJson.bytes(manifest);
         String manifestHash = HashChainService.sha256Hex(manifestBytes);
         TenantId tenant = new TenantId(tenantId.toString());
+        String signingKeyId = keyResolver.resolve(tenantId.toString()).auditKekId();
         String signature = Base64.getEncoder()
                 .encodeToString(keys.sign(tenant, manifestBytes, signingKeyId).getData());
 

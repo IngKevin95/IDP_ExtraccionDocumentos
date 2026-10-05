@@ -65,6 +65,7 @@ public record ExtractionProperties(
                           @DefaultValue("") String token,
                           @DefaultValue("database/creds/{tenant}") String credsPath,
                           @DefaultValue("jdbc:postgresql://postgres:5432/tenant_{tenant}") String jdbcUrl,
-                          @DefaultValue("transit") String transitMount) {
+                          @DefaultValue("transit") String transitMount,
+                          @DefaultValue("") String sslBundle) {
     }
 }

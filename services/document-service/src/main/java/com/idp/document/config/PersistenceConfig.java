@@ -31,11 +31,18 @@ public class PersistenceConfig {
 
     /** Credenciales dinamicas via OpenBao (database secrets engine) cuando hay direccion configurada. */
     @Bean
-    @ConditionalOnProperty("idp.openbao.address")
+    @ConditionalOnExpression("!'${idp.openbao.address:}'.isEmpty()")
     TenantCredentialProvider openBaoCredentialProvider(RestClient.Builder builder, TenantDbProperties db,
             @Value("${idp.openbao.address}") String address, @Value("${idp.openbao.token}") String token,
-            @Value("${idp.openbao.creds-path:database/creds/tenant-{tenant}}") String credsPath) {
-        return new OpenBaoTenantCredentialProvider(builder, address, () -> token, credsPath, db.jdbcUrlTemplate());
+            @Value("${idp.openbao.creds-path:database/creds/tenant-{tenant}}") String credsPath,
+            @Value("${idp.security.dev-mode:false}") boolean devMode,
+            @Value("${idp.openbao.ssl-bundle:}") String sslBundleName,
+            org.springframework.beans.factory.ObjectProvider<org.springframework.boot.ssl.SslBundles> bundles) {
+        javax.net.ssl.SSLContext ssl = null;
+        if (sslBundleName != null && !sslBundleName.isBlank()) {
+            ssl = bundles.getObject().getBundle(sslBundleName).createSslContext();
+        }
+        return new OpenBaoTenantCredentialProvider(builder, address, () -> token, credsPath, db.jdbcUrlTemplate(), devMode, ssl);
     }
 
     /** Credenciales estaticas por configuracion (desarrollo y pruebas). */

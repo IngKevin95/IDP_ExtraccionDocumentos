@@ -22,3 +22,5 @@ idp:
       expiry-job-enabled: false
   outbox:
     relay-enabled: false
+  security:
+    dev-mode: true

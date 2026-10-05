@@ -3,8 +3,10 @@ spring:
     name: audit-service
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:control_db}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASS:postgres}
+    # SEC-021: El rol de BD configurado aqui (DB_USER) no debe tener permisos de UPDATE ni DELETE
+    # sobre la tabla audit_entries, garantizando la inmutabilidad a nivel de base de datos.
+    username: ${DB_USER}
+    password: ${DB_PASS}
   flyway:
     enabled: true
     # La base de control es compartida: historial propio para no chocar con otros servicios.

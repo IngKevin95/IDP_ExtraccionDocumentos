@@ -38,7 +38,14 @@ public final class OpenBaoTransitKeyService implements KeyService {
     private final Set<String> disabled = ConcurrentHashMap.newKeySet();
 
     public OpenBaoTransitKeyService(RestClient.Builder builder, String address, Supplier<String> tokenSupplier,
-                                    String transitMount) {
+                                    String transitMount, boolean devMode, javax.net.ssl.SSLContext sslContext) {
+        if (!devMode && address != null && !address.startsWith("https://")) {
+            throw new IllegalArgumentException("HTTPS es obligatorio para OpenBao salvo en dev-mode");
+        }
+        if (sslContext != null) {
+            java.net.http.HttpClient httpClient = java.net.http.HttpClient.newBuilder().sslContext(sslContext).build();
+            builder.requestFactory(new org.springframework.http.client.JdkClientHttpRequestFactory(httpClient));
+        }
         this.client = builder.baseUrl(Objects.requireNonNull(address)).build();
         this.tokenSupplier = Objects.requireNonNull(tokenSupplier);
         this.mount = Objects.requireNonNull(transitMount);

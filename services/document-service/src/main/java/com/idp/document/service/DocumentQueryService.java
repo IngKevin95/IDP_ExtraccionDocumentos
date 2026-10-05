@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 
 /** Consulta con autorizacion por documento (404 estricto, SEC-003) y enlaces de descarga firmados. */
 @Service
-public class DocumentQueryService {
+public final class DocumentQueryService {
 
     public record Page(List<DocumentRecord> data, int limit, int offset, long total) {
     }
@@ -40,6 +40,9 @@ public class DocumentQueryService {
 
     public DocumentQueryService(DocumentRepository repo, ArtifactVault vault, DocumentProperties props,
                                 Clock clock) {
+        if (props.downloadSecret() == null || props.downloadSecret().getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("idp.document.download-secret debe tener al menos 32 bytes");
+        }
         this.repo = repo;
         this.vault = vault;
         this.props = props;
@@ -65,7 +68,7 @@ public class DocumentQueryService {
         DocumentRecord d = get(caller, id);
         Instant exp = clock.instant().plus(props.downloadTtl());
         String url = props.publicBaseUrl() + "/v1/documents/" + d.id() + "/content?exp=" + exp.getEpochSecond()
-                + "&sig=" + sign(d.tenantId(), d.id(), exp.getEpochSecond());
+                + "&sig=" + sign(d.tenantId(), d.id(), exp.getEpochSecond(), caller.userId());
         return new DownloadLink(url, exp);
     }
 
@@ -73,17 +76,17 @@ public class DocumentQueryService {
         DocumentRecord d = get(caller, id);
         if (clock.instant().getEpochSecond() > exp || sig == null
                 || !MessageDigest.isEqual(sig.getBytes(StandardCharsets.UTF_8),
-                sign(d.tenantId(), d.id(), exp).getBytes(StandardCharsets.UTF_8))) {
+                sign(d.tenantId(), d.id(), exp, caller.userId()).getBytes(StandardCharsets.UTF_8))) {
             throw new AccessDeniedException("Enlace de descarga invalido o vencido");
         }
         return new Content(vault.getOriginal(d.tenantId(), d.id()), d.mimeType());
     }
 
-    private String sign(String tenantId, UUID id, long exp) {
+    private String sign(String tenantId, UUID id, long exp, String userId) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(props.downloadSecret().getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-            return HexFormat.of().formatHex(mac.doFinal((tenantId + "|" + id + "|" + exp)
+            return HexFormat.of().formatHex(mac.doFinal((tenantId + "|" + id + "|" + exp + "|" + userId)
                     .getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new IllegalStateException(e);

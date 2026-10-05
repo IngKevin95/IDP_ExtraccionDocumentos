@@ -95,7 +95,8 @@ public class TenantProvisioningService {
             }
             return result;
         } catch (RuntimeException e) {
-            tenants.insertStep(id, name, "APPLY", "FAILED", e.getMessage(), Instant.now(clock));
+            String errorCode = e instanceof ProvisioningException pe ? pe.reason().name() : "INFRASTRUCTURE_ERROR";
+            tenants.insertStep(id, name, "APPLY", "FAILED", errorCode, Instant.now(clock));
             throw e;
         }
     }
@@ -108,7 +109,8 @@ public class TenantProvisioningService {
                 tenants.insertStep(id, c.step(), "COMPENSATE", "OK", null, Instant.now(clock));
             } catch (RuntimeException e) {
                 LOG.warn("compensation failed tenant={} step={}", id, c.step());
-                tenants.insertStep(id, c.step(), "COMPENSATE", "FAILED", e.getMessage(), Instant.now(clock));
+                String errorCode = e instanceof ProvisioningException pe ? pe.reason().name() : "INFRASTRUCTURE_ERROR";
+                tenants.insertStep(id, c.step(), "COMPENSATE", "FAILED", errorCode, Instant.now(clock));
             }
         }
     }

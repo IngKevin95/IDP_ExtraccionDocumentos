@@ -48,6 +48,11 @@ public class TestBeans {
         return new FakeRenderer();
     }
 
+    @Bean
+    org.springframework.web.client.RestClient.Builder testRestClientBuilder() {
+        return org.springframework.web.client.RestClient.builder();
+    }
+
     public static final class InMemoryObjectStore implements ObjectStore {
         private final Map<String, byte[]> data = new ConcurrentHashMap<>();
 
