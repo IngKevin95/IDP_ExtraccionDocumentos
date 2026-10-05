@@ -3,6 +3,23 @@ server:
 spring:
   application:
     name: document-service
+  flyway:
+    enabled: false
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 51MB
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${IDP_JWK_SET_URI}
+  kafka:
+    bootstrap-servers: ${IDP_KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: document-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
 management:
   endpoints:
     web:
@@ -12,3 +29,30 @@ management:
     health:
       probes:
         enabled: true
+idp:
+  topic: dominio.documentos
+  tenants: ${IDP_TENANTS:}
+  tenant-db:
+    jdbc-url-template: ${IDP_TENANT_DB_URL:}
+    username: ${IDP_TENANT_DB_USER:}
+    password: ${IDP_TENANT_DB_PASSWORD:}
+    max-pools: 50
+    pool-size: 5
+  document:
+    kek-id: documents
+    max-file-bytes: 52428800
+    public-base-url: ${IDP_PUBLIC_BASE_URL:http://localhost:8080}
+    download-secret: ${IDP_DOWNLOAD_SECRET}
+    download-ttl: 5m
+    migrate-on-startup: false
+    relay:
+      enabled: true
+      interval: 1s
+services:
+  renderer:
+    url: ${IDP_RENDERER_URL:https://renderer.idp.svc.cluster.local}
+    ssl-bundle: ${IDP_RENDERER_SSL_BUNDLE:}
+    max-attempts: 3
+    initial-backoff: 200ms
+    connect-timeout: 5s
+    read-timeout: 120s
