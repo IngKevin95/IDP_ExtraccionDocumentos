@@ -46,6 +46,7 @@ final class Overrides {
         static final FakeRenderer RENDERER = new FakeRenderer();
         static final DeterministicLlm LLM = new DeterministicLlm();
         static volatile RSAPublicKey jwtPublicKey;
+        static final String ISSUER = "https://idp.test/tenants";
 
         private Shared() {
         }
@@ -109,6 +110,7 @@ final class Overrides {
     @Configuration(proxyBeanMethods = false)
     public static class DocumentOverrides {
         @Bean
+        @Primary
         ObjectStore e2eObjectStore() {
             return Shared.STORE;
         }
@@ -125,17 +127,26 @@ final class Overrides {
         }
 
         @Bean
+        @Primary
         JwtDecoder e2eJwtDecoder() {
-            return NimbusJwtDecoder.withPublicKey(Shared.jwtPublicKey).build();
+            return decoder("document-service");
         }
     }
 
     @Configuration(proxyBeanMethods = false)
     public static class AuditOverrides {
         @Bean
+        @Primary
         JwtDecoder e2eJwtDecoder() {
-            return NimbusJwtDecoder.withPublicKey(Shared.jwtPublicKey).build();
+            return decoder("audit-service");
         }
+    }
+
+    /** Decodificador con la llave del emisor de prueba y los mismos validadores (issuer y audiencia) de produccion. */
+    static JwtDecoder decoder(String audience) {
+        NimbusJwtDecoder d = NimbusJwtDecoder.withPublicKey(Shared.jwtPublicKey).build();
+        d.setJwtValidator(com.idp.security.IdpJwtConfiguration.validators(Shared.ISSUER, audience));
+        return d;
     }
 
     @Configuration(proxyBeanMethods = false)

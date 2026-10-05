@@ -5,6 +5,9 @@ spring:
     name: extraction-service
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    security:
+      # mTLS (Strimzi KafkaUser): definir spring.kafka.ssl.bundle (SPRING_KAFKA_SSL_BUNDLE). PLAINTEXT solo con idp.security.dev-mode=true.
+      protocol: ${KAFKA_SECURITY_PROTOCOL:SSL}
     consumer:
       group-id: extraction-service
       auto-offset-reset: earliest

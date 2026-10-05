@@ -9,13 +9,23 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /** Metricas Prometheus del servicio: longitud de cadena, pendientes de anclaje, lag y latencia de expediente. */
 @Component
 public class AuditMetrics {
 
+    private static final Logger LOG = LoggerFactory.getLogger(AuditMetrics.class);
+
+    /** Eventos sin anclar por encima de los cuales se activa la alerta (H11). */
+    @Value("${idp.audit.anchor.alert-threshold:5000}")
+    private long alertThreshold = 5000;
+
     private final MeterRegistry registry;
+    private final Map<UUID, AtomicLong> unanchoredAlert = new ConcurrentHashMap<>();
     private final Map<UUID, AtomicLong> chainLength = new ConcurrentHashMap<>();
     private final Map<UUID, AtomicLong> unanchored = new ConcurrentHashMap<>();
     private final Timer ingestionLag;
@@ -33,6 +43,13 @@ public class AuditMetrics {
 
     public void unanchored(UUID tenantId, long value) {
         gauge("audit.worm.unanchored_count", unanchored, tenantId).set(value);
+        boolean exceeded = value > alertThreshold;
+        gauge("audit.worm.unanchored_alert", unanchoredAlert, tenantId).set(exceeded ? 1 : 0);
+        if (exceeded) {
+            count("audit.worm.unanchored_threshold_exceeded");
+            LOG.error("CRITICAL eventos sin anclar en WORM superan el umbral: tenant={} pendientes={} umbral={}",
+                    tenantId, value, alertThreshold);
+        }
     }
 
     private AtomicLong gauge(String name, Map<UUID, AtomicLong> store, UUID tenantId) {

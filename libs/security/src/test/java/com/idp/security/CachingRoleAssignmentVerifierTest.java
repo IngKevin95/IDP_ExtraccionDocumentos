@@ -108,4 +108,16 @@ class CachingRoleAssignmentVerifierTest {
         assertThrows(IllegalArgumentException.class,
             () -> new CachingRoleAssignmentVerifier(source, clock, Duration.ofSeconds(31)));
     }
+
+    @Test
+    void h10_cacheAcotadaDesalojaSinVaciadoGlobal() {
+        when(source.hasRole(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(),
+            org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+        for (int i = 0; i < 12_000; i++) {
+            verifier.hasRole("t1", "u" + i, "R");
+        }
+        int size = verifier.size();
+        assertTrue(size <= 10_000, "cache acotada");
+        assertTrue(size > 5_000, "sin clear() global");
+    }
 }

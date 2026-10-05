@@ -25,7 +25,12 @@ public class S3ImmutableStore extends S3ObjectStore implements ImmutableStore {
     }
 
     public S3ImmutableStore(S3Client s3, String bucket, ObjectLockMode mode, Clock clock) {
-        super(s3, bucket);
+        this(s3, com.idp.tenant.context.TenantBucketResolver.fixed(bucket), mode, clock);
+    }
+
+    public S3ImmutableStore(S3Client s3, com.idp.tenant.context.TenantBucketResolver buckets, ObjectLockMode mode,
+                            Clock clock) {
+        super(s3, buckets);
         this.mode = mode;
         this.clock = clock;
     }
@@ -53,7 +58,7 @@ public class S3ImmutableStore extends S3ObjectStore implements ImmutableStore {
     private void setLegalHold(TenantId tenantId, String path, ObjectLockLegalHoldStatus status) {
         String key = key(tenantId, path);
         try {
-            s3.putObjectLegalHold(PutObjectLegalHoldRequest.builder().bucket(bucket).key(key)
+            s3.putObjectLegalHold(PutObjectLegalHoldRequest.builder().bucket(bucket(tenantId)).key(key)
                 .legalHold(h -> h.status(status)).build());
         } catch (SdkException e) {
             throw new StorageException("No se pudo cambiar el legal hold: " + e.getClass().getSimpleName());

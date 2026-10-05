@@ -71,6 +71,12 @@ public class TenantEvents {
                 node().put("subjectId", subjectId).put("approvedBy", approvedBy).put("expiresAt", expiresAt.toString()));
     }
 
+    public void rolSensibleOtorgado(UUID tenantId, String subjectId, String role, String requestedBy,
+                                    String approvedBy) {
+        emit("acceso.rol_sensible_otorgado", tenantId, node().put("subjectId", subjectId).put("role", role)
+                .put("requestedBy", requestedBy).put("approvedBy", approvedBy));
+    }
+
     public void breakglassExpirado(UUID tenantId, String subjectId) {
         emit("breakglass.expirado", tenantId, node().put("subjectId", subjectId));
     }

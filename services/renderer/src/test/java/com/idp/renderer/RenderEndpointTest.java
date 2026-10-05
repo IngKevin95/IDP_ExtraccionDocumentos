@@ -45,7 +45,7 @@ class RenderEndpointTest {
         return new RendererProperties(
                 new RendererProperties.Clamav("127.0.0.1", 3310, Duration.ofSeconds(1), Duration.ofSeconds(1)),
                 new RendererProperties.Limits(50L * 1024 * 1024, maxPages, maxUncompressed, 25_000_000L,
-                        renderTimeout),
+                        renderTimeout, 2),
                 new RendererProperties.Libreoffice("soffice", Duration.ofSeconds(30)),
                 new RendererProperties.Raster(72));
     }

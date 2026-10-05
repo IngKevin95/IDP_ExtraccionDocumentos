@@ -55,8 +55,11 @@ final class E2eEnvironment {
 
     static final String TENANT_A = UUID.randomUUID().toString();
     static final String TENANT_B = UUID.randomUUID().toString();
+    /** Tenant dedicado al shredding de KEK: deshabilitar su llave no afecta a las demas pruebas. */
+    static final String TENANT_C = UUID.randomUUID().toString();
     static final String OPERATOR_A = "operador-a";
     static final String OPERATOR_B = "operador-b";
+    static final String OPERATOR_C = "operador-c";
     static final String AUDITOR_A = "auditor-a";
 
     private static E2eEnvironment instance;
@@ -103,22 +106,25 @@ final class E2eEnvironment {
     private static void seedDatabases() throws Exception {
         try (Connection c = DriverManager.getConnection(CONTROL_URL, "sa", "")) {
             c.createStatement().execute("create table tenants (id uuid primary key, status varchar(20) not null)");
-            c.createStatement().execute("create table silo_location (tenant_id uuid primary key)");
+            c.createStatement().execute("create table silo_location (tenant_id uuid primary key, "
+                + "bucket_name varchar(255) not null)");
             c.createStatement().execute("create table tenant_config (tenant_id uuid primary key, "
                 + "data_kek_id varchar(255), audit_kek_id varchar(255))");
             c.createStatement().execute("create table role_assignment (id uuid primary key, tenant_id uuid not null, "
                 + "user_id varchar(255) not null, role varchar(50) not null, expires_at timestamp with time zone, "
                 + "deleted_at timestamp with time zone)");
-            for (String t : List.of(TENANT_A, TENANT_B)) {
+            for (String t : List.of(TENANT_A, TENANT_B, TENANT_C)) {
                 c.createStatement().execute("insert into tenants values ('" + t + "', 'ACTIVE')");
-                c.createStatement().execute("insert into silo_location values ('" + t + "')");
+                c.createStatement().execute("insert into silo_location values ('" + t + "', 'idp-" + t
+                    + "-docs')");
                 c.createStatement().execute("insert into tenant_config values ('" + t + "', 'documents', 'audit')");
             }
             grant(c, TENANT_A, OPERATOR_A, com.idp.security.Roles.OPERADOR);
             grant(c, TENANT_B, OPERATOR_B, com.idp.security.Roles.OPERADOR);
+            grant(c, TENANT_C, OPERATOR_C, com.idp.security.Roles.OPERADOR);
             grant(c, TENANT_A, AUDITOR_A, com.idp.security.Roles.AUDITOR);
         }
-        for (String t : List.of(TENANT_A, TENANT_B)) {
+        for (String t : List.of(TENANT_A, TENANT_B, TENANT_C)) {
             try (Connection c = DriverManager.getConnection(documentUrl(t), "sa", "")) {
                 ScriptUtils.executeSqlScript(c, new ClassPathResource("db/migration/V1__init_document_schema.sql"));
             }
@@ -147,9 +153,12 @@ final class E2eEnvironment {
         p.put("server.port", "0");
         p.put("spring.main.banner-mode", "off");
         p.put("spring.kafka.bootstrap-servers", kafka.getBrokersAsString());
+        p.put("spring.kafka.security.protocol", "PLAINTEXT");
         p.put("spring.kafka.consumer.auto-offset-reset", "earliest");
         p.put("spring.kafka.consumer.enable-auto-commit", "false");
         p.put("spring.security.oauth2.resourceserver.jwt.jwk-set-uri", "http://localhost:1/jwks");
+        p.put("spring.security.oauth2.resourceserver.jwt.issuer-uri", Overrides.Shared.ISSUER);
+        p.put("idp.security.audience", name);
         for (String m : List.of("chat", "embedding", "image", "moderation", "audio.speech", "audio.transcription")) {
             p.put("spring.ai.model." + m, "none");
         }
@@ -235,9 +244,13 @@ final class E2eEnvironment {
     // ---- utilidades de prueba ---------------------------------------------------------------------------
 
     String bearer(String tenant, String user) {
+        return bearer(tenant, user, Overrides.Shared.ISSUER, List.of("document-service", "audit-service"));
+    }
+
+    String bearer(String tenant, String user, String issuer, List<String> audience) {
         try {
             JWTClaimsSet claims = new JWTClaimsSet.Builder().subject(user).claim("tenant_id", tenant)
-                .issueTime(new Date()).expirationTime(Date.from(Instant.now().plus(Duration.ofHours(1)))).build();
+                .issuer(issuer).audience(audience).issueTime(new Date()).expirationTime(Date.from(Instant.now().plus(Duration.ofHours(1)))).build();
             SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.RS256), claims);
             jwt.sign(new RSASSASigner(jwtKey));
             return "Bearer " + jwt.serialize();

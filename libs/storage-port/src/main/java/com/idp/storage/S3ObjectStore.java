@@ -1,6 +1,7 @@
 package com.idp.storage;
 
 import com.idp.tenant.TenantId;
+import com.idp.tenant.context.TenantBucketResolver;
 import java.io.InputStream;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -14,18 +15,27 @@ import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 /**
- * ObjectStore sobre cualquier almacen compatible con S3 (AWS, MinIO, Ceph, LocalStack). Todo objeto
- * se guarda bajo el prefijo del tenant ({@code <tenantId>/<path>}); el SHA-256 declarado lo verifica
+ * ObjectStore sobre cualquier almacen compatible con S3 (AWS, MinIO, Ceph, LocalStack). Cada tenant usa su
+ * bucket (silo); todo objeto se guarda ademas bajo el prefijo del tenant ({@code <tenantId>/<path>}); el SHA-256 declarado lo verifica
  * el servidor al recibir el objeto.
  */
 public class S3ObjectStore implements ObjectStore {
 
     protected final S3Client s3;
-    protected final String bucket;
+    protected final TenantBucketResolver buckets;
 
     public S3ObjectStore(S3Client s3, String bucket) {
+        this(s3, TenantBucketResolver.fixed(bucket));
+    }
+
+    /** Bucket por tenant (silo): se resuelve desde silo_location; el prefijo del tenant se mantiene. */
+    public S3ObjectStore(S3Client s3, TenantBucketResolver buckets) {
         this.s3 = s3;
-        this.bucket = bucket;
+        this.buckets = buckets;
+    }
+
+    protected final String bucket(TenantId tenantId) {
+        return buckets.resolve(tenantId.value());
     }
 
     /** Clave del objeto con aislamiento por tenant; rechaza rutas que escapen del prefijo. */
@@ -53,7 +63,7 @@ public class S3ObjectStore implements ObjectStore {
         if (metadata == null || metadata.length() < 0) {
             throw new StorageException("Metadatos de objeto invalidos");
         }
-        PutObjectRequest.Builder req = PutObjectRequest.builder().bucket(bucket).key(key)
+        PutObjectRequest.Builder req = PutObjectRequest.builder().bucket(bucket(tenantId)).key(key)
             .contentLength(metadata.length());
         if (metadata.contentType() != null) {
             req.contentType(metadata.contentType());
@@ -73,7 +83,7 @@ public class S3ObjectStore implements ObjectStore {
     public InputStream get(TenantId tenantId, String path) {
         String key = key(tenantId, path);
         try {
-            return s3.getObject(GetObjectRequest.builder().bucket(bucket).key(key).build());
+            return s3.getObject(GetObjectRequest.builder().bucket(bucket(tenantId)).key(key).build());
         } catch (NoSuchKeyException e) {
             throw new StorageException("Objeto no encontrado");
         } catch (SdkException e) {
@@ -85,7 +95,7 @@ public class S3ObjectStore implements ObjectStore {
     public void delete(TenantId tenantId, String path) {
         String key = key(tenantId, path);
         try {
-            s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
+            s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket(tenantId)).key(key).build());
         } catch (SdkException e) {
             throw new StorageException("No se pudo borrar el objeto: " + e.getClass().getSimpleName());
         }

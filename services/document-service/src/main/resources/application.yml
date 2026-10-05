@@ -14,8 +14,13 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${IDP_JWK_SET_URI}
+          # Obligatorio y sin default: el arranque falla si falta (A2).
+          issuer-uri: ${IDP_JWT_ISSUER_URI}
   kafka:
     bootstrap-servers: ${IDP_KAFKA_BOOTSTRAP:localhost:9092}
+    security:
+      # mTLS (Strimzi KafkaUser): definir spring.kafka.ssl.bundle (SPRING_KAFKA_SSL_BUNDLE). PLAINTEXT solo con idp.security.dev-mode=true.
+      protocol: ${KAFKA_SECURITY_PROTOCOL:SSL}
     consumer:
       group-id: document-service
       auto-offset-reset: earliest
@@ -30,6 +35,8 @@ management:
       probes:
         enabled: true
 idp:
+  security:
+    audience: ${IDP_JWT_AUDIENCE:document-service}
   topic: dominio.documentos
   tenants: ${IDP_TENANTS:}
   tenant-db:

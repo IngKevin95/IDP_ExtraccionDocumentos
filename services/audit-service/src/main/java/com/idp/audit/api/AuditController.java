@@ -30,9 +30,14 @@ public class AuditController {
     private final DossierService dossiers;
     private final AuditVerificationService verification;
 
-    public AuditController(DossierService dossiers, AuditVerificationService verification) {
+    private final long minLatencyMs;
+
+    public AuditController(DossierService dossiers, AuditVerificationService verification,
+            @org.springframework.beans.factory.annotation.Value("${idp.audit.public-verify.min-latency-ms:25}")
+            long minLatencyMs) {
         this.dossiers = dossiers;
         this.verification = verification;
+        this.minLatencyMs = Math.max(0, minLatencyMs);
     }
 
     @GetMapping(value = "/dossiers/{documentId}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -57,12 +62,26 @@ public class AuditController {
      */
     @PostMapping(value = "/public/verify-signature", consumes = MediaType.APPLICATION_JSON_VALUE)
     public SignatureVerificationResponse verifySignature(@RequestBody String dossierJson) {
+        long started = System.nanoTime();
         SignatureCheck check;
         try {
             check = dossiers.verifySignature(CanonicalJson.parse(dossierJson));
         } catch (IllegalArgumentException e) {
             throw new BadRequestException("Expediente invalido");
         }
+        padLatency(started);
         return new SignatureVerificationResponse(check.valid(), check.signatureValid(), check.eventHashesValid());
+    }
+
+    /** Latencia minima uniforme: no distingue tenant existente/inexistente por tiempo de respuesta. */
+    private void padLatency(long startedNanos) {
+        long remaining = minLatencyMs * 1_000_000L - (System.nanoTime() - startedNanos);
+        if (remaining > 0) {
+            try {
+                Thread.sleep(remaining / 1_000_000L, (int) (remaining % 1_000_000L));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 }

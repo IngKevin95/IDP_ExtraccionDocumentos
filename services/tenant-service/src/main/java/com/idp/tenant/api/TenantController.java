@@ -6,6 +6,7 @@ import com.idp.tenant.api.ApiModels.LegalHoldResponse;
 import com.idp.tenant.api.ApiModels.TenantConfigUpdateRequest;
 import com.idp.tenant.api.ApiModels.TenantCreateRequest;
 import com.idp.tenant.api.ApiModels.TenantResponse;
+import com.idp.tenant.application.ApprovalService;
 import com.idp.tenant.application.LegalHoldService;
 import com.idp.tenant.application.OffboardingService;
 import com.idp.tenant.application.QuotaService;
@@ -15,6 +16,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,9 +37,12 @@ public class TenantController {
     private final OffboardingService offboarding;
     private final LegalHoldService legalHolds;
     private final QuotaService quotas;
+    private final ApprovalService approvals;
 
     public TenantController(TenantProvisioningService provisioning, TenantAdminService admin,
-                            OffboardingService offboarding, LegalHoldService legalHolds, QuotaService quotas) {
+                            OffboardingService offboarding, LegalHoldService legalHolds, QuotaService quotas,
+                            ApprovalService approvals) {
+        this.approvals = approvals;
         this.provisioning = provisioning;
         this.admin = admin;
         this.offboarding = offboarding;
@@ -66,20 +71,37 @@ public class TenantController {
         return TenantResponse.of(admin.updateConfig(id, req.planId(), req.settings()));
     }
 
+    /**
+     * Baja de tenant: exige la aprobacion de un segundo PLATFORM_ADMIN distinto (A3). La primera llamada registra la
+     * solicitud (202, el tenant sigue como esta); la de otro administrador la aprueba e inicia la baja.
+     */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public TenantResponse delete(@PathVariable("id") UUID id) {
+    public TenantResponse delete(@PathVariable("id") UUID id, Authentication auth) {
+        var tenant = offboarding.assertCanInitiate(id);
+        if (tenant.status() != com.idp.tenant.domain.TenantStatus.PENDING_DELETION
+                && approvals.requestOrApprove(id, ApprovalService.DELETE_TENANT, id.toString(), auth.getName())
+                        .outcome() != ApprovalService.Outcome.APPROVED) {
+            return TenantResponse.of(tenant);
+        }
         return TenantResponse.of(offboarding.initiate(id));
     }
 
     @PostMapping({"/{id}/legal-hold", "/{id}/legal-holds"})
-    public LegalHoldResponse legalHold(@PathVariable("id") UUID id, @Valid @RequestBody LegalHoldRequest req,
-                                       Authentication auth) {
+    public ResponseEntity<LegalHoldResponse> legalHold(@PathVariable("id") UUID id,
+                                                      @Valid @RequestBody LegalHoldRequest req,
+                                                      Authentication auth) {
         if (req.active()) {
-            return new LegalHoldResponse(true, legalHolds.apply(id, req.reasonCode(), auth.getName()));
+            return ResponseEntity.ok(new LegalHoldResponse(true, legalHolds.apply(id, req.reasonCode(), auth.getName())));
+        }
+        // Liberar un legal hold exige la aprobacion de un segundo PLATFORM_ADMIN distinto (A3).
+        admin.get(id);
+        if (approvals.requestOrApprove(id, ApprovalService.RELEASE_LEGAL_HOLD, id.toString(), auth.getName())
+                .outcome() != ApprovalService.Outcome.APPROVED) {
+            return ResponseEntity.accepted().body(new LegalHoldResponse(true, null));
         }
         legalHolds.release(id, auth.getName());
-        return new LegalHoldResponse(false, null);
+        return ResponseEntity.ok(new LegalHoldResponse(false, null));
     }
 
     @PostMapping("/{id}/consumption")

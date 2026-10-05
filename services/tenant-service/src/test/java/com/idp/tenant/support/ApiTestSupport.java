@@ -48,10 +48,26 @@ public abstract class ApiTestSupport {
     @BeforeEach
     void resetPort() {
         port.failBucket = false;
+        for (String admin : List.of("admin1", "admin2")) {
+            jdbc.sql("INSERT INTO platform_admin(subject, created_at) SELECT :s, CURRENT_TIMESTAMP "
+                    + "WHERE NOT EXISTS (SELECT 1 FROM platform_admin WHERE subject = :s)").param("s", admin).update();
+        }
     }
 
+    protected static final String PLATFORM_ISSUER = "https://idp.test/platform";
+
     protected static RequestPostProcessor platformAdmin(String sub) {
-        return jwt().jwt(j -> j.subject(sub)).authorities(new SimpleGrantedAuthority("ROLE_PLATFORM_ADMIN"));
+        return jwt().jwt(j -> j.subject(sub).issuer(PLATFORM_ISSUER))
+                .authorities(new SimpleGrantedAuthority("ROLE_PLATFORM_ADMIN"));
+    }
+
+    /** Baja de tenant con la aprobacion de dos PLATFORM_ADMIN distintos (A3). */
+    protected void approveDelete(UUID tenant) throws Exception {
+        for (String admin : List.of("admin1", "admin2")) {
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                            .delete("/v1/admin/tenants/" + tenant).with(platformAdmin(admin)))
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isAccepted());
+        }
     }
 
     protected static RequestPostProcessor tenantUser(UUID tenant, String sub) {

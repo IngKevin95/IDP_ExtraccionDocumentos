@@ -4,12 +4,19 @@ import com.idp.tenant.TenantContext;
 import com.idp.tenant.TenantId;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.ToIntFunction;
 import javax.sql.DataSource;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
@@ -18,6 +25,8 @@ import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
  * DataSource que enruta cada conexion al silo del tenant del contexto actual.
  * Crea un pool Hikari por tenant bajo demanda con credenciales de {@link TenantCredentialProvider},
  * acota el numero de pools y desaloja el menos recientemente usado (LRU).
+ * El desalojo es suave (H7): un pool retirado con conexiones activas no se cierra hasta que se
+ * liberen (o venza {@link #setDrainTimeout}); asi no se corta una transaccion en curso.
  */
 public final class TenantDataSourceRouter extends AbstractRoutingDataSource implements DisposableBean {
 
@@ -28,6 +37,17 @@ public final class TenantDataSourceRouter extends AbstractRoutingDataSource impl
     private final Function<TenantConnection, DataSource> poolFactory;
     private final int maxPools;
     private final Map<String, DataSource> pools = new LinkedHashMap<>(16, 0.75f, true);
+    private final ToIntFunction<DataSource> activeConnections;
+    private final List<Draining> draining = new ArrayList<>();
+    private final ScheduledExecutorService reaper = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "tenant-pool-drain");
+        t.setDaemon(true);
+        return t;
+    });
+    private volatile Duration drainTimeout = Duration.ofMinutes(5);
+
+    private record Draining(DataSource ds, long deadlineNanos) {
+    }
 
     public TenantDataSourceRouter(TenantCredentialProvider credentialProvider, int maxPools, int poolSize) {
         this(credentialProvider, maxPools, hikariFactory(poolSize));
@@ -35,14 +55,34 @@ public final class TenantDataSourceRouter extends AbstractRoutingDataSource impl
 
     public TenantDataSourceRouter(TenantCredentialProvider credentialProvider, int maxPools,
                                   Function<TenantConnection, DataSource> poolFactory) {
+        this(credentialProvider, maxPools, poolFactory, TenantDataSourceRouter::hikariActive);
+    }
+
+    /** {@code activeConnections}: conexiones en uso de un pool (por defecto Hikari; otros tipos cuentan 0). */
+    public TenantDataSourceRouter(TenantCredentialProvider credentialProvider, int maxPools,
+                                  Function<TenantConnection, DataSource> poolFactory,
+                                  ToIntFunction<DataSource> activeConnections) {
         if (maxPools < 1) {
             throw new IllegalArgumentException("maxPools debe ser >= 1");
         }
         this.credentialProvider = Objects.requireNonNull(credentialProvider);
         this.poolFactory = Objects.requireNonNull(poolFactory);
         this.maxPools = maxPools;
+        this.activeConnections = Objects.requireNonNull(activeConnections);
         setTargetDataSources(new HashMap<>());
         afterPropertiesSet();
+        reaper.scheduleWithFixedDelay(this::reapDraining, 2, 2, TimeUnit.SECONDS);
+    }
+
+    private static int hikariActive(DataSource ds) {
+        if (ds instanceof HikariDataSource h && h.getHikariPoolMXBean() != null) {
+            return h.getHikariPoolMXBean().getActiveConnections();
+        }
+        return 0;
+    }
+
+    public void setDrainTimeout(Duration drainTimeout) {
+        this.drainTimeout = Objects.requireNonNull(drainTimeout);
     }
 
     private static Function<TenantConnection, DataSource> hikariFactory(int poolSize) {
@@ -92,7 +132,7 @@ public final class TenantDataSourceRouter extends AbstractRoutingDataSource impl
         while (pools.size() > maxPools && it.hasNext()) {
             Map.Entry<String, DataSource> eldest = it.next();
             it.remove();
-            closeQuietly(eldest.getValue());
+            retire(eldest.getValue());
         }
     }
 
@@ -100,8 +140,32 @@ public final class TenantDataSourceRouter extends AbstractRoutingDataSource impl
     public synchronized void evict(String tenantId) {
         DataSource removed = pools.remove(tenantId);
         if (removed != null) {
-            closeQuietly(removed);
+            retire(removed);
         }
+    }
+
+    /** Cierra ya si no hay conexiones activas; si las hay, el pool queda drenando hasta que se liberen. */
+    private void retire(DataSource ds) {
+        if (activeConnections.applyAsInt(ds) <= 0) {
+            closeQuietly(ds);
+            return;
+        }
+        draining.add(new Draining(ds, System.nanoTime() + drainTimeout.toNanos()));
+    }
+
+    synchronized void reapDraining() {
+        long now = System.nanoTime();
+        draining.removeIf(d -> {
+            if (activeConnections.applyAsInt(d.ds()) <= 0 || now - d.deadlineNanos() >= 0) {
+                closeQuietly(d.ds());
+                return true;
+            }
+            return false;
+        });
+    }
+
+    public synchronized int drainingCount() {
+        return draining.size();
     }
 
     public synchronized int poolCount() {
@@ -110,8 +174,11 @@ public final class TenantDataSourceRouter extends AbstractRoutingDataSource impl
 
     @Override
     public synchronized void destroy() {
+        reaper.shutdownNow();
         pools.values().forEach(TenantDataSourceRouter::closeQuietly);
         pools.clear();
+        draining.forEach(d -> closeQuietly(d.ds()));
+        draining.clear();
     }
 
     private static void closeQuietly(DataSource ds) {

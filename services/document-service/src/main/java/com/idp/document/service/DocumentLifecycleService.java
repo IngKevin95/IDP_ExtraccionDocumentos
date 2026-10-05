@@ -9,6 +9,7 @@ import com.idp.document.infra.DocumentRepository;
 import com.idp.document.infra.DomainEvents;
 import com.idp.document.service.Exceptions.ConflictException;
 import com.idp.document.service.Exceptions.DocumentNotFoundException;
+import com.idp.tenant.context.LegalHoldGate;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -27,9 +28,11 @@ public class DocumentLifecycleService {
     private final ArtifactVault vault;
     private final TransactionTemplate tx;
     private final Clock clock;
+    private final LegalHoldGate holds;
 
     public DocumentLifecycleService(DocumentRepository repo, DocumentStateMachine states, DomainEvents events,
-                                    ArtifactVault vault, TransactionTemplate tx, Clock clock) {
+                                    ArtifactVault vault, TransactionTemplate tx, Clock clock, LegalHoldGate holds) {
+        this.holds = holds;
         this.repo = repo;
         this.states = states;
         this.events = events;
@@ -64,6 +67,9 @@ public class DocumentLifecycleService {
             throw new AccessDeniedException("Rol insuficiente");
         }
         DocumentRecord doc = repo.findById(caller.tenantId(), documentId).orElseThrow(DocumentNotFoundException::new);
+        if (holds.isHeld(doc.tenantId(), doc.id())) {
+            throw new ConflictException("DOC_LEGAL_HOLD", "El documento esta bajo legal hold");
+        }
         List<PageArtifact> artifacts = repo.artifacts(doc.id());
         vault.delete(doc.tenantId(), doc.objectStoreKey());
         for (PageArtifact a : artifacts) {

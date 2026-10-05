@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/** Disparador periodico del anclaje: lote de {@code batch-size} eventos o {@code max-age-hours} (SLO 24 h). */
+/** Disparador periodico del anclaje: lote de {@code batch-size} eventos o {@code max-age-hours} (por defecto 1 h). */
 @Component
 @ConditionalOnProperty(name = "idp.audit.anchor.job-enabled", havingValue = "true", matchIfMissing = true)
 public class AnchorJob {
@@ -29,7 +29,7 @@ public class AnchorJob {
             try {
                 anchors.anchorIfDue(tenantId);
             } catch (RuntimeException e) {
-                // Un tenant fallido no frena a los demas; el SLO de 24 h alerta si persiste.
+                // Un tenant fallido no frena a los demas; la alerta de pendientes sin anclar avisa si persiste.
                 LOG.error("Fallo el anclaje WORM del tenant {}: {}", tenantId, e.getClass().getSimpleName());
             }
         }

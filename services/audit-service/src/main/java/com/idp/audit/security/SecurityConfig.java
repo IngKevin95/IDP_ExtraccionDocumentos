@@ -23,6 +23,7 @@ import org.springframework.security.web.SecurityFilterChain;
  */
 @Configuration
 @EnableWebSecurity
+@org.springframework.context.annotation.Import(com.idp.security.IdpJwtConfiguration.class)
 public class SecurityConfig {
 
     public static final String AUDITOR = com.idp.security.Roles.AUDITOR;
@@ -33,6 +34,13 @@ public class SecurityConfig {
             @Value("${idp.audit.revalidation.cache-ttl-seconds:30}") long ttlSeconds) {
         return new CachingRoleAssignmentVerifier(new JdbcRoleAssignmentSource(jdbc), clock,
                 Duration.ofSeconds(Math.max(1, Math.min(ttlSeconds, 30))));
+    }
+
+    /** acceso.revocado purga la cache de roles de este servicio (H10). */
+    @Bean
+    com.idp.security.AccesoRevocadoKafkaListener accesoRevocadoListener(CachingRoleAssignmentVerifier verifier,
+                                                                         com.idp.events.EventSerde serde) {
+        return new com.idp.security.AccesoRevocadoKafkaListener(verifier, serde);
     }
 
     @Bean

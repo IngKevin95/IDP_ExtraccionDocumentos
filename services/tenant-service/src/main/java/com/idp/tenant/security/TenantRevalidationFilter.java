@@ -25,10 +25,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class TenantRevalidationFilter extends OncePerRequestFilter {
     private final TenantAuthorizer authorizer;
     private final TenantRepository tenants;
+    private final String platformIssuer;
 
-    public TenantRevalidationFilter(TenantAuthorizer authorizer, TenantRepository tenants) {
+    public TenantRevalidationFilter(TenantAuthorizer authorizer, TenantRepository tenants, String platformIssuer) {
         this.authorizer = authorizer;
         this.tenants = tenants;
+        this.platformIssuer = platformIssuer;
     }
 
     @Override
@@ -42,6 +44,11 @@ public class TenantRevalidationFilter extends OncePerRequestFilter {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (!(auth instanceof JwtAuthenticationToken jwt)) {
             chain.doFilter(request, response);
+            return;
+        }
+        // Un token del emisor de plataforma no es un token de usuario de tenant (A3).
+        if (jwt.getToken().getIssuer() != null && jwt.getToken().getIssuer().toString().equals(platformIssuer)) {
+            deny(response);
             return;
         }
         String claim = jwt.getToken().getClaimAsString("tenant_id");

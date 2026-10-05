@@ -30,7 +30,7 @@ class ClamAvScannerTest {
     private ClamAvScanner scanner(int port) {
         return new ClamAvScanner(new RendererProperties(
                 new RendererProperties.Clamav("127.0.0.1", port, Duration.ofSeconds(2), Duration.ofSeconds(5)),
-                new RendererProperties.Limits(1, 1, 1, 1, Duration.ofSeconds(1)),
+                new RendererProperties.Limits(1, 1, 1, 1, Duration.ofSeconds(1), 1),
                 new RendererProperties.Libreoffice("soffice", Duration.ofSeconds(1)),
                 new RendererProperties.Raster(72)));
     }

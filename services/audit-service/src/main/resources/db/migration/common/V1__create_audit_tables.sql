@@ -42,7 +42,7 @@ create table worm_anchors (
 );
 create index idx_worm_anchors_tenant on worm_anchors (tenant_id, start_sequence_id);
 
-create table legal_hold_records (
+create table if not exists legal_hold_records (
     id          uuid primary key,
     tenant_id   uuid         not null,
     document_id uuid,
@@ -53,10 +53,12 @@ create table legal_hold_records (
     released_by varchar(100),
     released_at timestamp with time zone
 );
-create index idx_legal_hold_tenant_doc on legal_hold_records (tenant_id, document_id);
+create index if not exists idx_legal_hold_tenant_doc on legal_hold_records (tenant_id, document_id);
 
 -- Idempotencia del consumidor (libs/events IdempotentEventConsumer).
 create table processed_event (
-    event_id     uuid primary key,
-    processed_at timestamp with time zone not null default current_timestamp
+    tenant_id    uuid not null,
+    event_id     uuid not null,
+    processed_at timestamp with time zone not null default current_timestamp,
+    primary key (tenant_id, event_id)
 );

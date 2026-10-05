@@ -39,6 +39,7 @@ abstract class AbstractIntegrationTest {
     @Autowired TenantSchemaMigrator migrator;
     @Autowired TestBeans.InMemoryObjectStore store;
     @Autowired TestBeans.MutableRoleSource roles;
+    @Autowired TestBeans.MutableHoldGate holds;
     @Autowired TestBeans.FakeRenderer renderer;
     @Autowired com.idp.kms.EnvelopeCrypto crypto;
     @Autowired com.idp.tenant.context.TenantKeyResolver keyResolver;

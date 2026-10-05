@@ -6,6 +6,8 @@ import com.idp.tenant.application.UserAccessService;
 import com.idp.tenant.context.TenantContextHolder;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
+import org.springframework.http.ResponseEntity;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -40,10 +42,17 @@ public class TenantUsersController {
         return users.list(tenant()).stream().map(RoleAssignmentResponse::of).toList();
     }
 
+    /**
+     * Roles sensibles (A4): el actor no puede asignarselos y la primera llamada solo registra la solicitud (202);
+     * la de otro administrador del tenant la aprueba y crea la asignacion (201).
+     */
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public RoleAssignmentResponse assign(@Valid @RequestBody UserAssignRequest req, Authentication auth) {
-        return RoleAssignmentResponse.of(users.assign(tenant(), req.userId(), req.role(), req.expiresAt(), auth.getName()));
+    public ResponseEntity<?> assign(@Valid @RequestBody UserAssignRequest req, Authentication auth) {
+        var out = users.assign(tenant(), req.userId(), req.role(), req.expiresAt(), auth.getName());
+        if (out.pending()) {
+            return ResponseEntity.accepted().body(Map.of("status", "PENDING_APPROVAL", "requestedBy", out.requestedBy()));
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(RoleAssignmentResponse.of(out.assignment()));
     }
 
     @DeleteMapping("/{userId}")

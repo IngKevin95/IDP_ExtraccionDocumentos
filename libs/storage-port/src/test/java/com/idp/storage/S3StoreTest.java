@@ -51,6 +51,26 @@ class S3StoreTest {
     }
 
     @Test
+    void k3_cadaTenantEscribeEnSuPropioBucketManteniendoElPrefijo() {
+        var buckets = new com.idp.tenant.context.TenantBucketResolver(null, Duration.ZERO, Clock.systemUTC()) {
+            @Override
+            public String resolve(String tenantId) {
+                return "idp-" + tenantId + "-docs";
+            }
+        };
+        S3ObjectStore store = new S3ObjectStore(s3, buckets);
+        store.put(tenant, "docs/a.pdf", new ByteArrayInputStream(new byte[] {1, 2, 3}), meta);
+        store.put(new TenantId("t2"), "docs/a.pdf", new ByteArrayInputStream(new byte[] {1, 2, 3}), meta);
+
+        ArgumentCaptor<PutObjectRequest> cap = ArgumentCaptor.forClass(PutObjectRequest.class);
+        verify(s3, org.mockito.Mockito.times(2)).putObject(cap.capture(), any(RequestBody.class));
+        assertEquals("idp-t1-docs", cap.getAllValues().get(0).bucket());
+        assertEquals("t1/docs/a.pdf", cap.getAllValues().get(0).key());
+        assertEquals("idp-t2-docs", cap.getAllValues().get(1).bucket());
+        assertEquals("t2/docs/a.pdf", cap.getAllValues().get(1).key());
+    }
+
+    @Test
     void rutasQueEscapanDelPrefijoSeRechazan() {
         S3ObjectStore store = new S3ObjectStore(s3, "bkt");
         for (String bad : new String[] {"../t2/x", "a/../../t2/x", "/abs", "a//b", "a\\b", "", " ", "."}) {

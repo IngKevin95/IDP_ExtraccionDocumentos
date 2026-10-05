@@ -61,8 +61,15 @@ public class PersistenceConfig {
 
     @Bean
     @Primary
-    DataSource tenantRoutingDataSource(TenantCredentialProvider credentials, TenantDbProperties db) {
+    TenantDataSourceRouter tenantRoutingDataSource(TenantCredentialProvider credentials, TenantDbProperties db) {
         return new TenantDataSourceRouter(credentials, db.maxPools(), db.poolSize());
+    }
+
+    /** tenant.baja_iniciada / rotacion de credenciales desalojan el pool con drenado (H7). */
+    @Bean
+    com.idp.security.TenantPoolEvictionKafkaListener tenantPoolEvictionListener(TenantDataSourceRouter router,
+                                                                              com.idp.events.EventSerde serde) {
+        return new com.idp.security.TenantPoolEvictionKafkaListener(router, serde);
     }
 
     @Bean

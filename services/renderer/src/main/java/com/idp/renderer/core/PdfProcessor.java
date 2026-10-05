@@ -6,6 +6,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.io.RandomAccessReadBufferedFile;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -47,7 +48,9 @@ public class PdfProcessor {
                 deadline.check();
                 PDPage page = doc.getPage(i);
                 PDRectangle box = page.getCropBox();
-                if ((double) box.getWidth() * scale * box.getHeight() * scale > limits.maxPixelsPerPage()) {
+                double unit = Math.max(1d, page.getCOSObject().getFloat(COSName.USER_UNIT, 1f));
+                if ((double) box.getWidth() * unit * scale * box.getHeight() * unit * scale
+                        > limits.maxPixelsPerPage()) {
                     throw RenderException.limitExceeded("Una pagina excede el tamano maximo de rasterizado.");
                 }
                 BufferedImage img = renderer.renderImageWithDPI(i, dpi, ImageType.RGB);

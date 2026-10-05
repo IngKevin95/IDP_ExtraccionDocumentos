@@ -3,8 +3,10 @@ package com.idp.e2e;
 import static com.idp.e2e.E2eEnvironment.AUDITOR_A;
 import static com.idp.e2e.E2eEnvironment.OPERATOR_A;
 import static com.idp.e2e.E2eEnvironment.OPERATOR_B;
+import static com.idp.e2e.E2eEnvironment.OPERATOR_C;
 import static com.idp.e2e.E2eEnvironment.TENANT_A;
 import static com.idp.e2e.E2eEnvironment.TENANT_B;
+import static com.idp.e2e.E2eEnvironment.TENANT_C;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
@@ -190,6 +192,41 @@ class OficioE2eTest {
         assertThat(types).filteredOn("extraccion.solicitada"::equals).hasSize(1);
         assertThat(types).filteredOn("extraccion.aprobada"::equals).hasSize(1);
         assertEventsMatchSchemas();
+    }
+
+    @Test
+    void k4_given_tenantConDocumentoAprobado_when_seDestruyeSuKek_then_elDescifradoDeSusArtefactosFalla()
+            throws Exception {
+        Resp created = upload(TENANT_C, OPERATOR_C, pdf(), radicado(), null);
+        assertThat(created.status()).isEqualTo(201);
+        String id = created.body().path("id").asText();
+        UUID docId = UUID.fromString(id);
+        await().atMost(TIMEOUT).pollInterval(Duration.ofMillis(250))
+            .untilAsserted(() -> assertThat(status(TENANT_C, OPERATOR_C, id)).isEqualTo("APROBADO"));
+
+        com.idp.tenant.context.TenantKeyResolver resolver = new com.idp.tenant.context.TenantKeyResolver(null,
+            java.time.Duration.ZERO, java.time.Clock.systemUTC()) {
+            @Override
+            public com.idp.tenant.context.TenantKeyResolver.TenantKeys resolve(String tenantId) {
+                return new com.idp.tenant.context.TenantKeyResolver.TenantKeys("documents", "audit");
+            }
+        };
+        EncryptedArtifactStore artifacts = new EncryptedArtifactStore(Overrides.Shared.STORE,
+            new EnvelopeCrypto(Overrides.Shared.KEYS), resolver);
+        assertThat(artifacts.get(TENANT_C, docId, ArtifactKind.ORIGINAL, 0)).isNotEmpty();
+        assertThat(artifacts.get(TENANT_C, docId, ArtifactKind.TEXT_LAYER, 0)).isNotEmpty();
+
+        // shredding (SEC-016): lo mismo que OffboardingService.shred() hace con la KEK de datos del tenant
+        Overrides.Shared.KEYS.disableKek(new TenantId(TENANT_C), "documents");
+
+        assertThatThrownBy(() -> artifacts.get(TENANT_C, docId, ArtifactKind.ORIGINAL, 0))
+            .isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> artifacts.get(TENANT_C, docId, ArtifactKind.TEXT_LAYER, 0))
+            .isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> artifacts.get(TENANT_C, docId, ArtifactKind.PAGE_PNG, 1))
+            .isInstanceOf(RuntimeException.class);
+        // el ciphertext sigue en el bucket pero ya es inutil sin la KEK
+        assertThat(Overrides.Shared.STORE.raw(TENANT_C, "documents/" + id + "/original.enc")).isNotNull();
     }
 
     // ---- utilidades -------------------------------------------------------------------------------------

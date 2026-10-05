@@ -76,8 +76,15 @@ public class ExtractionRuntimeConfig {
 
     @Bean
     @Primary
-    DataSource tenantDataSource(TenantCredentialProvider provider, ExtractionProperties props) {
+    TenantDataSourceRouter tenantDataSource(TenantCredentialProvider provider, ExtractionProperties props) {
         return new TenantDataSourceRouter(provider, props.db().maxPools(), props.db().poolSize());
+    }
+
+    /** tenant.baja_iniciada / rotacion de credenciales desalojan el pool con drenado (H7). */
+    @Bean
+    com.idp.security.TenantPoolEvictionKafkaListener tenantPoolEvictionListener(TenantDataSourceRouter router,
+                                                                              EventSerde serde) {
+        return new com.idp.security.TenantPoolEvictionKafkaListener(router, serde);
     }
 
     @Bean
@@ -112,12 +119,27 @@ public class ExtractionRuntimeConfig {
     }
 
     @Bean
-    ObjectStore objectStore(ExtractionProperties props) {
+    ObjectStore objectStore(ExtractionProperties props, com.idp.tenant.context.TenantBucketResolver buckets) {
         ExtractionProperties.Storage s = props.storage();
         URI endpoint = s.endpoint().isBlank() ? null : URI.create(s.endpoint());
         String access = s.accessKey().isBlank() ? null : s.accessKey();
         return new S3ObjectStore(S3Clients.create(endpoint, s.region(), access, s.secretKey(), s.pathStyle()),
-            s.bucket());
+            buckets);
+    }
+
+    /** Bucket por tenant desde silo_location; sin base de control, bucket compartido de desarrollo. */
+    @Bean
+    com.idp.tenant.context.TenantBucketResolver tenantBucketResolver(ExtractionProperties props, Clock clock) {
+        ExtractionProperties.Control c = props.control();
+        if (c.url().isBlank()) {
+            return com.idp.tenant.context.TenantBucketResolver.fixed(props.storage().bucket());
+        }
+        com.zaxxer.hikari.HikariDataSource ds = new com.zaxxer.hikari.HikariDataSource();
+        ds.setJdbcUrl(c.url());
+        ds.setUsername(c.username());
+        ds.setPassword(c.password());
+        ds.setMaximumPoolSize(2);
+        return new com.idp.tenant.context.TenantBucketResolver(new JdbcTemplate(ds), c.directoryTtl(), clock);
     }
 
     @Bean

@@ -25,11 +25,18 @@ import org.springframework.http.MediaType;
 class OffboardingApiTest extends ApiTestSupport {
     @Autowired TenantRepository tenants;
     @Autowired OffboardingService offboarding;
+    @Autowired com.idp.tenant.infrastructure.persistence.LegalHoldRepository holdsRepo;
 
     private void legalHold(UUID id, boolean active) throws Exception {
-        mvc.perform(post("/v1/admin/tenants/" + id + "/legal-hold").with(platformAdmin("admin1"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"active\":" + active + (active ? ",\"reasonCode\":\"LITIGATION\"" : "") + "}"))
+        String body = "{\"active\":" + active + (active ? ",\"reasonCode\":\"LITIGATION\"" : "") + "}";
+        if (!active) {
+            // A3: la liberacion exige un segundo PLATFORM_ADMIN distinto
+            mvc.perform(post("/v1/admin/tenants/" + id + "/legal-hold").with(platformAdmin("admin1"))
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isAccepted());
+        }
+        mvc.perform(post("/v1/admin/tenants/" + id + "/legal-hold").with(platformAdmin(active ? "admin1" : "admin2"))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk());
     }
 
@@ -54,7 +61,15 @@ class OffboardingApiTest extends ApiTestSupport {
     void ac04_bajaExitosaMarcaPendingDeletionYEmiteEvento() throws Exception {
         UUID id = createTenant();
 
+        // A3: la primera llamada solo registra la solicitud; la de un segundo administrador distinto la aprueba
         mvc.perform(delete("/v1/admin/tenants/" + id).with(platformAdmin("admin1")))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+        mvc.perform(delete("/v1/admin/tenants/" + id).with(platformAdmin("admin1")))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+        assertTrue(events(id, "tenant.baja_iniciada").isEmpty());
+        mvc.perform(delete("/v1/admin/tenants/" + id).with(platformAdmin("admin2")))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.status").value("PENDING_DELETION"));
 
@@ -78,7 +93,7 @@ class OffboardingApiTest extends ApiTestSupport {
     @Test
     void ac08_shreddingDeshabilitaKekDeDatosYConservaLaDeAuditoria() throws Exception {
         UUID id = createTenant();
-        mvc.perform(delete("/v1/admin/tenants/" + id).with(platformAdmin("admin1"))).andExpect(status().isAccepted());
+        approveDelete(id);
 
         // plazo aun no cumplido: no se destruye nada
         offboarding.shredDueTenants();
@@ -96,7 +111,7 @@ class OffboardingApiTest extends ApiTestSupport {
     @Test
     void sec017_shreddingSeOmiteSiHayLegalHoldAplicadoDuranteLaEspera() throws Exception {
         UUID id = createTenant();
-        mvc.perform(delete("/v1/admin/tenants/" + id).with(platformAdmin("admin1"))).andExpect(status().isAccepted());
+        approveDelete(id);
         legalHold(id, true);
         makeOverdue(id);
 
@@ -111,6 +126,44 @@ class OffboardingApiTest extends ApiTestSupport {
     }
 
     @Test
+    void k2_shreddingSeOmiteSiHayLegalHoldDeUnDocumento() throws Exception {
+        UUID id = createTenant();
+        approveDelete(id);
+        UUID holdId = UUID.randomUUID();
+        jdbc.sql("INSERT INTO legal_hold_records(id, tenant_id, document_id, reason, applied_by, status, created_at) "
+                + "VALUES (:id, :t, :d, 'LITIGATION', 'cumplimiento', 'ACTIVE', :c)")
+                .param("id", holdId).param("t", id).param("d", UUID.randomUUID())
+                .param("c", OffsetDateTime.now(ZoneOffset.UTC)).update();
+        makeOverdue(id);
+
+        offboarding.shredDueTenants();
+
+        assertFalse(keys.disabled.contains("t-" + id + "-data"));
+        assertEquals(TenantStatus.PENDING_DELETION, tenants.find(id).orElseThrow().status());
+
+        jdbc.sql("UPDATE legal_hold_records SET status = 'RELEASED' WHERE id = :id").param("id", holdId).update();
+        offboarding.shredDueTenants();
+        assertTrue(keys.disabled.contains("t-" + id + "-data"));
+    }
+
+    @Test
+    void k2_errorTerminalDeShreddingNoSeReintentaEnBucle() throws Exception {
+        UUID id = createTenant();
+        approveDelete(id);
+        makeOverdue(id);
+        keys.disableFailure = new IllegalArgumentException("kek invalida");
+        try {
+            assertEquals(0, offboarding.shredDueTenants());
+        } finally {
+            keys.disableFailure = null;
+        }
+
+        assertEquals(TenantStatus.FAILED, tenants.find(id).orElseThrow().status());
+        assertEquals(0, offboarding.shredDueTenants());
+        assertFalse(keys.disabled.contains("t-" + id + "-data"));
+    }
+
+    @Test
     void legalHold_aplicarYLiberarEmiteEventosValidos() throws Exception {
         UUID id = createTenant();
         legalHold(id, true);
@@ -118,12 +171,12 @@ class OffboardingApiTest extends ApiTestSupport {
         JsonNode applied = event(id, "legalhold.aplicado");
         assertEquals("LITIGATION", applied.get("reasonCode").asText());
         assertEquals("admin1", applied.get("appliedBy").asText());
-        assertTrue(tenants.findConfig(id).orElseThrow().legalHold());
+        assertFalse(holdsRepo.findActive(id).isEmpty());
 
         legalHold(id, false);
         JsonNode released = event(id, "legalhold.liberado");
         assertEquals(applied.get("holdId").asText(), released.get("holdId").asText());
-        assertFalse(tenants.findConfig(id).orElseThrow().legalHold());
+        assertTrue(holdsRepo.findActive(id).isEmpty());
 
         mvc.perform(get("/v1/admin/tenants/" + id).with(platformAdmin("admin1"))).andExpect(status().isOk());
     }

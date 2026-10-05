@@ -57,7 +57,7 @@ public class TenantProvisioningService {
         Instant now = Instant.now(clock);
         tx.executeWithoutResult(s -> {
             tenants.insert(new Tenant(id, name, TenantStatus.CREATING, planId, null, now, now));
-            tenants.insertConfig(new TenantConfig(id, null, null, false, Map.of()));
+            tenants.insertConfig(new TenantConfig(id, null, null, Map.of()));
         });
 
         Deque<Compensation> done = new ArrayDeque<>();

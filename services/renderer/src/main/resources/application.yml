@@ -2,6 +2,8 @@ server:
   port: 8080
   ssl:
     client-auth: need
+    # Obligatorio fuera de dev-mode (RendererTlsGuard): definir server.ssl.bundle.
+    bundle: ${RENDERER_SSL_BUNDLE:}
 spring:
   application:
     name: renderer
@@ -24,3 +26,4 @@ renderer:
     port: 3310
   limits:
     max-pages: 100
+    max-concurrent: ${RENDERER_MAX_CONCURRENT:4}

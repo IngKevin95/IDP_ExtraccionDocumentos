@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.idp.security.Roles;
 import com.idp.document.infra.PipelineEventListener;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -68,6 +69,30 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
         assertThat(sameTuple.getResponse().getStatus()).isEqualTo(409);
         assertThat(body(sameTuple).path("errorCode").asText()).isEqualTo("DOC_DUPLICATE_BUSINESS_KEY");
         assertThat(newVersion.getResponse().getStatus()).isEqualTo(201);
+    }
+
+    @Test
+    void a5_dedupDeDocumentoNoVisibleNoRevelaIdNiEstado() throws Exception {
+        String tenant = newTenant();
+        operator(tenant, "ana");
+        operator(tenant, "carla");
+        byte[] content = pdf();
+        String rad = radicado();
+        MvcResult first = upload(tenant, "ana", content, "a.pdf", rad, 1, "ALTAMENTE_CONFIDENCIAL", "k-ana");
+
+        MvcResult byHash = upload(tenant, "carla", content, "b.pdf", radicado(), 1, null, null);
+        MvcResult byKey = upload(tenant, "carla", pdf(), "c.pdf", radicado(), 1, null, "k-ana");
+        MvcResult byTuple = upload(tenant, "carla", pdf(), "d.pdf", rad, 1, null, null);
+        MvcResult own = upload(tenant, "ana", content, "e.pdf", radicado(), 1, null, null);
+
+        for (MvcResult r : new MvcResult[] {byHash, byKey, byTuple}) {
+            assertThat(r.getResponse().getStatus()).isEqualTo(409);
+            assertThat(body(r).path("errorCode").asText()).isEqualTo("DOC_DUPLICATE_BUSINESS_KEY");
+            assertThat(r.getResponse().getContentAsString()).doesNotContain(body(first).path("id").asText())
+                    .doesNotContain("EN_EXTRACCION");
+        }
+        assertThat(own.getResponse().getStatus()).isEqualTo(200);
+        assertThat(body(own).path("id").asText()).isEqualTo(body(first).path("id").asText());
     }
 
     @Test
@@ -211,6 +236,7 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
     void ac06_revisionCompletadaAprobadaORechazada() throws Exception {
         String tenant = newTenant();
         operator(tenant, "ana");
+        roles.grant(tenant, "rita", Roles.REVISOR);
         String approved = uploadOk(tenant, "ana");
         String rejected = uploadOk(tenant, "ana");
         for (String id : new String[] {approved, rejected}) {
@@ -218,15 +244,55 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
         }
 
         listener.onMessage(event("revision.completada", tenant, approved, "taskId", UUID.randomUUID().toString(),
-                "action", "APROBADO"));
+                "action", "APROBADO", "reviewerId", "rita"));
         listener.onMessage(event("revision.completada", tenant, rejected, "taskId", UUID.randomUUID().toString(),
-                "action", "RECHAZADO"));
+                "action", "RECHAZADO", "reviewerId", "rita"));
 
         assertThat(statusOf(tenant, approved)).isEqualTo("APROBADO");
         assertThat(statusOf(tenant, rejected)).isEqualTo("RECHAZADO");
         assertThat(outbox(tenant, "extraccion.aprobada")).hasSize(1);
         assertThat(outbox(tenant, "extraccion.aprobada").get(0).path("approvedBy").asText())
                 .isEqualTo("HUMAN_REVIEWER");
+    }
+
+    @Test
+    void a6_revisionCompletadaConRevisorSinRolOSegundoAprobadorInvalidoSeIgnora() throws Exception {
+        String tenant = newTenant();
+        operator(tenant, "ana");
+        roles.grant(tenant, "rita", Roles.REVISOR);
+        roles.grant(tenant, "rosa", Roles.REVISOR);
+        String id = uploadOk(tenant, "ana");
+        listener.onMessage(event("extraccion.requiere_revision", tenant, id, "taskId", UUID.randomUUID().toString()));
+        double before = meters.counter("idp_document_review_event_rejected_total").count();
+
+        // reviewerId sin rol REVISOR vigente
+        listener.onMessage(event("revision.completada", tenant, id, "taskId", UUID.randomUUID().toString(),
+                "action", "APROBADO", "reviewerId", "intruso"));
+        assertThat(statusOf(tenant, id)).isEqualTo("EN_REVISION");
+        // correccion critica sin segundo aprobador, y con el mismo revisor como segundo
+        ObjectNode noSecond = (ObjectNode) JSON.readTree(event("revision.completada", tenant, id, "taskId",
+                UUID.randomUUID().toString(), "action", "APROBADO", "reviewerId", "rita"));
+        noSecond.put("criticalCorrection", true);
+        listener.onMessage(noSecond.toString());
+        ObjectNode sameSecond = (ObjectNode) JSON.readTree(event("revision.completada", tenant, id, "taskId",
+                UUID.randomUUID().toString(), "action", "APROBADO", "reviewerId", "rita", "secondReviewerId", "rita"));
+        sameSecond.put("criticalCorrection", true);
+        listener.onMessage(sameSecond.toString());
+        assertThat(statusOf(tenant, id)).isEqualTo("EN_REVISION");
+        assertThat(meters.counter("idp_document_review_event_rejected_total").count()).isEqualTo(before + 3);
+
+        // un evento con reviewerId ausente incumple el contrato
+        org.junit.jupiter.api.Assertions.assertThrows(com.idp.events.EventValidationException.class,
+                () -> listener.onMessage(event("revision.completada", tenant, id, "taskId",
+                        UUID.randomUUID().toString(), "action", "APROBADO")));
+        assertThat(outbox(tenant, "extraccion.aprobada")).isEmpty();
+
+        // correccion critica con segundo aprobador distinto y con rol: se aprueba
+        ObjectNode ok = (ObjectNode) JSON.readTree(event("revision.completada", tenant, id, "taskId",
+                UUID.randomUUID().toString(), "action", "APROBADO", "reviewerId", "rita", "secondReviewerId", "rosa"));
+        ok.put("criticalCorrection", true);
+        listener.onMessage(ok.toString());
+        assertThat(statusOf(tenant, id)).isEqualTo("APROBADO");
     }
 
     @Test
@@ -373,6 +439,31 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
                 .getStatus()).isEqualTo(404);
         assertThat(mvc.perform(delete("/v1/documents/" + id).with(token(tenant, "root"))).andReturn().getResponse()
                 .getStatus()).isEqualTo(404);
+    }
+
+    @Test
+    void k2_purgaBloqueadaPorLegalHoldDeDocumentoOTenantResponde409() throws Exception {
+        String tenant = newTenant();
+        operator(tenant, "ana");
+        roles.grant(tenant, "root", Roles.TENANT_ADMIN);
+        String id = uploadOk(tenant, "ana");
+        try {
+            holds.holdDocument(tenant, UUID.fromString(id));
+            assertThat(mvc.perform(delete("/v1/documents/" + id).with(token(tenant, "root"))).andReturn()
+                    .getResponse().getStatus()).isEqualTo(409);
+            assertThat(store.keys(tenant)).hasSize(4);
+
+            holds.clear();
+            holds.holdTenant(tenant);
+            assertThat(mvc.perform(delete("/v1/documents/" + id).with(token(tenant, "root"))).andReturn()
+                    .getResponse().getStatus()).isEqualTo(409);
+            assertThat(store.keys(tenant)).hasSize(4);
+            assertThat(outbox(tenant, "documento.purgado")).isEmpty();
+        } finally {
+            holds.clear();
+        }
+        assertThat(mvc.perform(delete("/v1/documents/" + id).with(token(tenant, "root"))).andReturn()
+                .getResponse().getStatus()).isEqualTo(204);
     }
 
     @Test

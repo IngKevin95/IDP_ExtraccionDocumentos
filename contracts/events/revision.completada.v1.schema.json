@@ -13,7 +13,8 @@
     "correlationId",
     "documentId",
     "taskId",
-    "action"
+    "action",
+    "reviewerId"
   ],
   "properties": {
     "eventId": {
@@ -54,6 +55,22 @@
         "APROBADO",
         "RECHAZADO"
       ]
+    },
+    "reviewerId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Subject del revisor que cerro la tarea. El consumidor revalida su rol REVISOR vigente."
+    },
+    "secondReviewerId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Segundo aprobador (distinto del primero), obligatorio si criticalCorrection es true."
+    },
+    "criticalCorrection": {
+      "type": "boolean",
+      "description": "true si hubo correccion de un campo critico (regla de cuatro ojos, SEC-009)."
     }
   },
   "additionalProperties": false

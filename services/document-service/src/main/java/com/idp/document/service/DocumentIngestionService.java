@@ -124,22 +124,38 @@ public class DocumentIngestionService {
         if (c.idempotencyKey() != null) {
             Optional<DocumentRecord> byKey = repo.findByIdempotencyKey(tenant, c.idempotencyKey());
             if (byKey.isPresent()) {
-                if (!hash.equals(byKey.get().hashSha256())) {
+                DocumentRecord d = visibleOrGeneric(c.caller(), byKey.get());
+                if (!hash.equals(d.hashSha256())) {
                     throw new ConflictException("DOC_IDEMPOTENCY_KEY_REUSED",
                             "La Idempotency-Key ya se uso con otro contenido");
                 }
-                return byKey;
+                return Optional.of(d);
             }
         }
         Optional<DocumentRecord> byHash = repo.findByHash(tenant, hash);
         if (byHash.isPresent()) {
-            return byHash;
+            return Optional.of(visibleOrGeneric(c.caller(), byHash.get()));
         }
         if (repo.findByBusinessKey(tenant, c.typology().name(), c.radicado(), c.version()).isPresent()) {
-            throw new ConflictException("DOC_DUPLICATE_BUSINESS_KEY",
-                    "Ya existe un documento con la misma tipologia, radicado y version");
+            throw genericDuplicate();
         }
         return Optional.empty();
+    }
+
+    /**
+     * Sin oraculo de dedup (SEC-018): un documento existente que el caller no puede ver se trata como un rechazo
+     * generico, identico al de clave de negocio duplicada, sin revelar id ni estado.
+     */
+    private static DocumentRecord visibleOrGeneric(Caller caller, DocumentRecord d) {
+        if (!caller.canView(d)) {
+            throw genericDuplicate();
+        }
+        return d;
+    }
+
+    private static ConflictException genericDuplicate() {
+        return new ConflictException("DOC_DUPLICATE_BUSINESS_KEY",
+                "Ya existe un documento con la misma tipologia, radicado y version");
     }
 
     private DocumentRecord process(DocumentRecord doc, String filename, String mime, byte[] content) {

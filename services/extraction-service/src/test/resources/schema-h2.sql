@@ -56,6 +56,8 @@ create table if not exists outbox (
 );
 
 create table if not exists processed_event (
-    event_id     uuid primary key,
-    processed_at timestamp with time zone not null default current_timestamp
+    tenant_id    uuid not null,
+    event_id     uuid not null,
+    processed_at timestamp with time zone not null default current_timestamp,
+    primary key (tenant_id, event_id)
 );

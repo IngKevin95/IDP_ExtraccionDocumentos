@@ -26,10 +26,13 @@ class JdbcRoleAssignmentSourceIntegrationTest {
     @BeforeEach
     void setUp() {
         jdbc = new JdbcTemplate(new DriverManagerDataSource(PG.getJdbcUrl(), PG.getUsername(), PG.getPassword()));
+        jdbc.execute("create table if not exists tenants (id uuid primary key, status varchar(50) not null)");
         jdbc.execute("create table if not exists role_assignment (id uuid primary key, tenant_id uuid not null, "
             + "user_id varchar(255) not null, role varchar(50) not null, expires_at timestamptz, "
             + "deleted_at timestamptz)");
         jdbc.update("delete from role_assignment");
+        jdbc.update("delete from tenants");
+        jdbc.update("insert into tenants values (?, 'ACTIVE')", tenant);
         source = new JdbcRoleAssignmentSource(jdbc);
     }
 

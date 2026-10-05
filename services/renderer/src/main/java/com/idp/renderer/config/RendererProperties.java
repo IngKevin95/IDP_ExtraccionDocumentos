@@ -22,7 +22,8 @@ public record RendererProperties(
             @DefaultValue("100") int maxPages,
             @DefaultValue("268435456") long maxUncompressedBytes,
             @DefaultValue("25000000") long maxPixelsPerPage,
-            @DefaultValue("120s") Duration renderTimeout) {}
+            @DefaultValue("120s") Duration renderTimeout,
+            @DefaultValue("4") int maxConcurrent) {}
 
     public record Libreoffice(
             @DefaultValue("soffice") String binary,

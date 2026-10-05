@@ -35,11 +35,15 @@ public class RoleAssignmentRepository {
                 .param("c", Db.odt(r.createdAt())).param("j", r.justification()).update();
     }
 
+    /** A1: tenant ACTIVE; los roles de supervision (RN-14) sobreviven mientras el tenant no este DELETED. */
     public boolean hasActiveRole(UUID tenantId, String userId, String role, Instant now) {
-        Integer n = jdbc.sql("SELECT COUNT(*) FROM role_assignment WHERE tenant_id = :t AND user_id = :u "
-                        + "AND role = :r AND " + ACTIVE)
+        int retained = com.idp.security.JdbcRoleAssignmentSource.isRetained(role) ? 1 : 0;
+        Integer n = jdbc.sql("SELECT COUNT(*) FROM role_assignment ra JOIN tenants t ON t.id = ra.tenant_id "
+                        + "WHERE ra.tenant_id = :t AND ra.user_id = :u AND ra.role = :r "
+                        + "AND ra.deleted_at IS NULL AND (ra.expires_at IS NULL OR ra.expires_at > :now) "
+                        + "AND (t.status = 'ACTIVE' OR (t.status <> 'DELETED' AND :ret = 1))")
                 .param("t", tenantId).param("u", userId).param("r", role).param("now", Db.odt(now))
-                .query(Integer.class).single();
+                .param("ret", retained).query(Integer.class).single();
         return n != null && n > 0;
     }
 

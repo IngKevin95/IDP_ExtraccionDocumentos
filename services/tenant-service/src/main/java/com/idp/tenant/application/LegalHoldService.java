@@ -49,7 +49,6 @@ public class LegalHoldService {
         }
         LegalHold hold = new LegalHold(UUID.randomUUID(), tenantId, reason.name(), actor, Instant.now(clock), null, null);
         holds.insert(hold);
-        tenants.setLegalHold(tenantId, true);
         events.legalHoldAplicado(tenantId, hold.id(), reason.name(), actor);
         return hold.id();
     }
@@ -62,6 +61,5 @@ public class LegalHoldService {
             holds.release(h.id(), actor, now);
             events.legalHoldLiberado(tenantId, h.id(), actor);
         }
-        tenants.setLegalHold(tenantId, false);
     }
 }

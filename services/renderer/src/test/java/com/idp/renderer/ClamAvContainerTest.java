@@ -32,7 +32,7 @@ class ClamAvContainerTest {
         return new ClamAvScanner(new RendererProperties(
                 new RendererProperties.Clamav(CLAMAV.getHost(), CLAMAV.getMappedPort(3310),
                         Duration.ofSeconds(5), Duration.ofSeconds(60)),
-                new RendererProperties.Limits(1, 1, 1, 1, Duration.ofSeconds(1)),
+                new RendererProperties.Limits(1, 1, 1, 1, Duration.ofSeconds(1), 1),
                 new RendererProperties.Libreoffice("soffice", Duration.ofSeconds(1)),
                 new RendererProperties.Raster(72)));
     }

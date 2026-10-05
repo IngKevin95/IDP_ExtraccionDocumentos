@@ -13,7 +13,10 @@ import com.idp.security.TenantAuthorizer;
 import com.idp.storage.ObjectStore;
 import com.idp.storage.S3Clients;
 import com.idp.storage.S3ObjectStore;
+import com.idp.tenant.context.JdbcLegalHoldGate;
 import com.idp.tenant.context.JdbcTenantDirectory;
+import com.idp.tenant.context.LegalHoldGate;
+import com.idp.tenant.context.TenantBucketResolver;
 import com.idp.tenant.context.StaticTenantDirectory;
 import com.idp.tenant.context.TenantDirectory;
 import com.zaxxer.hikari.HikariDataSource;
@@ -37,15 +40,43 @@ import org.springframework.web.client.RestClient;
 public class InfraConfig {
 
     @Bean
-    @ConditionalOnProperty("idp.storage.bucket")
+    @ConditionalOnExpression("!'${idp.storage.bucket:}'.isEmpty() || !'${idp.control-db.url:}'.isEmpty()")
     ObjectStore objectStore(@Value("${idp.storage.endpoint:}") String endpoint,
                             @Value("${idp.storage.region:us-east-1}") String region,
                             @Value("${idp.storage.access-key:}") String accessKey,
                             @Value("${idp.storage.secret-key:}") String secretKey,
                             @Value("${idp.storage.path-style:false}") boolean pathStyle,
-                            @Value("${idp.storage.bucket}") String bucket) {
+                            TenantBucketResolver buckets) {
         return new S3ObjectStore(S3Clients.create(endpoint.isBlank() ? null : URI.create(endpoint), region,
-                accessKey.isBlank() ? null : accessKey, secretKey, pathStyle), bucket);
+                accessKey.isBlank() ? null : accessKey, secretKey, pathStyle), buckets);
+    }
+
+    /** Bucket por tenant desde silo_location (base de control). */
+    @Bean
+    @ConditionalOnProperty("idp.control-db.url")
+    TenantBucketResolver jdbcTenantBucketResolver(@Qualifier("controlDataSource") HikariDataSource controlDataSource,
+                                                  Clock clock, @Value("${idp.tenant-directory.ttl:30s}") Duration ttl) {
+        return new TenantBucketResolver(new JdbcTemplate(controlDataSource), ttl, clock);
+    }
+
+    /** Fallback de desarrollo: bucket compartido {@code idp.storage.bucket}. */
+    @Bean
+    @ConditionalOnExpression("'${idp.control-db.url:}'.isEmpty()")
+    TenantBucketResolver fixedTenantBucketResolver(@Value("${idp.storage.bucket:}") String bucket) {
+        return TenantBucketResolver.fixed(bucket);
+    }
+
+    /** Legal hold unificado: tabla legal_hold_records de la base de control. */
+    @Bean
+    @ConditionalOnProperty("idp.control-db.url")
+    LegalHoldGate jdbcLegalHoldGate(@Qualifier("controlDataSource") HikariDataSource controlDataSource) {
+        return new JdbcLegalHoldGate(new JdbcTemplate(controlDataSource));
+    }
+
+    @Bean
+    @ConditionalOnExpression("'${idp.control-db.url:}'.isEmpty()")
+    LegalHoldGate noLegalHoldGate() {
+        return LegalHoldGate.NONE;
     }
 
     @Bean
@@ -123,8 +154,15 @@ public class InfraConfig {
     }
 
     @Bean
-    RoleAssignmentVerifier roleAssignmentVerifier(RoleAssignmentSource source) {
+    CachingRoleAssignmentVerifier roleAssignmentVerifier(RoleAssignmentSource source) {
         return new CachingRoleAssignmentVerifier(source);
+    }
+
+    /** acceso.revocado purga la cache de roles de este servicio (H10). */
+    @Bean
+    com.idp.security.AccesoRevocadoKafkaListener accesoRevocadoListener(CachingRoleAssignmentVerifier verifier,
+                                                                         com.idp.events.EventSerde serde) {
+        return new com.idp.security.AccesoRevocadoKafkaListener(verifier, serde);
     }
 
     @Bean
@@ -133,10 +171,14 @@ public class InfraConfig {
     }
 
     @Bean
-    RendererClient rendererClient(RendererProperties props, ObjectProvider<SslBundles> bundles) {
+    RendererClient rendererClient(RendererProperties props, ObjectProvider<SslBundles> bundles,
+                                  @Value("${idp.security.dev-mode:false}") boolean devMode) {
         SSLContext ssl = null;
         if (props.sslBundle() != null && !props.sslBundle().isBlank()) {
             ssl = bundles.getObject().getBundle(props.sslBundle()).createSslContext();
+        } else if (!devMode) {
+            throw new IllegalStateException(
+                "services.renderer.ssl-bundle es obligatorio (mTLS al renderer) salvo idp.security.dev-mode=true");
         }
         return new HttpRendererClient(props.url(), props.connectTimeout(), props.readTimeout(), ssl);
     }

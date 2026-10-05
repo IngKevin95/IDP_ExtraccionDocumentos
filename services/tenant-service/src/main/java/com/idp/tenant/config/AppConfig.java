@@ -2,16 +2,25 @@ package com.idp.tenant.config;
 
 import com.idp.kms.KeyService;
 import com.idp.tenant.TenantId;
+import com.idp.tenant.context.JdbcLegalHoldGate;
+import com.idp.tenant.context.LegalHoldGate;
 import java.time.Clock;
 import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Configuration
 @EnableScheduling
 public class AppConfig {
+
+    /** Legal hold unificado: tabla legal_hold_records de la base de control (esta misma base). */
+    @Bean
+    LegalHoldGate legalHoldGate(JdbcTemplate jdbc) {
+        return new JdbcLegalHoldGate(jdbc);
+    }
 
     @Bean
     @ConditionalOnMissingBean

@@ -73,7 +73,7 @@ class TenantUsersApiTest extends ApiTestSupport {
         mvc.perform(get("/v1/tenant/users").with(tenantUser(UUID.randomUUID(), "boss")))
                 .andExpect(status().isForbidden());
         // tenant en baja
-        mvc.perform(delete("/v1/admin/tenants/" + t).with(platformAdmin("admin1"))).andExpect(status().isAccepted());
+        approveDelete(t);
         mvc.perform(get("/v1/tenant/users").with(tenantUser(t, "boss"))).andExpect(status().isForbidden());
     }
 
@@ -88,9 +88,9 @@ class TenantUsersApiTest extends ApiTestSupport {
                 .content("{\"userId\":\"ana\",\"role\":\"AUDITOR\",\"expiresAt\":\"2000-01-01T00:00:00Z\"}"))
                 .andExpect(status().isBadRequest());
         mvc.perform(post("/v1/tenant/users").with(tenantUser(t, "boss")).contentType(MediaType.APPLICATION_JSON)
-                .content(assign("ana", "AUDITOR"))).andExpect(status().isCreated());
+                .content(assign("ana", "REVISOR"))).andExpect(status().isCreated());
         mvc.perform(post("/v1/tenant/users").with(tenantUser(t, "boss")).contentType(MediaType.APPLICATION_JSON)
-                .content(assign("ana", "AUDITOR"))).andExpect(status().isConflict());
+                .content(assign("ana", "REVISOR"))).andExpect(status().isConflict());
         mvc.perform(delete("/v1/tenant/users/nadie").with(tenantUser(t, "boss"))).andExpect(status().isNotFound());
         mvc.perform(delete("/v1/tenant/users/boss").with(tenantUser(t, "boss"))).andExpect(status().isConflict());
         assertTrue(events(t, "acceso.revocado").isEmpty());

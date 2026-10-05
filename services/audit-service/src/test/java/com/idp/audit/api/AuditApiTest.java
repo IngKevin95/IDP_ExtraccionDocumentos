@@ -98,6 +98,19 @@ class AuditApiTest extends AuditTestSupport {
     }
 
     @Test
+    void h3_tenantInexistenteResponde200UniformeSinRevelarExistencia() throws Exception {
+        UUID t = newTenant();
+        UUID doc = UUID.randomUUID();
+        grantAuditor(t, "aud1");
+        consume(recibida(t, doc));
+        ObjectNode unknown = (ObjectNode) json(dossier(t, "aud1", doc));
+        unknown.put("tenantId", UUID.randomUUID().toString());
+        JsonNode r = publicVerify(JSON.writeValueAsString(unknown));
+        assertFalse(r.get("valid").asBoolean());
+        assertFalse(r.get("signatureValid").asBoolean());
+    }
+
+    @Test
     void ac04_elTenantSaleDelJwtNuncaDelPathYNoSeFiltranExpedientesAjenos() throws Exception {
         UUID a = newTenant();
         UUID b = newTenant();

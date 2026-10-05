@@ -14,6 +14,13 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +42,12 @@ public class RenderService {
     private final DocumentConverter converter;
     private final PdfProcessor pdfProcessor;
     private final ImageProcessor imageProcessor;
+    private final Semaphore permits;
+    private final ExecutorService executor = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "render-worker");
+        t.setDaemon(true);
+        return t;
+    });
     private final Counter malwareCounter;
     private final Map<DocType, Counter> pageCounters = new EnumMap<>(DocType.class);
 
@@ -42,6 +55,7 @@ public class RenderService {
             DocxInspector docxInspector, DocumentConverter converter, PdfProcessor pdfProcessor,
             ImageProcessor imageProcessor, MeterRegistry meters) {
         this.limits = props.limits();
+        this.permits = new Semaphore(Math.max(1, limits.maxConcurrent()));
         this.scanner = scanner;
         this.validator = validator;
         this.docxInspector = docxInspector;
@@ -75,7 +89,7 @@ public class RenderService {
             Deadline deadline = new Deadline(limits.renderTimeout());
             ResultPackage pkg = new ResultPackage();
             try {
-                int pages = process(input, type, pkg, deadline);
+                int pages = processBounded(input, type, pkg, deadline);
                 pkg.finish();
                 pageCounters.get(type).increment(pages);
                 LOG.info("Render ok format={} pages={} ms={}", type.format(), pages,
@@ -87,6 +101,53 @@ public class RenderService {
             }
         } catch (IOException e) {
             throw RenderException.internal("Error de E/S durante el procesamiento.");
+        }
+    }
+
+    /** Concurrencia acotada y render en hilo propio con timeout que lo interrumpe (paginas patologicas). */
+    private int processBounded(Path input, DocType type, ResultPackage pkg, Deadline deadline)
+            throws IOException {
+        boolean acquired;
+        try {
+            acquired = permits.tryAcquire(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw RenderException.internal("Procesamiento interrumpido.");
+        }
+        if (!acquired) {
+            throw RenderException.busy();
+        }
+        Future<Integer> task;
+        try {
+            task = executor.submit(() -> {
+                try {
+                    return process(input, type, pkg, deadline);
+                } finally {
+                    permits.release();
+                }
+            });
+        } catch (RuntimeException e) {
+            permits.release();
+            throw e;
+        }
+        try {
+            return task.get(limits.renderTimeout().toMillis(), TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            task.cancel(true);
+            throw RenderException.limitExceeded("Se excedio el tiempo maximo de procesamiento.");
+        } catch (InterruptedException e) {
+            task.cancel(true);
+            Thread.currentThread().interrupt();
+            throw RenderException.internal("Procesamiento interrumpido.");
+        } catch (ExecutionException e) {
+            Throwable c = e.getCause();
+            if (c instanceof RuntimeException re) {
+                throw re;
+            }
+            if (c instanceof IOException io) {
+                throw io;
+            }
+            throw RenderException.internal("Error durante el procesamiento.");
         }
     }
 

@@ -46,10 +46,11 @@ public final class IdempotentEventConsumer {
                 // Portable (PostgreSQL y H2): sin ON CONFLICT.
                 int inserted;
                 try {
-                    inserted = jdbc.update("insert into processed_event (event_id) "
-                        + "select cast(? as uuid) where not exists "
-                        + "(select 1 from processed_event p where p.event_id = cast(? as uuid))",
-                        event.eventId(), event.eventId());
+                    inserted = jdbc.update("insert into processed_event (tenant_id, event_id) "
+                        + "select cast(? as uuid), cast(? as uuid) where not exists "
+                        + "(select 1 from processed_event p where p.tenant_id = cast(? as uuid) "
+                        + "and p.event_id = cast(? as uuid))",
+                        event.tenantId(), event.eventId(), event.tenantId(), event.eventId());
                 } catch (DuplicateKeyException race) {
                     // Insercion concurrente identica: la otra transaccion gano. Revierte esta (en PostgreSQL
                     // queda abortada) y se trata como ya procesado, sin escalar al error handler.

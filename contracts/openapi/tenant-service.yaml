@@ -66,7 +66,11 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
     delete:
-      summary: Inicia proceso de baja de un tenant
+      summary: Inicia proceso de baja de un tenant (requiere aprobacion de un segundo PLATFORM_ADMIN distinto)
+      description: >-
+        La primera llamada registra la solicitud y devuelve 202 sin cambiar el estado; la llamada de un segundo
+        PLATFORM_ADMIN distinto la aprueba y marca PENDING_DELETION. Los tokens deben venir del emisor de plataforma
+        y el subject debe figurar en platform_admin.
       operationId: deleteTenant
       security:
         - bearerAuth: []
@@ -309,6 +313,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RoleAssignmentResponse'
+        '202':
+          description: >-
+            Rol sensible (DATA_STEWARD, AUDITOR, OFICIAL_SEGURIDAD, COMPLIANCE, RIESGO_MODELO): solicitud registrada,
+            pendiente de que otro administrador distinto repita la asignacion para aprobarla (SoD). Un actor nunca
+            puede asignarse a si mismo estos roles (403).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [PENDING_APPROVAL]
+                  requestedBy:
+                    type: string
         '400':
           $ref: '#/components/responses/BadRequest'
         '403':

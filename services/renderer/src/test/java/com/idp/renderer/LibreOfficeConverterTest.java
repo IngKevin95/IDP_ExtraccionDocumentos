@@ -28,7 +28,7 @@ class LibreOfficeConverterTest {
         return new RendererProperties(
                 new RendererProperties.Clamav("127.0.0.1", 3310, Duration.ofSeconds(1), Duration.ofSeconds(1)),
                 new RendererProperties.Limits(50L * 1024 * 1024, 100, 256L * 1024 * 1024, 25_000_000L,
-                        Duration.ofSeconds(60)),
+                        Duration.ofSeconds(60), 2),
                 new RendererProperties.Libreoffice(binary, timeout),
                 new RendererProperties.Raster(72));
     }

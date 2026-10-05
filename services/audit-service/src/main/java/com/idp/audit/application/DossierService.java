@@ -9,13 +9,18 @@ import com.idp.audit.domain.Exceptions.ChainIntegrityException;
 import com.idp.audit.domain.Exceptions.NotFoundException;
 import com.idp.audit.domain.WormAnchor;
 import com.idp.audit.infrastructure.AuditRepository;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.idp.kms.Ed25519Verifier;
 import com.idp.kms.KeyService;
 import com.idp.tenant.TenantId;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -35,6 +40,11 @@ public class DossierService {
     /** Resultado de la verificacion publica de un expediente. */
     public record SignatureCheck(boolean valid, boolean signatureValid, boolean eventHashesValid) {}
 
+    private static final Map<Integer, byte[]> DECOY_KEYS = Map.of(1, new byte[32]);
+    private static final byte[] DECOY_SIGNATURE = new byte[64];
+
+    private final Cache<String, Optional<Map<Integer, byte[]>>> publicKeyCache = Caffeine.newBuilder()
+            .maximumSize(1_000).expireAfterWrite(Duration.ofMinutes(10)).build();
     private final AuditRepository repo;
     private final KeyService keys;
     private final Clock clock;
@@ -146,29 +156,57 @@ public class DossierService {
 
     /**
      * Verificacion publica: valida la firma ed25519 del expediente y recalcula el hash de cada evento con los
-     * campos exportados. No consulta datos del tenant; solo usa la llave de verificacion.
+     * campos exportados. Usa la llave publica cacheada (sin ir al KMS por llamada). El resultado no depende de
+     * que el tenant exista: hashes y firma se evaluan por separado y, ante tenant/llave inexistente, se hace el
+     * mismo trabajo criptografico con una llave senuelo, de modo que respuesta y costo sean uniformes.
      */
     public SignatureCheck verifySignature(JsonNode dossier) {
-        boolean signatureValid = false;
-        boolean hashesValid = false;
+        UUID tenantId;
         try {
-            UUID tenantId = UUID.fromString(dossier.path("tenantId").asText());
-            JsonNode sig = dossier.path("signature");
-            String signingKeyId = keyResolver.resolve(tenantId.toString()).auditKekId();
-            if (signingKeyId.equals(sig.path("keyId").asText())
-                    && WormAnchorService.SIGNATURE_ALGORITHM.equals(sig.path("algorithm").asText())) {
-                ObjectNode unsigned = dossier.deepCopy();
-                unsigned.remove("signature");
-                byte[] value = Base64.getDecoder().decode(sig.path("signatureValue").asText());
-                signatureValid = keys.verify(new TenantId(tenantId.toString()), CanonicalJson.bytes(unsigned),
-                        value, signingKeyId);
-            }
+            tenantId = UUID.fromString(dossier.path("tenantId").asText());
+        } catch (IllegalArgumentException e) {
+            return new SignatureCheck(false, false, false);
+        }
+        boolean hashesValid;
+        try {
             hashesValid = eventHashesValid(tenantId, dossier);
         } catch (RuntimeException e) {
-            // Expediente malformado o llave inexistente: no es valido.
-            return new SignatureCheck(false, signatureValid, hashesValid);
+            hashesValid = false;
+        }
+        boolean signatureValid;
+        try {
+            signatureValid = signatureValid(tenantId, dossier);
+        } catch (RuntimeException e) {
+            // Tenant o llave inexistente, o expediente malformado: no es valido, con el mismo costo.
+            decoyVerification(dossier);
+            signatureValid = false;
         }
         return new SignatureCheck(signatureValid && hashesValid, signatureValid, hashesValid);
+    }
+
+    private boolean signatureValid(UUID tenantId, JsonNode dossier) {
+        JsonNode sig = dossier.path("signature");
+        String signingKeyId = keyResolver.resolve(tenantId.toString()).auditKekId();
+        if (!signingKeyId.equals(sig.path("keyId").asText())
+                || !WormAnchorService.SIGNATURE_ALGORITHM.equals(sig.path("algorithm").asText())) {
+            decoyVerification(dossier);
+            return false;
+        }
+        ObjectNode unsigned = dossier.deepCopy();
+        unsigned.remove("signature");
+        byte[] value = Base64.getDecoder().decode(sig.path("signatureValue").asText());
+        byte[] data = CanonicalJson.bytes(unsigned);
+        TenantId tenant = new TenantId(tenantId.toString());
+        Optional<Map<Integer, byte[]>> pub = publicKeyCache.get(tenantId + "|" + signingKeyId,
+                k -> keys.publicKeys(tenant, signingKeyId));
+        if (pub.isPresent()) {
+            return Ed25519Verifier.verify(pub.get(), data, value);
+        }
+        return keys.verify(tenant, data, value, signingKeyId);
+    }
+
+    private static void decoyVerification(JsonNode dossier) {
+        Ed25519Verifier.verify(DECOY_KEYS, CanonicalJson.bytes(dossier), DECOY_SIGNATURE);
     }
 
     private static boolean eventHashesValid(UUID tenantId, JsonNode dossier) {

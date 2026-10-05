@@ -12,9 +12,13 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8180/realms/idp/protocol/openid-connect/certs}
-          issuer-uri: ${JWT_ISSUER_URI:}
+          # Obligatorio y sin default: el arranque falla si falta (A2).
+          issuer-uri: ${JWT_ISSUER_URI}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    security:
+      # mTLS (Strimzi KafkaUser): definir spring.kafka.ssl.bundle (SPRING_KAFKA_SSL_BUNDLE). PLAINTEXT solo con idp.security.dev-mode=true.
+      protocol: ${KAFKA_SECURITY_PROTOCOL:SSL}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -23,6 +27,11 @@ server:
   port: 8081
 
 idp:
+  security:
+    audience: ${JWT_AUDIENCE:tenant-service}
+    # Emisor de plataforma distinto del de tenants (A3); obligatorio.
+    platform-issuer: ${JWT_PLATFORM_ISSUER}
+    platform-jwk-set-uri: ${JWT_PLATFORM_JWK_SET_URI:}
   tenant:
     offboarding:
       grace-days: ${OFFBOARDING_GRACE_DAYS:30}

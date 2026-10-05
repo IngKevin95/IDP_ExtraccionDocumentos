@@ -53,6 +53,10 @@ public class RenderException extends RuntimeException {
         return new RenderException(500, "ERR_TIMEOUT", msg);
     }
 
+    public static RenderException busy() {
+        return new RenderException(503, "ERR_RENDERER_BUSY", "Servicio de renderizacion saturado; reintente.");
+    }
+
     public static RenderException scannerUnavailable() {
         return new RenderException(500, "ERR_SCANNER_UNAVAILABLE", "Servicio antivirus no disponible.");
     }

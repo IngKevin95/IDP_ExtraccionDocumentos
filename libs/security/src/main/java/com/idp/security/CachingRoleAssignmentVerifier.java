@@ -3,7 +3,9 @@ package com.idp.security;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * Revalida tenant y rol contra {@link RoleAssignmentSource} con cache local de TTL maximo 30 s
@@ -12,18 +14,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class CachingRoleAssignmentVerifier implements RoleAssignmentVerifier {
 
     public static final Duration DEFAULT_TTL = Duration.ofSeconds(30);
+    /** Tamano maximo de la cache; al llenarse Caffeine desaloja por frecuencia/recencia, sin vaciado global. */
     private static final int MAX_ENTRIES = 10_000;
 
     private record Key(String tenantId, String userId, String role) {
     }
 
-    private record Entry(boolean granted, long expiresAtMillis) {
-    }
-
     private final RoleAssignmentSource source;
     private final Clock clock;
-    private final long ttlMillis;
-    private final ConcurrentHashMap<Key, Entry> cache = new ConcurrentHashMap<>();
+    private final Cache<Key, Boolean> cache;
 
     public CachingRoleAssignmentVerifier(RoleAssignmentSource source) {
         this(source, Clock.systemUTC(), DEFAULT_TTL);
@@ -35,7 +34,11 @@ public final class CachingRoleAssignmentVerifier implements RoleAssignmentVerifi
         }
         this.source = Objects.requireNonNull(source);
         this.clock = Objects.requireNonNull(clock);
-        this.ttlMillis = ttl.toMillis();
+        this.cache = Caffeine.newBuilder()
+            .maximumSize(MAX_ENTRIES)
+            .expireAfterWrite(ttl)
+            .ticker(() -> TimeUnit.MILLISECONDS.toNanos(this.clock.millis()))
+            .build();
     }
 
     @Override
@@ -43,29 +46,16 @@ public final class CachingRoleAssignmentVerifier implements RoleAssignmentVerifi
         if (tenantId == null || userId == null || role == null) {
             return false;
         }
-        Key key = new Key(tenantId, userId, role);
-        long now = clock.millis();
-        Entry cached = cache.get(key);
-        if (cached != null && cached.expiresAtMillis() > now) {
-            return cached.granted();
-        }
-        boolean granted = source.hasRole(tenantId, userId, role);
-        if (cache.size() >= MAX_ENTRIES) {
-            cache.values().removeIf(e -> e.expiresAtMillis() <= now);
-            if (cache.size() >= MAX_ENTRIES) {
-                cache.clear();
-            }
-        }
-        cache.put(key, new Entry(granted, now + ttlMillis));
-        return granted;
+        return cache.get(new Key(tenantId, userId, role), k -> source.hasRole(tenantId, userId, role));
     }
 
     /** Purga todas las entradas del usuario en el tenant (evento acceso.revocado). */
     public void invalidateUser(String tenantId, String userId) {
-        cache.keySet().removeIf(k -> k.tenantId().equals(tenantId) && k.userId().equals(userId));
+        cache.asMap().keySet().removeIf(k -> k.tenantId().equals(tenantId) && k.userId().equals(userId));
     }
 
     public int size() {
-        return cache.size();
+        cache.cleanUp();
+        return (int) cache.estimatedSize();
     }
 }

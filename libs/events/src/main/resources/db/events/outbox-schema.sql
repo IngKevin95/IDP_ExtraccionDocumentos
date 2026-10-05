@@ -16,6 +16,8 @@ create table if not exists outbox (
 create index if not exists idx_outbox_pending on outbox (created_at, id) where status = 'PENDING';
 
 create table if not exists processed_event (
-    event_id     uuid primary key,
-    processed_at timestamptz not null default now()
+    tenant_id    uuid not null,
+    event_id     uuid not null,
+    processed_at timestamptz not null default now(),
+    primary key (tenant_id, event_id)
 );

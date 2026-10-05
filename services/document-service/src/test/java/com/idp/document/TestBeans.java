@@ -44,6 +44,12 @@ public class TestBeans {
 
     @Bean
     @Primary
+    MutableHoldGate testLegalHoldGate() {
+        return new MutableHoldGate();
+    }
+
+    @Bean
+    @Primary
     FakeRenderer testRenderer() {
         return new FakeRenderer();
     }
@@ -87,6 +93,33 @@ public class TestBeans {
 
         public byte[] raw(String tenantId, String path) {
             return data.get(tenantId + "/" + path);
+        }
+    }
+
+    /** Legal hold controlable por tests: por tenant completo o por documento. */
+    public static final class MutableHoldGate implements com.idp.tenant.context.LegalHoldGate {
+        private final Set<String> held = ConcurrentHashMap.newKeySet();
+
+        public void holdTenant(String tenant) {
+            held.add(tenant);
+        }
+
+        public void holdDocument(String tenant, java.util.UUID doc) {
+            held.add(tenant + "|" + doc);
+        }
+
+        public void clear() {
+            held.clear();
+        }
+
+        @Override
+        public boolean isHeld(String tenantId, java.util.UUID documentId) {
+            return held.contains(tenantId) || held.contains(tenantId + "|" + documentId);
+        }
+
+        @Override
+        public boolean anyHold(String tenantId) {
+            return held.stream().anyMatch(k -> k.equals(tenantId) || k.startsWith(tenantId + "|"));
         }
     }
 

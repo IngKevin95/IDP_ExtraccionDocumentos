@@ -3,6 +3,16 @@ server:
 spring:
   application:
     name: edge-gateway
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI}
+          # Obligatorio y sin default: el arranque falla si falta (A2).
+          issuer-uri: ${JWT_ISSUER_URI}
+idp:
+  security:
+    audience: ${JWT_AUDIENCE:edge-gateway}
 management:
   endpoints:
     web:

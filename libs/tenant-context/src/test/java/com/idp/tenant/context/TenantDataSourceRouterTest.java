@@ -124,4 +124,36 @@ class TenantDataSourceRouterTest {
         String s = new TenantConnection("jdbc:x", "usr", "secreta").toString();
         assertEquals("TenantConnection[jdbcUrl=jdbc:x, username=usr, password=***]", s);
     }
+
+    @Test
+    void h7_evictConConexionesActivasDrenaYCierraAlLiberarse() throws Exception {
+        java.util.concurrent.atomic.AtomicInteger active = new java.util.concurrent.atomic.AtomicInteger(2);
+        TenantDataSourceRouter router = new TenantDataSourceRouter(provider, 5, this::newPool, ds -> active.get());
+        DataSource a = router.poolFor("a");
+        router.evict("a");
+
+        verify((AutoCloseable) a, never()).close();
+        assertEquals(0, router.poolCount());
+        assertEquals(1, router.drainingCount());
+
+        router.reapDraining();
+        verify((AutoCloseable) a, never()).close();
+
+        active.set(0);
+        router.reapDraining();
+        verify((AutoCloseable) a).close();
+        assertEquals(0, router.drainingCount());
+        router.destroy();
+    }
+
+    @Test
+    void h7_drenadoVencidoFuerzaElCierre() throws Exception {
+        TenantDataSourceRouter router = new TenantDataSourceRouter(provider, 5, this::newPool, ds -> 3);
+        router.setDrainTimeout(java.time.Duration.ZERO);
+        DataSource a = router.poolFor("a");
+        router.evict("a");
+        router.reapDraining();
+        verify((AutoCloseable) a).close();
+        router.destroy();
+    }
 }

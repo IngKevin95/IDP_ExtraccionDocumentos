@@ -54,7 +54,7 @@ public class WormAnchorService {
                              com.idp.tenant.context.TenantKeyResolver keyResolver,
                              @Value("${idp.audit.worm.retention-days:3650}") long retentionDays,
                              @Value("${idp.audit.anchor.batch-size:1000}") int batchSize,
-                             @Value("${idp.audit.anchor.max-age-hours:24}") long maxAgeHours) {
+                             @Value("${idp.audit.anchor.max-age-hours:1}") long maxAgeHours) {
         this.repo = repo;
         this.store = store;
         this.keys = keys;

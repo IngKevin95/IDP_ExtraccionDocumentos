@@ -12,6 +12,9 @@ public final class Deadline {
     }
 
     public void check() {
+        if (Thread.currentThread().isInterrupted()) {
+            throw RenderException.limitExceeded("Se excedio el tiempo maximo de procesamiento.");
+        }
         if (System.nanoTime() - expiresAtNanos >= 0) {
             throw RenderException.limitExceeded("Se excedio el tiempo maximo de procesamiento.");
         }

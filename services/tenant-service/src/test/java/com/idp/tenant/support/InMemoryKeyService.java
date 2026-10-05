@@ -13,6 +13,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 /** KeyService en memoria para tests: firma HMAC-SHA256 por (tenant, keyId) y registro de KEK deshabilitadas. */
 public class InMemoryKeyService implements KeyService {
+    public volatile RuntimeException disableFailure;
     public final List<String> disabled = new CopyOnWriteArrayList<>();
     private final Map<String, byte[]> secrets = new ConcurrentHashMap<>();
 
@@ -48,6 +49,9 @@ public class InMemoryKeyService implements KeyService {
 
     @Override
     public void disableKek(TenantId t, String kekId) {
+        if (disableFailure != null) {
+            throw disableFailure;
+        }
         disabled.add(kekId);
     }
 }

@@ -23,6 +23,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /** OAuth2 Resource Server (JWT). El tenant del contexto sale del claim del token, nunca del path. */
 @Configuration
+@org.springframework.context.annotation.Import(com.idp.security.IdpJwtConfiguration.class)
 public class SecurityConfig {
 
     @Bean

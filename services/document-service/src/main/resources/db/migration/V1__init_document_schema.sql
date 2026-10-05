@@ -50,6 +50,8 @@ create table outbox (
 create index idx_outbox_pending on outbox (status, created_at, id);
 
 create table processed_event (
-    event_id     uuid primary key,
-    processed_at timestamp with time zone not null default now()
+    tenant_id    uuid not null,
+    event_id     uuid not null,
+    processed_at timestamp with time zone not null default now(),
+    primary key (tenant_id, event_id)
 );

@@ -37,6 +37,14 @@ public interface KeyService {
     boolean verify(TenantId tenantId, byte[] data, byte[] signature, String keyId);
     
     /**
+     * Llaves publicas ed25519 (32 bytes crudos) por version, para verificar firmas localmente sin llamar al
+     * proveedor. Vacio si el proveedor no las expone: el llamador cae a {@link #verify}.
+     */
+    default java.util.Optional<Map<Integer, byte[]>> publicKeys(TenantId tenantId, String keyId) {
+        return java.util.Optional.empty();
+    }
+
+    /**
      * Disable a KEK immediately and schedule it for deletion.
      */
     void disableKek(TenantId tenantId, String kekId);

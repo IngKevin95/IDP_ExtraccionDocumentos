@@ -85,6 +85,18 @@ public final class InMemoryKeyService implements KeyService {
         }
     }
 
+    @Override
+    public java.util.Optional<Map<Integer, byte[]>> publicKeys(TenantId tenantId, String keyId) {
+        String id = id(tenantId, keyId);
+        checkEnabled(id);
+        KeyPair kp = signingKeys.get(id);
+        if (kp == null) {
+            throw new KeyNotFoundException("Llave de firma inexistente: " + id);
+        }
+        byte[] encoded = kp.getPublic().getEncoded();
+        return java.util.Optional.of(Map.of(1, Arrays.copyOfRange(encoded, encoded.length - 32, encoded.length)));
+    }
+
     /** Deshabilita y destruye el material de la llave (crypto-shredding). */
     @Override
     public void disableKek(TenantId tenantId, String kekId) {

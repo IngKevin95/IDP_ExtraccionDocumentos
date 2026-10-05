@@ -1,7 +1,9 @@
 package com.idp.tenant.security;
 
 import com.idp.security.TenantAuthorizer;
+import com.idp.tenant.infrastructure.persistence.PlatformAdminRepository;
 import com.idp.tenant.infrastructure.persistence.TenantRepository;
+import org.springframework.beans.factory.annotation.Value;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +26,7 @@ import org.springframework.security.web.SecurityFilterChain;
  */
 @Configuration
 @EnableWebSecurity
+@org.springframework.context.annotation.Import(com.idp.security.IdpJwtConfiguration.class)
 public class SecurityConfig {
     public static final String PLATFORM_ADMIN = com.idp.security.Roles.PLATFORM_ADMIN;
 
@@ -34,7 +37,12 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, TenantAuthorizer authorizer,
-                                            TenantRepository tenants) throws Exception {
+                                            TenantRepository tenants, PlatformAdminRepository platformAdmins,
+                                            @Value("${idp.security.platform-issuer}") String platformIssuer)
+            throws Exception {
+        if (platformIssuer == null || platformIssuer.isBlank()) {
+            throw new IllegalStateException("idp.security.platform-issuer es obligatorio");
+        }
         http.csrf(c -> c.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
@@ -44,7 +52,10 @@ public class SecurityConfig {
                         .requestMatchers("/v1/tenant/**").authenticated()
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(jwtConverter())))
-                .addFilterAfter(new TenantRevalidationFilter(authorizer, tenants), BearerTokenAuthenticationFilter.class);
+                .addFilterAfter(new PlatformAdminFilter(platformAdmins, platformIssuer),
+                        BearerTokenAuthenticationFilter.class)
+                .addFilterAfter(new TenantRevalidationFilter(authorizer, tenants, platformIssuer),
+                        BearerTokenAuthenticationFilter.class);
         return http.build();
     }
 

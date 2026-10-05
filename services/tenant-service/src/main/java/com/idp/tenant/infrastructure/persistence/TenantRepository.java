@@ -25,7 +25,7 @@ public class TenantRepository {
 
     private static final RowMapper<TenantConfig> CONFIG = (rs, i) -> new TenantConfig(
             Db.uuid(rs, "tenant_id"), rs.getString("data_kek_id"), rs.getString("audit_kek_id"),
-            rs.getBoolean("legal_hold"), JsonSupport.readMap(rs.getString("settings_text")));
+            JsonSupport.readMap(rs.getString("settings_text")));
 
     private static final RowMapper<Plan> PLAN = (rs, i) -> new Plan(
             Db.uuid(rs, "id"), rs.getString("name"), JsonSupport.readMap(rs.getString("features_text")),
@@ -75,14 +75,14 @@ public class TenantRepository {
     }
 
     public void insertConfig(TenantConfig c) {
-        jdbc.sql("INSERT INTO tenant_config(tenant_id, data_kek_id, audit_kek_id, legal_hold, settings) "
-                        + "VALUES (:t, :d, :a, :l, CAST(:s AS JSONB))")
+        jdbc.sql("INSERT INTO tenant_config(tenant_id, data_kek_id, audit_kek_id, settings) "
+                        + "VALUES (:t, :d, :a, CAST(:s AS JSONB))")
                 .param("t", c.tenantId()).param("d", c.dataKekId()).param("a", c.auditKekId())
-                .param("l", c.legalHold()).param("s", JsonSupport.write(c.settings())).update();
+                .param("s", JsonSupport.write(c.settings())).update();
     }
 
     public Optional<TenantConfig> findConfig(UUID tenantId) {
-        return jdbc.sql("SELECT tenant_id, data_kek_id, audit_kek_id, legal_hold, "
+        return jdbc.sql("SELECT tenant_id, data_kek_id, audit_kek_id, "
                         + "CAST(settings AS VARCHAR) AS settings_text FROM tenant_config WHERE tenant_id = :t")
                 .param("t", tenantId).query(CONFIG).optional();
     }
@@ -95,11 +95,6 @@ public class TenantRepository {
     public void updateSettings(UUID tenantId, Map<String, Object> settings) {
         jdbc.sql("UPDATE tenant_config SET settings = CAST(:s AS JSONB) WHERE tenant_id = :t")
                 .param("s", JsonSupport.write(settings)).param("t", tenantId).update();
-    }
-
-    public void setLegalHold(UUID tenantId, boolean active) {
-        jdbc.sql("UPDATE tenant_config SET legal_hold = :l WHERE tenant_id = :t")
-                .param("l", active).param("t", tenantId).update();
     }
 
     public void insertSilo(UUID tenantId, String dbName, String bucketName, String openBaoRole) {

@@ -13,6 +13,7 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: http://localhost:0/jwks
+          issuer-uri: https://idp.test/tenants
   autoconfigure:
     exclude: org.springframework.boot.kafka.autoconfigure.KafkaAutoConfiguration
 
@@ -29,3 +30,4 @@ idp:
       retention-days: 3650
   security:
     dev-mode: true
+    audience: audit-service

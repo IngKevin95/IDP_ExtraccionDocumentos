@@ -102,6 +102,7 @@ public abstract class AuditTestSupport {
     }
 
     protected void grantAuditor(UUID tenant, String user) {
+        jdbc.sql("merge into tenants (id, status) key (id) values (:t, 'ACTIVE')").param("t", tenant).update();
         jdbc.sql("insert into role_assignment (id, tenant_id, user_id, role) values (:id, :t, :u, 'AUDITOR')")
                 .param("id", UUID.randomUUID()).param("t", tenant).param("u", user).update();
     }

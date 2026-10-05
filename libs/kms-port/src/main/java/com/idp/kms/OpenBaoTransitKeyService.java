@@ -108,6 +108,23 @@ public final class OpenBaoTransitKeyService implements KeyService {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
+    public java.util.Optional<Map<Integer, byte[]>> publicKeys(TenantId tenantId, String keyId) {
+        String name = checked(tenantId, keyId);
+        Object keys = data(call("GET", "/keys/" + name, null), "keys");
+        if (!(keys instanceof Map<?, ?> byVersion)) {
+            throw new KeyServiceUnavailableException("Respuesta inesperada del KMS");
+        }
+        Map<Integer, byte[]> out = new HashMap<>();
+        for (Map.Entry<?, ?> e : byVersion.entrySet()) {
+            if (e.getValue() instanceof Map<?, ?> v && v.get("public_key") instanceof String pk) {
+                out.put(Integer.parseInt(e.getKey().toString()), Base64.getDecoder().decode(pk));
+            }
+        }
+        return out.isEmpty() ? java.util.Optional.empty() : java.util.Optional.of(Map.copyOf(out));
+    }
+
+    @Override
     public void disableKek(TenantId tenantId, String kekId) {
         String name = keyName(tenantId, kekId);
         disabled.add(name);
