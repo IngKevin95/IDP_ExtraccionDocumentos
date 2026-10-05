@@ -1,8 +1,66 @@
-server:
-  port: 8080
 spring:
   application:
     name: audit-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:control_db}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:postgres}
+  flyway:
+    enabled: true
+    # La base de control es compartida: historial propio para no chocar con otros servicios.
+    table: flyway_audit_history
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration/common,classpath:db/migration/{vendor}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8180/realms/idp/protocol/openid-connect/certs}
+          issuer-uri: ${JWT_ISSUER_URI:}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${AUDIT_CONSUMER_GROUP:audit-service}
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+server:
+  port: 8088
+
+idp:
+  audit:
+    # Todos los topicos de dominio mas el de seguridad (consumer group propio, reintento bloqueante).
+    topics: ${AUDIT_TOPICS:dominio.documentos,auditoria.eventos}
+    alerts-topic: auditoria.eventos
+    signing-key-id: ${AUDIT_SIGNING_KEY_ID:audit-signing}
+    anchor:
+      job-enabled: ${AUDIT_ANCHOR_JOB_ENABLED:true}
+      interval-ms: 60000
+      batch-size: 1000
+      max-age-hours: 24
+    worm:
+      retention-days: ${AUDIT_WORM_RETENTION_DAYS:3650}
+      bucket: ${AUDIT_WORM_BUCKET:}
+      endpoint: ${AUDIT_WORM_ENDPOINT:}
+      region: ${AUDIT_WORM_REGION:us-east-1}
+      access-key: ${AUDIT_WORM_ACCESS_KEY:}
+      secret-key: ${AUDIT_WORM_SECRET_KEY:}
+      path-style: ${AUDIT_WORM_PATH_STYLE:true}
+    kms:
+      openbao:
+        address: ${OPENBAO_ADDR:}
+        token: ${OPENBAO_TOKEN:}
+        transit-mount: ${OPENBAO_TRANSIT_MOUNT:transit}
+    revalidation:
+      cache-ttl-seconds: 30
+
 management:
   endpoints:
     web:
