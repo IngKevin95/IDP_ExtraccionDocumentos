@@ -31,3 +31,10 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "chore(deps)"
+    # Los mayores de provider aws (6), EKS (21) y VPC (6) se acoplan entre sí y exigen reescribir
+    # el módulo; se migran juntos en F8 validando con `tofu validate`.
+    ignore:
+      - dependency-name: "hashicorp/aws"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "terraform-aws-modules/*"
+        update-types: ["version-update:semver-major"]
