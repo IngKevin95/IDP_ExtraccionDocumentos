@@ -38,6 +38,10 @@ class AuditKafkaIntegrationTest extends AuditTestSupport {
         r.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
         r.add("spring.autoconfigure.exclude", () -> "");
         r.add("spring.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
+        // El application.yml de test sombrea al de main: sin esto el grupo nuevo arranca en `latest` y pierde
+        // los eventos publicados antes de que se le asignen particiones.
+        r.add("spring.kafka.consumer.auto-offset-reset", () -> "earliest");
+        r.add("spring.kafka.consumer.enable-auto-commit", () -> "false");
     }
 
     @Autowired KafkaTemplate<String, String> kafka;
