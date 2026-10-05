@@ -3,6 +3,40 @@ server:
 spring:
   application:
     name: quality-service
+  datasource:
+    # Base de control compartida, esquema propio "quality" (processed_event y tablas qa_* no chocan con otros servicios).
+    url: ${IDP_CONTROL_DB_URL:jdbc:postgresql://localhost:5432/idp_control?currentSchema=quality,public}
+    # Sin credenciales por defecto: el arranque falla si faltan.
+    username: ${IDP_CONTROL_DB_USER}
+    password: ${IDP_CONTROL_DB_PASSWORD}
+  flyway:
+    enabled: true
+    schemas: quality
+    create-schemas: true
+    table: flyway_quality_history
+    locations: classpath:db/migration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${IDP_JWK_SET_URI:http://localhost:8180/realms/idp/protocol/openid-connect/certs}
+          # Obligatorio y sin default: el arranque falla si falta (A2).
+          issuer-uri: ${IDP_JWT_ISSUER_URI}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    security:
+      # mTLS (Strimzi KafkaUser): definir spring.kafka.ssl.bundle (SPRING_KAFKA_SSL_BUNDLE). PLAINTEXT solo con idp.security.dev-mode=true.
+      protocol: ${KAFKA_SECURITY_PROTOCOL:SSL}
+    consumer:
+      group-id: quality-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 management:
   endpoints:
     web:
@@ -12,3 +46,34 @@ management:
     health:
       probes:
         enabled: true
+idp:
+  security:
+    audience: ${IDP_JWT_AUDIENCE:quality-service}
+    dev-mode: ${IDP_DEV_MODE:false}
+quality:
+  kafka:
+    topic: ${QUALITY_KAFKA_TOPIC:dominio.documentos}
+  # Par modelo+prompt vigente (evaluacion, umbrales y gate lo usan por defecto).
+  current-model-prompt: ${QUALITY_CURRENT_MODEL_PROMPT:}
+  blind-sampling:
+    rate: ${QUALITY_BLIND_RATE:0.02}
+    # Secreto: semilla del HMAC que decide que oficio se revisa a ciegas.
+    seed: ${QUALITY_BLIND_SEED:}
+  drift:
+    silent-error-max: 0.05
+    stp-drop-points: 10
+    baseline-days: 7
+    min-samples: 20
+  performance:
+    min-sample: 30
+  calibration:
+    target-auto: 0.98
+    target-revisar: 0.85
+    min-field-samples: 30
+  golden-set:
+    directory: ${QUALITY_GOLDEN_DIR:}
+  runner:
+    predictions-dir: ${QUALITY_PREDICTIONS_DIR:}
+  scheduler:
+    enabled: true
+    cron: "0 15 1 * * *"
