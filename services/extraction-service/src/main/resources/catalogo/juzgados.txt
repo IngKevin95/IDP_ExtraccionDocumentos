@@ -1,0 +1,22 @@
+# Catalogo base (sintetico, reducido) de despachos de la rama judicial. Un nombre por linea.
+Juzgado Civil Municipal
+Juzgado Civil del Circuito
+Juzgado Civil Municipal de Ejecucion de Sentencias
+Juzgado Civil del Circuito de Ejecucion de Sentencias
+Juzgado de Ejecucion Civil Municipal
+Juzgado de Ejecucion Civil del Circuito
+Juzgado Promiscuo Municipal
+Juzgado Promiscuo del Circuito
+Juzgado Promiscuo de Familia
+Juzgado de Familia
+Juzgado Laboral del Circuito
+Juzgado Penal Municipal
+Juzgado Penal del Circuito
+Juzgado Penal del Circuito Especializado
+Juzgado Penal Municipal con Funcion de Control de Garantias
+Juzgado de Ejecucion de Penas y Medidas de Seguridad
+Juzgado Administrativo
+Juzgado Administrativo del Circuito
+Juzgado de Pequenas Causas y Competencia Multiple
+Juzgado de Pequenas Causas Laborales
+Juzgado Municipal de Pequenas Causas y Competencia Multiple

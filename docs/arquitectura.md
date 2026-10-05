@@ -76,7 +76,7 @@ graph TD
 - **Responsabilidad:** Clasificación, extracción con LLM, validadores, calibración de score por campo, ruteo en cascada.
 - **Datos:** Base local temporal por lote.
 - **API:** Worker de eventos.
-- **Eventos:** Consume `extraccion.solicitada`. Publica `extraccion.completada`, `extraccion.requiere_revision`.
+- **Eventos:** Consume `extraccion.solicitada`. Publica `extraccion.completada`, `extraccion.requiere_revision`, `ia.ejecucion_registrada`.
 - **Privilegios:** Credenciales LLM.
 - **Escalado:** Horizontal según cuota y límites de concurrencia por tenant hacia el LLM.
 - **Controles SEC:** SEC-031, SEC-032, SEC-033, SEC-034, SEC-036, SEC-049, SEC-050.
@@ -163,6 +163,7 @@ Patrón claim-check estricto: cero PII en eventos Kafka. Se usan identificadores
 | `extraccion.solicitada` | Comando | `document-service` | `documentId`, `tenantId`, `versionId` |
 | `extraccion.completada` | Evento | `extraction-service` | `documentId`, `tenantId` |
 | `extraccion.requiere_revision`| Evento | `extraction-service` | `documentId`, `taskId`, `tenantId` |
+| `ia.ejecucion_registrada` | Evento | `extraction-service` | `documentId`, `modelVersion`, `promptVersion`, `configHash`, `signatureRef` (SEC-049) |
 | `revision.completada` | Evento | `review-service` | `documentId`, `taskId`, `action` |
 | `extraccion.aprobada` | Evento | `document-service` | `documentId`, `tenantId`, `finalScore` |
 | `seguridad.acceso_denegado` | Evento | (Cualquier servicio) | `tenantId`, `userId`, `recurso` |
@@ -195,6 +196,7 @@ Patrón claim-check estricto: cero PII en eventos Kafka. Se usan identificadores
 |---|---|---|---|---|---|---|
 | `dominio.documentos` | Pipeline | `documentId` | 12 | 7 días | `document-service`, `extraction-service`, `review-service`, `tenant-service`, `notification-service`, `chat-service` | `document-service`, `extraction-service`, `review-service`, `notification-service`, `chat-service`, `quality-service`, `audit-service` |
 | `auditoria.eventos` | Auditoría | `tenantId` | 6 | 365 días | Todos (para eventos exclusivos de seguridad) | `audit-service` |
+| `idp.tenant.events` | Control de tenant | `tenantId` | 3 | 7 días | `tenant-service` (outbox) | `document-service`, `audit-service`, `extraction-service`, `tenant-service` (grupos efímeros `<app>-acceso-revocado-*` y `<app>-pool-evict-*`, `auto.offset.reset=latest`; eventos `acceso.revocado`, `tenant.baja_iniciada`, `tenant.credenciales_rotadas`) |
 
 El `audit-service` consume todos los tópicos de dominio con su propio consumer group independiente. Los eventos exclusivos de seguridad van al tópico `auditoria.eventos`. El orden de la cadena de hash (hash-chain) está determinado por el orden de ingesta en el `audit-service` y es serializado por tenant en su base de datos, no depende del orden de llegada o retención en Kafka. Al ingerir cada evento, `audit-service` asigna el número de secuencia de la cadena por tenant; esa secuencia (no el offset de Kafka) es la que entra al hash y se firma.
 
@@ -259,7 +261,7 @@ sequenceDiagram
 ## 8. Máquina de Estados de Documentos
 
 Los estados canónicos definidos en el producto:
-`RECIBIDO` -> `RENDERIZADO` -> `EN_EXTRACCION` -> `EN_REVISION` -> `APROBADO` (o `RECHAZADO` / `FALLIDO`).
+`RECIBIDO` -> `RENDERIZADO` -> `EN_EXTRACCION` -> `EN_REVISION` -> `APROBADO` (o `RECHAZADO` / `FALLIDO`). Los documentos `ALTAMENTE_CONFIDENCIAL` pasan por `APROBADO_PENDIENTE_STEWARD` antes de `APROBADO`: el Data Steward (distinto de quien cargó) lo aprueba con `POST /v1/documents/{id}/approve-confidential`.
 
 ## 9. Puertos Java, Adaptadores y Cadena de Suministro
 

@@ -38,6 +38,15 @@ jobs:
       - name: Lint Helm Chart
         run: helm lint deploy/helm/idp
 
+      - name: Template all targets
+        run: |
+          for v in local aws gcp azure onprem; do
+            helm template idp-release deploy/helm/idp -f deploy/helm/idp/values-$v.yaml > /dev/null
+          done
+
+      - name: Forbid dev-mode outside values-local
+        run: bash tools/ci/check_dev_mode.sh
+
       - name: Dry-run Helm Install
         run: |
           helm template idp-release deploy/helm/idp -f deploy/helm/idp/values-local.yaml | kubectl apply --dry-run=server -f -

@@ -1,4 +1,9 @@
 global:
+  # Unico values con dev-mode (la CI falla si aparece en otro).
+  devMode: true
+  externalSecrets:
+    # Sin External Secrets Operator en kind: los Secret se crean a mano.
+    enabled: false
   adapters:
     storage: minio
     kms: openbao

@@ -19,6 +19,74 @@ global:
     maxReplicas: 5
     targetCPUUtilizationPercentage: 80
 
+  # dev-mode de seguridad: SOLO values-local.yaml puede ponerlo en true (lo verifica tools/ci/check_dev_mode.sh).
+  devMode: false
+
+  # Nombres de Secret y ExternalSecret (sincronizados desde OpenBao). Los valores sensibles nunca van en values.
+  externalSecrets:
+    enabled: true
+    storeName: openbao-store
+    refreshInterval: 1h
+
+  # Configuracion de plataforma consumida por templates/_workload.tpl (todo no sensible).
+  platform:
+    jwt:
+      issuerUri: https://keycloak.idp-platform.svc.cluster.local/realms/idp
+      jwkSetUri: https://keycloak.idp-platform.svc.cluster.local/realms/idp/protocol/openid-connect/certs
+      # Emisor de plataforma distinto del de tenants (tenant-service).
+      platformIssuerUri: https://keycloak.idp-platform.svc.cluster.local/realms/idp-platform
+      platformJwkSetUri: https://keycloak.idp-platform.svc.cluster.local/realms/idp-platform/protocol/openid-connect/certs
+    kafka:
+      # Listener TLS (9093) del cluster Strimzi; cada servicio monta el Secret de su KafkaUser.
+      bootstrapServers: idp-kafka-kafka-bootstrap.idp-platform.svc.cluster.local:9093
+    openbao:
+      address: https://openbao.idp-platform.svc.cluster.local:8200
+      # Secret (clave ca.crt) con la CA que firma el certificado de OpenBao.
+      caSecret: idp-openbao-ca
+    controlDb:
+      host: idp-pg-rw.idp-platform.svc.cluster.local
+      port: 5432
+      name: control_db
+      jdbcUrl: jdbc:postgresql://idp-pg-rw.idp-platform.svc.cluster.local:5432/control_db
+    tenantDb:
+      name: tenant_db
+      jdbcUrlTemplate: jdbc:postgresql://idp-pg-rw.idp-platform.svc.cluster.local:5432/tenant_{tenant}
+    storage:
+      endpoint: ""
+    worm:
+      bucket: idp-audit-worm
+      endpoint: ""
+    renderer:
+      url: https://renderer.idp.svc.cluster.local
+      # Secrets TLS (tls.crt, tls.key, ca.crt) emitidos por cert-manager para el mTLS documento -> renderer.
+      serverTlsSecret: idp-renderer-tls
+      clientTlsSecret: idp-renderer-client-tls
+    secrets:
+      controlDb:
+        name: idp-control-db-credentials
+        remoteKey: idp/control-db
+        properties: {username: username, password: password}
+      tenantDb:
+        name: idp-tenant-db-credentials
+        remoteKey: idp/tenant-db
+        properties: {username: username, password: password}
+      downloadSecret:
+        name: idp-download-secret
+        remoteKey: idp/document/download
+        properties: {secret: secret}
+      openbao:
+        name: idp-openbao-token
+        remoteKey: idp/openbao-client
+        properties: {token: token}
+      s3:
+        name: idp-s3-credentials
+        remoteKey: idp/s3
+        properties: {ACCESS_KEY_ID: access_key_id, SECRET_ACCESS_KEY: secret_access_key}
+      worm:
+        name: idp-worm-credentials
+        remoteKey: idp/audit-worm
+        properties: {ACCESS_KEY_ID: access_key_id, SECRET_ACCESS_KEY: secret_access_key}
+
 edgeGateway:
   enabled: true
   image:
@@ -73,6 +141,8 @@ extractionService:
 
 renderer:
   enabled: true
+  # mTLS con client-auth=need: sondas TCP (kubelet no presenta certificado de cliente).
+  tcpProbes: true
   image:
     repository: ghcr.io/ingkevin95/idp_extracciondocumentos/renderer
     tag: ""

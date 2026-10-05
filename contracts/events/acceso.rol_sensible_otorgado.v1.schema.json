@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/acceso.rol_sensible_otorgado/v1.json",
+  "title": "Acceso Rol Sensible Otorgado Event",
+  "description": "Evento de auditoria emitido al otorgar un rol de control (DATA_STEWARD, AUDITOR, OFICIAL_SEGURIDAD, COMPLIANCE, RIESGO_MODELO) tras la aprobacion de un administrador distinto del solicitante.",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "subjectId",
+    "role",
+    "requestedBy",
+    "approvedBy"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "acceso.rol_sensible_otorgado"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "subjectId": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "DATA_STEWARD",
+        "AUDITOR",
+        "OFICIAL_SEGURIDAD",
+        "COMPLIANCE",
+        "RIESGO_MODELO"
+      ]
+    },
+    "requestedBy": {
+      "type": "string"
+    },
+    "approvedBy": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

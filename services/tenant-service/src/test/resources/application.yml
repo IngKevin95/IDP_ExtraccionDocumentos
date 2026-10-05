@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:tenantdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=CREATE DOMAIN IF NOT EXISTS JSONB AS VARCHAR(100000)
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  flyway:
+    enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:0/jwks
+          issuer-uri: https://idp.test/tenants
+  autoconfigure:
+    exclude: org.springframework.boot.kafka.autoconfigure.KafkaAutoConfiguration
+
+idp:
+  tenant:
+    offboarding:
+      job-enabled: false
+    breakglass:
+      expiry-job-enabled: false
+  outbox:
+    relay-enabled: false
+  security:
+    dev-mode: true
+    audience: tenant-service
+    platform-issuer: https://idp.test/platform

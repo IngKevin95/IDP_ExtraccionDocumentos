@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Tenant Service API
-  description: API administrativa para gestión del ciclo de vida de Tenants (plataforma IDP).
+  description: API administrativa para gestión del ciclo de vida de Tenants, usuarios, roles y gobernanza (plataforma IDP).
   version: 1.0.0
 servers:
   - url: https://api.idp.example
@@ -29,26 +29,67 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '403':
           $ref: '#/components/responses/Forbidden'
+    get:
+      summary: Lista todos los tenants
+      operationId: listTenants
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de tenants registrados.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TenantResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
   /v1/admin/tenants/{id}:
+    get:
+      summary: Obtiene los detalles de un tenant por ID
+      operationId: getTenant
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+      responses:
+        '200':
+          description: Información del tenant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
     delete:
-      summary: Inicia proceso de baja de un tenant
+      summary: Inicia proceso de baja de un tenant (requiere aprobacion de un segundo PLATFORM_ADMIN distinto)
+      description: >-
+        La primera llamada registra la solicitud y devuelve 202 sin cambiar el estado; la llamada de un segundo
+        PLATFORM_ADMIN distinto la aprueba y marca PENDING_DELETION. Los tokens deben venir del emisor de plataforma
+        y el subject debe figurar en platform_admin.
       operationId: deleteTenant
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/TenantIdPath'
       responses:
         '202':
           description: Baja aceptada (marcado PENDING_DELETION).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: Conflicto - El tenant posee legal_hold activo.
+          $ref: '#/components/responses/Conflict'
+
   /v1/admin/tenants/{id}/config:
     put:
       summary: Actualiza configuración de plan y límites
@@ -56,12 +97,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/TenantIdPath'
       requestBody:
         required: true
         content:
@@ -71,8 +107,17 @@ paths:
       responses:
         '200':
           description: Configuración actualizada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+
   /v1/admin/tenants/{id}/legal-hold:
     post:
       summary: Aplica o libera retención legal
@@ -80,26 +125,231 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/TenantIdPath'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                active:
-                  type: boolean
-              required:
-                - active
+              $ref: '#/components/schemas/LegalHoldRequest'
       responses:
         '200':
           description: Retención legal actualizada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalHoldResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/admin/tenants/{id}/consumption:
+    post:
+      summary: Registra consumo de métricas para un tenant
+      operationId: recordConsumption
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsumptionRequest'
+      responses:
+        '202':
+          description: Registro de consumo aceptado.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/admin/tenants/{id}/break-glass:
+    post:
+      summary: Concede acceso de emergencia tipo Break-Glass
+      operationId: grantBreakGlass
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BreakGlassRequest'
+      responses:
+        '201':
+          description: Asignación de rol de emergencia creada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleAssignmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/admin/tenants/{id}/access-certifications:
+    post:
+      summary: Genera una certificación trimestral de accesos
+      operationId: generateAccessCertification
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CertificationRequest'
+      responses:
+        '201':
+          description: Certificación generada exitosamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CertificationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/admin/tenants/{id}/access-certifications/{certId}:
+    get:
+      summary: Obtiene una certificación de acceso por ID
+      operationId: getAccessCertification
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+        - name: certId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Certificación encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CertificationResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/admin/tenants/{id}/access-certifications/{certId}/verification:
+    get:
+      summary: Verifica la firma digital e integridad de una certificación
+      operationId: verifyAccessCertification
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+        - name: certId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Resultado de la verificación de firma.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/tenant/users:
+    get:
+      summary: Lista asignaciones de roles para el tenant actual (identificado por token JWT)
+      operationId: listTenantUsers
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de asignaciones de roles de usuario.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoleAssignmentResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      summary: Asigna un rol a un usuario dentro del tenant actual
+      operationId: assignTenantUserRole
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserAssignRequest'
+      responses:
+        '201':
+          description: Rol asignado exitosamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleAssignmentResponse'
+        '202':
+          description: >-
+            Rol sensible (DATA_STEWARD, AUDITOR, OFICIAL_SEGURIDAD, COMPLIANCE, RIESGO_MODELO): solicitud registrada,
+            pendiente de que otro administrador distinto repita la asignacion para aprobarla (SoD). Un actor nunca
+            puede asignarse a si mismo estos roles (403).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [PENDING_APPROVAL]
+                  requestedBy:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /v1/tenant/users/{userId}:
+    delete:
+      summary: Revoca todos los roles de un usuario dentro del tenant actual
+      operationId: revokeTenantUserRole
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Rol(es) revocado(s) exitosamente.
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -109,6 +359,16 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+  parameters:
+    TenantIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
   schemas:
     TenantCreateRequest:
       type: object
@@ -118,10 +378,12 @@ components:
       properties:
         name:
           type: string
+          maxLength: 255
           example: "Banco XYZ"
         planId:
           type: string
           format: uuid
+
     TenantConfigUpdateRequest:
       type: object
       required:
@@ -133,6 +395,7 @@ components:
         settings:
           type: object
           additionalProperties: true
+
     TenantResponse:
       type: object
       properties:
@@ -147,10 +410,195 @@ components:
         planId:
           type: string
           format: uuid
+
+    LegalHoldRequest:
+      type: object
+      required:
+        - active
+      properties:
+        active:
+          type: boolean
+        reasonCode:
+          type: string
+          nullable: true
+
+    LegalHoldResponse:
+      type: object
+      properties:
+        active:
+          type: boolean
+        holdId:
+          type: string
+          format: uuid
+          nullable: true
+
+    ConsumptionRequest:
+      type: object
+      required:
+        - metricName
+        - value
+      properties:
+        metricName:
+          type: string
+        value:
+          type: integer
+          format: int64
+          minimum: 1
+
+    BreakGlassRequest:
+      type: object
+      required:
+        - userId
+        - approvedBy
+        - ttlMinutes
+        - justification
+      properties:
+        userId:
+          type: string
+        approvedBy:
+          type: string
+        ttlMinutes:
+          type: integer
+          format: int64
+          minimum: 1
+        justification:
+          type: string
+          maxLength: 500
+
+    CertificationRequest:
+      type: object
+      required:
+        - year
+        - quarter
+      properties:
+        year:
+          type: integer
+        quarter:
+          type: integer
+
+    CertificationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        year:
+          type: integer
+        quarter:
+          type: integer
+        generatedAt:
+          type: string
+          format: date-time
+        generatedBy:
+          type: string
+        reportJson:
+          type: string
+        reportSha256:
+          type: string
+        signature:
+          type: string
+        keyId:
+          type: string
+
+    VerificationResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+
+    TenantRole:
+      type: string
+      enum:
+        - TENANT_ADMIN
+        - OPERADOR
+        - REVISOR
+        - DATA_STEWARD
+        - AUDITOR
+        - OFICIAL_SEGURIDAD
+        - COMPLIANCE
+        - RIESGO_MODELO
+        - BREAK_GLASS
+
+    UserAssignRequest:
+      type: object
+      required:
+        - userId
+        - role
+      properties:
+        userId:
+          type: string
+          maxLength: 255
+        role:
+          $ref: '#/components/schemas/TenantRole'
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    RoleAssignmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+        role:
+          type: string
+        grantedBy:
+          type: string
+        approvedBy:
+          type: string
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    ProblemDetail:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+
   responses:
     BadRequest:
       description: Petición inválida.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
     Forbidden:
-      description: Permisos insuficientes (requiere rol de plataforma).
+      description: Permisos insuficientes (requiere rol de plataforma o permisos adecuados).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
     NotFound:
-      description: Tenant no encontrado.
+      description: Recurso no encontrado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    Conflict:
+      description: Conflicto de estado (ej. legal hold activo impidiendo eliminación).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
