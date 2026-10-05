@@ -66,7 +66,7 @@ public class JdbcOutbox implements OutboxPublisher {
 
     public List<Pending> findPending(int limit) {
         return jdbc.sql("SELECT id, partition_key, CAST(payload AS VARCHAR) AS payload_text FROM outbox "
-                        + "WHERE published_at IS NULL ORDER BY created_at, id LIMIT :l")
+                        + "WHERE published_at IS NULL ORDER BY seq LIMIT :l")
                 .param("l", limit)
                 .query((rs, i) -> new Pending(rs.getObject("id", UUID.class), rs.getString("partition_key"),
                         rs.getString("payload_text")))

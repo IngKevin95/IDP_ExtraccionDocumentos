@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -65,5 +66,27 @@ class IdempotentEventConsumerTest {
             throw new IllegalStateException("db caida");
         }));
         assertNull(TenantContextHolder.getTenantId());
+    }
+
+    @Test
+    void insercionConcurrenteDuplicadaSeTrataComoYaProcesadoSinEscalar() {
+        EventEnvelope e = TestEvents.accesoRevocado(UUID.randomUUID());
+        when(jdbc.update(anyString(), any(Object[].class))).thenThrow(new DuplicateKeyException("uk processed_event"));
+        List<UUID> handled = new ArrayList<>();
+
+        assertEquals(IdempotentEventConsumer.Result.DUPLICATE,
+            consumer.consume(serde.toJson(e), ev -> handled.add(ev.eventId())));
+
+        assertEquals(0, handled.size());
+        assertNull(TenantContextHolder.getTenantId());
+    }
+
+    @Test
+    void duplicateKeyDelHandlerNoSeConfundeConDuplicado() {
+        EventEnvelope e = TestEvents.accesoRevocado(UUID.randomUUID());
+        when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
+        assertThrows(DuplicateKeyException.class, () -> consumer.consume(serde.toJson(e), ev -> {
+            throw new DuplicateKeyException("negocio");
+        }));
     }
 }

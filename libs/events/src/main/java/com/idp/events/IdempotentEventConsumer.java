@@ -2,6 +2,7 @@ package com.idp.events;
 
 import com.idp.tenant.context.TenantContextHolder;
 import java.util.function.Consumer;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -43,22 +44,40 @@ public final class IdempotentEventConsumer {
         try {
             return tx.execute(status -> {
                 // Portable (PostgreSQL y H2): sin ON CONFLICT.
-                int inserted = jdbc.update("insert into processed_event (event_id) "
-                    + "select cast(? as uuid) where not exists "
-                    + "(select 1 from processed_event p where p.event_id = cast(? as uuid))",
-                    event.eventId(), event.eventId());
+                int inserted;
+                try {
+                    inserted = jdbc.update("insert into processed_event (event_id) "
+                        + "select cast(? as uuid) where not exists "
+                        + "(select 1 from processed_event p where p.event_id = cast(? as uuid))",
+                        event.eventId(), event.eventId());
+                } catch (DuplicateKeyException race) {
+                    // Insercion concurrente identica: la otra transaccion gano. Revierte esta (en PostgreSQL
+                    // queda abortada) y se trata como ya procesado, sin escalar al error handler.
+                    throw new ConcurrentDuplicate(race);
+                }
                 if (inserted == 0) {
                     return Result.DUPLICATE;
                 }
                 handler.accept(event);
                 return Result.PROCESSED;
             });
+        } catch (ConcurrentDuplicate duplicate) {
+            return Result.DUPLICATE;
         } finally {
             if (previous == null) {
                 TenantContextHolder.clear();
             } else {
                 TenantContextHolder.setTenantId(previous);
             }
+        }
+    }
+
+    /** Senal interna para forzar rollback de la transaccion ante una carrera de unicidad. */
+    private static final class ConcurrentDuplicate extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
+        ConcurrentDuplicate(Throwable cause) {
+            super(cause);
         }
     }
 }

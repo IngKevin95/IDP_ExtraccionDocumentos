@@ -27,7 +27,7 @@ public class OutboxRepository {
     /** Bloquea hasta {@code limit} filas pendientes saltando las bloqueadas por otras instancias. */
     public List<OutboxRecord> lockPending(int limit) {
         return jdbc.query("select id, partition_key, event_type, tenant_id, payload, attempts from outbox "
-            + "where status = 'PENDING' order by created_at, id limit ? for update skip locked",
+            + "where status = 'PENDING' order by seq limit ? for update skip locked",
             (rs, i) -> new OutboxRecord(rs.getObject("id", UUID.class), rs.getString("partition_key"),
                 rs.getString("event_type"), rs.getObject("tenant_id", UUID.class), rs.getString("payload"),
                 rs.getInt("attempts")),
