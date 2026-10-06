@@ -86,6 +86,16 @@ global:
         name: idp-worm-credentials
         remoteKey: idp/audit-worm
         properties: {ACCESS_KEY_ID: access_key_id, SECRET_ACCESS_KEY: secret_access_key}
+      # Secreto de recortes firmados (>= 32 bytes) del review-service.
+      reviewCropSecret:
+        name: idp-review-crop-secret
+        remoteKey: idp/review/crop
+        properties: {secret: secret}
+      # Semilla (>= 32 bytes) del HMAC del muestreo ciego del quality-service.
+      qualityBlindSeed:
+        name: idp-quality-blind-seed
+        remoteKey: idp/quality/blind-seed
+        properties: {seed: seed}
       # Clave del proveedor LLM del chat-service (API compatible con OpenAI); solo hace falta si provider != none.
       llm:
         name: idp-llm-credentials

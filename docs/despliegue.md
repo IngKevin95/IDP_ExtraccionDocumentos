@@ -76,6 +76,7 @@ El flujo de despliegue se orquesta estrictamente mediante GitOps utilizando Argo
 Se asegura la neutralidad de la nube durante el ciclo CI/CD:
 *   Pruebas unitarias y de integración locales empleando LocalStack (AWS), Azurite (Azure) y fake-gcs-server (GCP).
 *   Instalación de Helm en `kind` durante el pipeline de CI para comprobar empaquetado.
+*   `tools/ci/check_helm_env.py` (job `kind-e2e`): extrae de cada `application.yml` los placeholders `${VAR}` sin default (fail-closed) y las variables con fail-fast conocido, renderiza el chart con todos los `values-*.yaml` y falla con `servicio X: falta VAR` si un Deployment no las inyecta, o si un `secretKeyRef`/volumen apunta a un Secret que ningun ExternalSecret, values o KafkaUser declara. `--self-test` muta el render (variable quitada, secret inexistente, servicio sin Deployment) y exige que el verificador falle. Local: `HELM_BIN=<ruta a helm> python tools/ci/check_helm_env.py` (requiere PyYAML). Un servicio nuevo o una variable nueva sin default exige cablearla en `deploy/helm/idp/templates/_workload.tpl`.
 *   Ejecución de pruebas Smoke en clústeres reales (AWS, GCP, Azure) aprovisionados bajo demanda con OpenTofu, destruidos tras finalizar su validación.
 
 ## 5. Topología y Red (Seguridad Perimetral e Interna)
