@@ -12,7 +12,10 @@ Argumento: dict "root" <contexto raiz> "key" <clave del servicio en values> "val
 {{- $env := list -}}
 {{- $vols := list -}}
 {{- $mounts := list -}}
-{{- $kafkaApps := list "tenant-service" "document-service" "extraction-service" "audit-service" -}}
+{{- $kafkaApps := list "tenant-service" "document-service" "extraction-service" "audit-service" "chat-service" "review-service" "quality-service" "notification-service" -}}
+{{- /* Servicios con tenant-context (silo por tenant): base de control, base de tenant y OpenBao con prefijo IDP_* */ -}}
+{{- $tenantApps := list "document-service" "chat-service" "review-service" "notification-service" -}}
+{{- $openbaoApps := list "tenant-service" "document-service" "extraction-service" "audit-service" "chat-service" "review-service" "notification-service" -}}
 {{- /* JWT: issuer y audience obligatorios (sin default en application.yml) */ -}}
 {{- if has $app (list "edge-gateway" "tenant-service" "audit-service") -}}
 {{- $env = append $env (dict "name" "JWT_JWK_SET_URI" "value" $p.jwt.jwkSetUri) -}}
@@ -23,14 +26,14 @@ Argumento: dict "root" <contexto raiz> "key" <clave del servicio en values> "val
 {{- $env = append $env (dict "name" "JWT_PLATFORM_ISSUER" "value" $p.jwt.platformIssuerUri) -}}
 {{- $env = append $env (dict "name" "JWT_PLATFORM_JWK_SET_URI" "value" $p.jwt.platformJwkSetUri) -}}
 {{- end -}}
-{{- if eq $app "document-service" -}}
+{{- if has $app (list "document-service" "chat-service" "review-service" "notification-service" "quality-service") -}}
 {{- $env = append $env (dict "name" "IDP_JWK_SET_URI" "value" $p.jwt.jwkSetUri) -}}
 {{- $env = append $env (dict "name" "IDP_JWT_ISSUER_URI" "value" $p.jwt.issuerUri) -}}
 {{- $env = append $env (dict "name" "IDP_JWT_AUDIENCE" "value" $app) -}}
 {{- end -}}
 {{- /* Kafka: mTLS con el Secret del KafkaUser de Strimzi (user.crt, user.key, ca.crt), nombrado como el servicio */ -}}
 {{- if has $app $kafkaApps -}}
-{{- $bootstrapVar := ternary "IDP_KAFKA_BOOTSTRAP" "KAFKA_BOOTSTRAP_SERVERS" (eq $app "document-service") -}}
+{{- $bootstrapVar := ternary "IDP_KAFKA_BOOTSTRAP" "KAFKA_BOOTSTRAP_SERVERS" (has $app $tenantApps) -}}
 {{- $env = append $env (dict "name" $bootstrapVar "value" $p.kafka.bootstrapServers) -}}
 {{- $env = append $env (dict "name" "KAFKA_SECURITY_PROTOCOL" "value" "SSL") -}}
 {{- $env = append $env (dict "name" "SPRING_KAFKA_SSL_BUNDLE" "value" "kafka") -}}
@@ -39,8 +42,10 @@ Argumento: dict "root" <contexto raiz> "key" <clave del servicio en values> "val
 {{- $env = append $env (dict "name" "SPRING_SSL_BUNDLE_PEM_KAFKA_TRUSTSTORE_CERTIFICATE" "value" "file:/etc/idp/kafka/ca.crt") -}}
 {{- $vols = append $vols (dict "name" "kafka-mtls" "secret" (dict "secretName" $app "defaultMode" 288)) -}}
 {{- $mounts = append $mounts (dict "name" "kafka-mtls" "mountPath" "/etc/idp/kafka" "readOnly" true) -}}
+{{- end -}}
 {{- /* OpenBao: direccion y CA (HTTPS obligatorio); el token sale de un Secret */ -}}
-{{- $prefix := get (dict "tenant-service" "IDP_OPENBAO" "document-service" "IDP_OPENBAO" "extraction-service" "EXTRACTION_OPENBAO" "audit-service" "IDP_AUDIT_KMS_OPENBAO") $app -}}
+{{- if has $app $openbaoApps -}}
+{{- $prefix := get (dict "tenant-service" "IDP_OPENBAO" "document-service" "IDP_OPENBAO" "extraction-service" "EXTRACTION_OPENBAO" "audit-service" "IDP_AUDIT_KMS_OPENBAO" "chat-service" "IDP_OPENBAO" "review-service" "IDP_OPENBAO" "notification-service" "IDP_OPENBAO") $app -}}
 {{- $addrVar := ternary "OPENBAO_ADDR" (printf "%s_ADDRESS" $prefix) (eq $app "audit-service") -}}
 {{- $tokenVar := ternary "OPENBAO_TOKEN" (printf "%s_TOKEN" $prefix) (has $app (list "audit-service" "extraction-service")) -}}
 {{- $env = append $env (dict "name" $addrVar "value" $p.openbao.address) -}}
@@ -51,11 +56,18 @@ Argumento: dict "root" <contexto raiz> "key" <clave del servicio en values> "val
 {{- $mounts = append $mounts (dict "name" "openbao-ca" "mountPath" "/etc/idp/openbao" "readOnly" true) -}}
 {{- end -}}
 {{- /* Base de control (directorio de tenants) */ -}}
-{{- if has $app (list "document-service" "extraction-service" "audit-service") -}}
+{{- if or (has $app $tenantApps) (has $app (list "extraction-service" "audit-service")) -}}
 {{- $cp := ternary "EXTRACTION_CONTROL" "IDP_CONTROL_DB" (eq $app "extraction-service") -}}
 {{- $env = append $env (dict "name" (printf "%s_URL" $cp) "value" $p.controlDb.jdbcUrl) -}}
 {{- $env = append $env (dict "name" (printf "%s_USERNAME" $cp) "valueFrom" (dict "secretKeyRef" (dict "name" $s.controlDb.name "key" "username"))) -}}
 {{- $env = append $env (dict "name" (printf "%s_PASSWORD" $cp) "valueFrom" (dict "secretKeyRef" (dict "name" $s.controlDb.name "key" "password"))) -}}
+{{- end -}}
+{{- /* quality-service: base de control compartida con esquema propio "quality"; credenciales IDP_CONTROL_DB_USER/PASSWORD */ -}}
+{{- if eq $app "quality-service" -}}
+{{- $env = append $env (dict "name" "IDP_CONTROL_DB_URL" "value" (printf "%s?currentSchema=quality,public" $p.controlDb.jdbcUrl)) -}}
+{{- $env = append $env (dict "name" "IDP_CONTROL_DB_USER" "valueFrom" (dict "secretKeyRef" (dict "name" $s.controlDb.name "key" "username"))) -}}
+{{- $env = append $env (dict "name" "IDP_CONTROL_DB_PASSWORD" "valueFrom" (dict "secretKeyRef" (dict "name" $s.controlDb.name "key" "password"))) -}}
+{{- $env = append $env (dict "name" "QUALITY_BLIND_SEED" "valueFrom" (dict "secretKeyRef" (dict "name" $s.qualityBlindSeed.name "key" "seed"))) -}}
 {{- end -}}
 {{- /* Datasource propio: tenant-service (tenant_db) y audit-service (control_db, rol sin UPDATE/DELETE) */ -}}
 {{- if has $app (list "tenant-service" "audit-service") -}}
@@ -73,10 +85,16 @@ Argumento: dict "root" <contexto raiz> "key" <clave del servicio en values> "val
 {{- $env = append $env (dict "name" "AUDIT_WORM_ACCESS_KEY" "valueFrom" (dict "secretKeyRef" (dict "name" $s.worm.name "key" "ACCESS_KEY_ID"))) -}}
 {{- $env = append $env (dict "name" "AUDIT_WORM_SECRET_KEY" "valueFrom" (dict "secretKeyRef" (dict "name" $s.worm.name "key" "SECRET_ACCESS_KEY"))) -}}
 {{- end -}}
-{{- if eq $app "document-service" -}}
+{{- if has $app $tenantApps -}}
 {{- $env = append $env (dict "name" "IDP_TENANT_DB_URL" "value" $p.tenantDb.jdbcUrlTemplate) -}}
 {{- $env = append $env (dict "name" "IDP_TENANT_DB_USER" "valueFrom" (dict "secretKeyRef" (dict "name" $s.tenantDb.name "key" "username"))) -}}
 {{- $env = append $env (dict "name" "IDP_TENANT_DB_PASSWORD" "valueFrom" (dict "secretKeyRef" (dict "name" $s.tenantDb.name "key" "password"))) -}}
+{{- end -}}
+{{- if eq $app "review-service" -}}
+{{- $env = append $env (dict "name" "IDP_PUBLIC_BASE_URL" "value" (printf "https://%s" $g.domain)) -}}
+{{- $env = append $env (dict "name" "IDP_REVIEW_CROP_SECRET" "valueFrom" (dict "secretKeyRef" (dict "name" $s.reviewCropSecret.name "key" "secret"))) -}}
+{{- end -}}
+{{- if eq $app "document-service" -}}
 {{- $env = append $env (dict "name" "IDP_DOWNLOAD_SECRET" "valueFrom" (dict "secretKeyRef" (dict "name" $s.downloadSecret.name "key" "secret"))) -}}
 {{- $env = append $env (dict "name" "IDP_PUBLIC_BASE_URL" "value" (printf "https://%s" $g.domain)) -}}
 {{- $env = append $env (dict "name" "IDP_RENDERER_URL" "value" $p.renderer.url) -}}
@@ -87,7 +105,7 @@ Argumento: dict "root" <contexto raiz> "key" <clave del servicio en values> "val
 {{- $vols = append $vols (dict "name" "renderer-client-tls" "secret" (dict "secretName" $p.renderer.clientTlsSecret "defaultMode" 288)) -}}
 {{- $mounts = append $mounts (dict "name" "renderer-client-tls" "mountPath" "/etc/idp/renderer-client" "readOnly" true) -}}
 {{- end -}}
-{{- if has $app (list "document-service" "extraction-service") -}}
+{{- if has $app (list "document-service" "extraction-service" "chat-service" "review-service") -}}
 {{- $isExtraction := eq $app "extraction-service" -}}
 {{- $env = append $env (dict "name" (ternary "EXTRACTION_STORAGE_ENDPOINT" "IDP_STORAGE_ENDPOINT" $isExtraction) "value" $p.storage.endpoint) -}}
 {{- $env = append $env (dict "name" (ternary "EXTRACTION_S3_ACCESS_KEY" "IDP_STORAGE_ACCESS_KEY" $isExtraction) "valueFrom" (dict "secretKeyRef" (dict "name" $s.s3.name "key" "ACCESS_KEY_ID"))) -}}
