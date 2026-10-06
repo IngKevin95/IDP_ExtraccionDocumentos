@@ -128,9 +128,9 @@ class NotificationPostgresKafkaIntegrationTest extends AbstractIntegrationTest {
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps())) {
             producer.send(new ProducerRecord<>("document.events", "bad", bad)).get();
         }
-        try (KafkaConsumer<String, String> c = consumer("it-dlt-" + UUID.randomUUID())) {
-            c.subscribe(Pattern.compile("(?i)documentos\\.eventos[.-]dlt"));
-            boolean found = false;
+          try (KafkaConsumer<String, String> c = consumer("it-dlt-" + UUID.randomUUID())) {
+              c.subscribe(Pattern.compile("(?i)document\\.events[.-]dlt"));
+              boolean found = false;
             long deadline = System.currentTimeMillis() + 40_000;
             while (!found && System.currentTimeMillis() < deadline) {
                 for (ConsumerRecord<String, String> rec : c.poll(Duration.ofMillis(500))) {
