@@ -106,7 +106,7 @@ final class OficioPdfWriter {
     /** Fija el ID del trailer a partir del id del oficio: PDFBox lo generaria con la hora actual. */
     static void fijarIdentificador(PDDocument d, String clave) {
         try {
-            byte[] h = MessageDigest.getInstance("MD5").digest(
+            byte[] h = MessageDigest.getInstance("SHA-256").digest(
                 clave.getBytes(StandardCharsets.UTF_8));
             COSArray ids = new COSArray();
             ids.add(new COSString(h));
