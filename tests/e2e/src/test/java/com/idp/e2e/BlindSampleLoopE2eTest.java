@@ -1,5 +1,6 @@
 package com.idp.e2e;
 
+import static com.idp.e2e.E2eEnvironment.ADMIN_D;
 import static com.idp.e2e.E2eEnvironment.REVISOR_D;
 import static com.idp.e2e.E2eEnvironment.STEWARD_D;
 import static com.idp.e2e.E2eEnvironment.TENANT_D;
@@ -159,7 +160,10 @@ class BlindSampleLoopE2eTest {
         await().atMost(TIMEOUT).pollInterval(Duration.ofMillis(250)).untilAsserted(() -> {
             Resp r = review("GET", "/v1/review/tasks/" + sampleId, REVISOR_D, null);
             assertThat(r.status()).isEqualTo(200);
-            assertThat(r.body().path("blindSample").asBoolean()).isTrue();
+            // Ceguera: el REVISOR no recibe el flag; solo el rol de gestion lo ve (hardening F5).
+            assertThat(r.body().path("blindSample").asBoolean()).isFalse();
+            assertThat(review("GET", "/v1/review/tasks/" + sampleId, ADMIN_D, null).body().path("blindSample")
+                .asBoolean()).isTrue();
             assertThat(r.body().path("status").asText()).isEqualTo("PENDING");
             assertThat(r.body().path("documentId").asText()).isEqualTo(documentId.toString());
         });
