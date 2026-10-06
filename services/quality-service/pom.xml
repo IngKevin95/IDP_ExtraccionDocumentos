@@ -7,6 +7,10 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>quality-service</artifactId>
+    <properties>
+        <!-- Hay dos clases main (la aplicacion y el CLI del gate de CI): Jib no puede elegir solo. -->
+        <jib.container.mainClass>com.idp.quality.QualityApplication</jib.container.mainClass>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
