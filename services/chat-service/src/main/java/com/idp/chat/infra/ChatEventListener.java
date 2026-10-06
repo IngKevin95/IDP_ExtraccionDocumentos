@@ -1,6 +1,7 @@
 package com.idp.chat.infra;
 
 import com.idp.chat.infra.ChunkRepository.NewChunk;
+import com.idp.chat.service.DocumentPurgeService;
 import com.idp.chat.service.IndexDocumentService;
 import com.idp.events.EventEnvelope;
 import com.idp.events.EventOriginGuard;
@@ -20,7 +21,8 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
 /**
- * Consume document.events y procesa solo extraccion.aprobada (indexacion RAG, AC-01). Valida el topico de origen
+ * Consume document.events y procesa solo extraccion.aprobada (indexacion RAG, AC-01) y documento.purgado (purga de
+ * fragmentos, embeddings, mensajes, citas y cache del documento, SEC-022). Valida el topico de origen
  * (SEC-052), el JSON Schema y los UUID; lo que no cumple el contrato va al DLT por el error handler de Kafka. El tenant
  * del evento fija el silo (TenantContextHolder) y el consumo es idempotente (processed_event + estado de indexacion).
  * La lectura del almacen y los embeddings se hacen fuera de la transaccion; esta solo guarda el resultado.
@@ -30,15 +32,18 @@ public class ChatEventListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(ChatEventListener.class);
     static final String HANDLED = "extraccion.aprobada";
+    static final String PURGED = "documento.purgado";
 
     private final IdempotentEventConsumer consumer;
     private final IndexDocumentService indexer;
     private final EventSerde serde;
     private final EventSchemaValidator validator;
     private final EventOriginGuard guard;
+    private final DocumentPurgeService purger;
 
     public ChatEventListener(IdempotentEventConsumer consumer, IndexDocumentService indexer, EventSerde serde,
-                             EventSchemaValidator validator, EventOriginGuard guard) {
+                             EventSchemaValidator validator, EventOriginGuard guard, DocumentPurgeService purger) {
+        this.purger = purger;
         this.consumer = consumer;
         this.indexer = indexer;
         this.serde = serde;
@@ -46,11 +51,12 @@ public class ChatEventListener {
         this.guard = guard;
     }
 
-    @KafkaListener(topics = "${idp.chat.topics:#{T(com.idp.events.EventTopology).defaults().topicsFor('extraccion.aprobada')}}",
+    @KafkaListener(topics = "${idp.chat.topics:#{T(com.idp.events.EventTopology).defaults().topicsFor('extraccion.aprobada', 'documento.purgado')}}",
             groupId = "chat-service")
     public void onMessage(String json, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic) {
         String type = eventType(json);
-        if (!HANDLED.equals(type) || !guard.accepts(topic, type)) {
+        boolean approved = HANDLED.equals(type);
+        if (!(approved || PURGED.equals(type)) || !guard.accepts(topic, type)) {
             return;
         }
         EventEnvelope event = serde.fromJson(json);
@@ -59,6 +65,13 @@ public class ChatEventListener {
         String previous = TenantContextHolder.getTenantId();
         TenantContextHolder.setTenantId(event.tenantId().toString());
         try {
+            if (!approved) {
+                // Purga (SEC-022): sin lectura de almacen ni embeddings; todo ocurre en la transaccion idempotente.
+                if (consumer.consume(json, e -> purger.purge(documentId)) == IdempotentEventConsumer.Result.DUPLICATE) {
+                    LOG.debug("Purga duplicada ignorada");
+                }
+                return;
+            }
             Optional<List<NewChunk>> prepared = indexer.prepare(event.tenantId(), documentId);
             if (prepared.isEmpty()) {
                 return;

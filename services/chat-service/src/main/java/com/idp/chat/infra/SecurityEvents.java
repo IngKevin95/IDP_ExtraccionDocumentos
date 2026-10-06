@@ -52,13 +52,17 @@ public class SecurityEvents {
     }
 
     /** seguridad.prompt_injection_detectado (SEC-033). */
-    public void isolatedPromptInjection(UUID tenantId, UUID correlationId, UUID documentId, UUID sessionId) {
+    public void isolatedPromptInjection(UUID tenantId, UUID correlationId, UUID documentId, UUID sessionId,
+                                        String ruleId) {
         isolated("prompt_injection", () -> {
             ObjectNode p = MAPPER.createObjectNode();
             p.put("documentId", documentId.toString());
             p.put("source", "CHAT");
             if (sessionId != null) {
                 p.put("sessionId", sessionId.toString());
+            }
+            if (ruleId != null) {
+                p.put("ruleId", ruleId);
             }
             emit("seguridad.prompt_injection_detectado", tenantId, correlationId, p);
         });
@@ -71,6 +75,27 @@ public class SecurityEvents {
         p.put("sessionId", sessionId.toString());
         p.put("reasonCode", reasonCode);
         emit("chat.respuesta_bloqueada", tenantId, correlationId, p);
+    }
+
+    /** chat.respuesta_emitida (ANSWERED/ABSTAINED): version de modelo, prompt y configuracion, solo huellas y UUID. */
+    public void responseEmitted(UUID tenantId, UUID correlationId, UUID sessionId, UUID messageId, String outcome,
+                                ChatRepository.AnswerMeta meta) {
+        ObjectNode p = MAPPER.createObjectNode();
+        p.put("sessionId", sessionId.toString());
+        p.put("messageId", messageId.toString());
+        p.put("outcome", outcome);
+        if (meta.model() != null) {
+            p.put("model", meta.model());
+        }
+        p.put("promptVersion", meta.promptVersion());
+        p.put("configHash", meta.configHash());
+        if (meta.tokensIn() != null) {
+            p.put("tokensIn", meta.tokensIn());
+        }
+        if (meta.tokensOut() != null) {
+            p.put("tokensOut", meta.tokensOut());
+        }
+        emit("chat.respuesta_emitida", tenantId, correlationId, p);
     }
 
     public void servedFromCache(UUID tenantId, UUID correlationId, UUID sessionId, UUID originalMessageId) {

@@ -88,7 +88,7 @@ class ChatSecurityIntegrationTest extends AbstractChatIntegrationTest {
     // ---- AC-05 / SEC-004 ------------------------------------------------------------------------------------
 
     @Test
-    void ac05_otroUsuarioDelMismoTenantRecibe403ConSenalYSinTocarLaSesion() throws Exception {
+    void ac05_otroUsuarioDelMismoTenantRecibe404UniformeConSenalYSinTocarLaSesion() throws Exception {
         operator("ana");
         operator("beto");
         UUID s = session("ana", indexedDocument(DOC));
@@ -96,8 +96,13 @@ class ChatSecurityIntegrationTest extends AbstractChatIntegrationTest {
 
         MvcResult r = ask("beto", s, "Cual es el monto embargado");
 
-        assertThat(status(r)).isEqualTo(403);
-        assertThat(body(r).path("code").asText()).isEqualTo("CHAT_FORBIDDEN");
+        // 404 uniforme: indistinguible de una sesion inexistente (no revela que la sesion existe); se audita igual.
+        assertThat(status(r)).isEqualTo(404);
+        assertThat(body(r).path("code").asText()).isEqualTo("CHAT_NOT_FOUND");
+        MvcResult missing = ask("beto", UUID.randomUUID(), "Cual es el monto embargado");
+        assertThat(status(missing)).isEqualTo(404);
+        assertThat(body(missing).path("code").asText()).isEqualTo(body(r).path("code").asText());
+        assertThat(body(missing).path("message").asText()).isEqualTo(body(r).path("message").asText());
         assertThat(llm.calls()).isEqualTo(llmCalls);
         assertThat(count("select count(*) from chat_message where session_id = ?", s)).isZero();
         List<JsonNode> denied = outbox("seguridad.acceso_denegado");
@@ -139,8 +144,8 @@ class ChatSecurityIntegrationTest extends AbstractChatIntegrationTest {
         assertThat(second.path("content").asText()).isEqualTo(first.path("content").asText());
         assertThat(second.path("citations")).isEqualTo(first.path("citations"));
         assertThat(second.path("id").asText()).isNotEqualTo(first.path("id").asText());
-        // Se embebe solo la pregunta actual: no se recalcula el historial.
-        assertThat(embeddings.texts() - textsBase).isEqualTo(2);
+        // Embedding cacheado por hash de la pregunta normalizada: la repeticion no vuelve a pagar al proveedor.
+        assertThat(embeddings.texts() - textsBase).isEqualTo(1);
         List<JsonNode> cache = outbox("chat.respuesta_desde_cache");
         assertThat(cache).hasSize(1);
         assertThat(cache.get(0).path("originalMessageId").asText()).isEqualTo(first.path("id").asText());

@@ -36,9 +36,12 @@ public class IndexDocumentService {
     private final SecurityEvents events;
     private final ChatProperties props;
     private final TextChunker chunker;
+    private final ContentCipher cipher;
 
     public IndexDocumentService(TextLayerSource textLayer, EmbeddingProvider embeddings, ChunkRepository chunks,
-                                DocumentAccessChecker access, SecurityEvents events, ChatProperties props) {
+                                DocumentAccessChecker access, SecurityEvents events, ChatProperties props,
+                                ContentCipher cipher) {
+        this.cipher = cipher;
         this.textLayer = textLayer;
         this.embeddings = embeddings;
         this.chunks = chunks;
@@ -91,7 +94,11 @@ public class IndexDocumentService {
                     throw new IllegalStateException("Dimension de embedding " + v.length + " distinta de la "
                             + "configurada " + props.embeddingDimension());
                 }
-                out.add(new NewChunk(UUID.randomUUID(), from + i, slice.get(i).pageNumber(), slice.get(i).content(), v));
+                // SEC-018: el texto del oficio se cifra con el sobre del tenant antes de llegar a la base.
+                UUID chunkId = UUID.randomUUID();
+                byte[] enc = cipher.encrypt(tenant, documentId, chunkId, ContentCipher.FIELD_CHUNK,
+                        slice.get(i).content());
+                out.add(new NewChunk(chunkId, from + i, slice.get(i).pageNumber(), enc, v));
             }
         }
         return Optional.of(out);

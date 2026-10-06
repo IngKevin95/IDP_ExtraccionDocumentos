@@ -60,3 +60,4 @@ eventTypes:
   seguridad.prompt_injection_detectado: { topic: audit.signals, producers: [extraction-service, chat-service], key: tenantId }
   chat.respuesta_bloqueada: { topic: audit.signals, producers: [chat-service], key: tenantId }
   chat.respuesta_desde_cache: { topic: audit.signals, producers: [chat-service], key: tenantId }
+  chat.respuesta_emitida: { topic: audit.signals, producers: [chat-service], key: tenantId }

@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/chat.respuesta_emitida/v1.json",
+  "title": "Chat Respuesta Emitida Event",
+  "description": "Senal de auditoria por cada respuesta del chat documental con resultado ANSWERED o ABSTAINED. Solo UUID, huellas y versiones: nunca el contenido de la pregunta, la respuesta ni el documento (SEC-050). Trazabilidad de modelo, prompt y configuracion (SEC-049, SEC-036).",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "sessionId",
+    "messageId",
+    "outcome",
+    "promptVersion",
+    "configHash"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "chat.respuesta_emitida"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sessionId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "messageId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "ANSWERED",
+        "ABSTAINED"
+      ]
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Version del modelo que respondio; ausente si no hubo llamada al LLM (abstencion sin fragmentos)."
+    },
+    "promptVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "configHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 de la configuracion efectiva (topK, umbrales, modelos)."
+    },
+    "tokensIn": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "tokensOut": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false
+}

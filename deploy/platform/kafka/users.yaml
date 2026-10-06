@@ -208,8 +208,10 @@ metadata:
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
-  # Emite senales de seguridad/chat en audit.signals; consume extraccion.aprobada (document.events) para indexar
-  # el documento aprobado y los eventos de tenant (revocacion de acceso, desalojo de pools).
+  # Emite senales de seguridad/chat en audit.signals (seguridad.*, chat.respuesta_bloqueada / _desde_cache /
+  # _emitida; el Write sobre el topico cubre los tres chat.*); consume extraccion.aprobada y documento.purgado
+  # (document.events: indexar el documento aprobado y purgar sus fragmentos, mensajes y cache, SEC-022) y los
+  # eventos de tenant (revocacion de acceso, desalojo de pools).
 spec:
   authentication:
     type: tls

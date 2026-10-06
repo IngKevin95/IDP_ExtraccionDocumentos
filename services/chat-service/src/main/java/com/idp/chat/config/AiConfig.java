@@ -1,5 +1,6 @@
 package com.idp.chat.config;
 
+import com.idp.chat.infra.ResilientLlm;
 import com.idp.chat.infra.SpringAiProviders;
 import com.idp.llm.EmbeddingProvider;
 import com.idp.llm.LlmProvider;
@@ -18,6 +19,14 @@ public class AiConfig {
     @Bean
     LlmProvider llmProvider(ObjectProvider<ChatModel> model) {
         return new SpringAiProviders.Llm(model);
+    }
+
+    /** LLM acotado: timeout real, bulkhead por tenant y failover al modelo secundario si esta configurado. */
+    @Bean(destroyMethod = "close")
+    ResilientLlm resilientLlm(LlmProvider primary, ObjectProvider<ChatModel> model, ChatProperties props) {
+        String fallback = props.llm().fallbackModel();
+        LlmProvider secondary = fallback.isBlank() ? null : new SpringAiProviders.Llm(model, fallback);
+        return new ResilientLlm(primary, secondary, props.llm());
     }
 
     @Bean
