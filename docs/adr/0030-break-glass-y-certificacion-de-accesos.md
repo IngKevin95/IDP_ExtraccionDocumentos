@@ -1,4 +1,4 @@
-# 0026. Break-glass y certificación de accesos
+# 0030. Break-glass y certificación de accesos
 
 Estado: Aceptada
 Fecha: 2026-09-29

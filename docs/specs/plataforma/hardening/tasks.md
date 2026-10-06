@@ -1,0 +1,10 @@
+- [x] Redactar ADR-0030 (Break-glass y certificación de accesos).
+- [x] Redactar ADR-0031 (Tópicos segregados por productor).
+- [x] Actualizar JSON Schemas de eventos para versión V2 de bajas (`contracts/events`).
+- [ ] Modificar `EventTopology.java` y `Topics.java` para utilizar tópicos segregados (`extraction.events`, `review.events`, etc.).
+- [ ] Ajustar Productores y Consumidores en todos los servicios para usar los nuevos tópicos.
+- [ ] Implementar soporte de Break-glass en `libs/security` con alertas críticas.
+- [ ] Implementar índice único por hash en `tenant-service` (flyway migration + backend) para deduplicación sin oráculo.
+- [ ] Implementar bloqueo atómico (Legal Hold) en DB para el shredding de llaves.
+- [ ] Crear escenario Gatling para 100 RPS en `tests/carga`.
+- [ ] Añadir job DAST (ZAP) en `.github/workflows/ci.yml`.

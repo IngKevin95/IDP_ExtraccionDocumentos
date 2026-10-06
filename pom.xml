@@ -26,6 +26,7 @@
         <module>libs</module>
         <module>services</module>
         <module>tests/e2e</module>
+        <module>tests/carga</module>
         <module>tools/synthetic-oficios</module>
     </modules>
 
