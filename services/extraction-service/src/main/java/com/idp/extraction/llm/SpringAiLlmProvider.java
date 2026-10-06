@@ -39,15 +39,16 @@ public final class SpringAiLlmProvider implements LlmProvider {
             ? new Prompt(message)
             : new Prompt(message, ChatOptions.builder().model(modelOverride).build());
         ChatResponse response = chatModel.call(prompt);
-        if (response == null || response.getResult() == null) {
+        var result = response == null ? null : response.getResult();
+        if (result == null) {
             throw new IllegalStateException("Respuesta vacia del proveedor LLM");
         }
         var usage = response.getMetadata().getUsage();
         int in = usage == null || usage.getPromptTokens() == null ? 0 : usage.getPromptTokens();
         int out = usage == null || usage.getCompletionTokens() == null ? 0 : usage.getCompletionTokens();
         String model = response.getMetadata().getModel();
-        String finish = response.getResult().getMetadata() == null ? null : response.getResult().getMetadata().getFinishReason();
-        return new LlmResponse(response.getResult().getOutput().getText(), model, finish, new LlmResponse.Usage(in, out));
+        String finish = result.getMetadata() == null ? null : result.getMetadata().getFinishReason();
+        return new LlmResponse(result.getOutput().getText(), model, finish, new LlmResponse.Usage(in, out));
     }
 
     private static Media toMedia(Resource image) {

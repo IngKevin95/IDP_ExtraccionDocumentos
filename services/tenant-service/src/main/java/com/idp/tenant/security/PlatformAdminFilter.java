@@ -38,7 +38,8 @@ public class PlatformAdminFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
             return;
         }
-        String issuer = jwt.getToken().getIssuer() == null ? null : jwt.getToken().getIssuer().toString();
+        var tokenIssuer = jwt.getToken().getIssuer();
+        String issuer = tokenIssuer == null ? null : tokenIssuer.toString();
         if (!platformIssuer.equals(issuer) || !admins.isActive(jwt.getName())) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.setContentType("application/problem+json");
