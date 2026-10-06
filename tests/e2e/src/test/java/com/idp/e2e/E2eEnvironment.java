@@ -69,6 +69,8 @@ final class E2eEnvironment {
     /** Quien cargo el documento: tiene rol REVISOR pero no puede hacer la revision ciega. */
     static final String UPLOADER_D = "operador-d";
     static final String STEWARD_D = "steward-d";
+    /** Rol de gestion: unico que ve el flag blindSample de la tarea (el REVISOR no debe saber que es ciega). */
+    static final String ADMIN_D = "admin-d";
     static final String QUALITY_URL = "jdbc:h2:mem:e2e_quality;MODE=PostgreSQL;DB_CLOSE_DELAY=-1";
     static final String OPERATOR_A = "operador-a";
     static final String OPERATOR_B = "operador-b";
@@ -144,6 +146,7 @@ final class E2eEnvironment {
             grant(c, TENANT_A, AUDITOR_A, com.idp.security.Roles.AUDITOR);
             grant(c, TENANT_D, REVISOR_D, com.idp.security.Roles.REVISOR);
             grant(c, TENANT_D, UPLOADER_D, com.idp.security.Roles.REVISOR);
+            grant(c, TENANT_D, ADMIN_D, com.idp.security.Roles.TENANT_ADMIN);
         }
         try (Connection c = DriverManager.getConnection(QUALITY_URL, "sa", "")) {
             // Migraciones de quality-service por nombre: Flyway sobre classpath:db/migration colisiona con las de
