@@ -151,7 +151,7 @@ graph TD
 
 Patrón claim-check estricto: cero PII en eventos Kafka. Se usan identificadores y metadatos (SEC-050). Todo userId y recurso en eventos son identificadores opacos (sin PII).
 
-Cada eventType pertenece a un único tópico y a un productor (o a una familia de productores solo en `audit.events`); la asignación vive en `contracts/events/topology.yaml` (fuente única, empaquetada por `libs/events` como `EventTopology`) y se explica en §5 y en el ADR 0029.
+Cada eventType pertenece a un único tópico y a un productor (o a una familia de productores solo en `audit.signals` y `audit.control`); la asignación vive en `contracts/events/topology.yaml` (fuente única, empaquetada por `libs/events` como `EventTopology`) y se explica en §5 y en el ADR 0031.
 
 | Nombre de Evento | Tipo | Tópico | Productor | Payload Claim-Check |
 |---|---|---|---|---|
@@ -163,36 +163,36 @@ Cada eventType pertenece a un único tópico y a un productor (o a una familia d
 | `documento.rechazado` | Evento | `document.events` | `document-service` | `documentId`, `tenantId`, `motivo` |
 | `documento.purgado` | Evento | `document.events` | `document-service` | `documentId`, `tenantId` |
 | `extraccion.solicitada` | Comando | `document.events` | `document-service` | `documentId`, `tenantId`, `versionId` |
-| `extraccion.completada` | Evento | `extraction.events` | `extraction-service` | `documentId`, `tenantId` |
+| `extraccion.completada` | Evento | `extraction.events` | `extraction-service` | `documentId`, `tenantId`, `routing` (`AUTO`; sin él `document-service` no auto-aprueba) |
 | `extraccion.requiere_revision`| Evento | `extraction.events` | `extraction-service` (consumidores: `document-service`, `review-service`) | `documentId`, `taskId`, `tenantId` |
 | `ia.ejecucion_registrada` | Evento | `extraction.events` | `extraction-service` | `documentId`, `modelVersion`, `promptVersion`, `configHash`, `signatureRef` (SEC-049) |
 | `revision.completada` | Evento | `review.events` | `review-service` | `documentId`, `taskId`, `action` (opcionales: `typology`, `blindSample`, `correctedFields[]` solo nombre y tipo) |
 | `calidad.muestra_ciega_solicitada` | Evento | `quality.events` | `quality-service` (consumidor: `review-service`) | `documentId`, `tenantId`, `typology`, `sampleId` |
 | `revision.escalada` | Evento | `review.events` | `review-service` (consumidor: `notification-service`) | `documentId`, `taskId`, `level`, `slaBreachedAt` |
 | `extraccion.aprobada` | Evento | `document.events` | `document-service` | `documentId`, `tenantId`, `finalScore` |
-| `seguridad.acceso_denegado` | Evento | `audit.events` | cualquier servicio con Write en `audit.events` | `tenantId`, `userId`, `recurso` |
-| `seguridad.prompt_injection_detectado`| Evento| `audit.events` | `extraction-service`, `chat-service` | `documentId`, `tenantId` |
+| `seguridad.acceso_denegado` | Evento | `audit.signals` | cualquier servicio con Write en `audit.signals` | `tenantId`, `userId`, `recurso` |
+| `seguridad.prompt_injection_detectado`| Evento| `audit.signals` | `extraction-service`, `chat-service` | `documentId`, `tenantId` |
 | `acceso.revocado` | Evento | `idp.tenant.events` | `tenant-service` | `userId`, `tenantId` |
 | `breakglass.otorgado` | Evento | `idp.tenant.events` | `tenant-service` | `userId`, `approverId` |
 | `breakglass.expirado` | Evento | `idp.tenant.events` | `tenant-service` | `userId` |
 | `acceso.rol_sensible_otorgado` | Evento | `idp.tenant.events` | `tenant-service` | `subjectId`, `role`, `requestedBy`, `approvedBy` |
-| `auditoria.alerta_integridad` | Evento | `audit.events` | `audit-service` | `tenantId`, datos de la alerta sin PII |
-| `legalhold.aplicado` | Evento | `audit.events` | `tenant-service`, `audit-service` | `documentId` / `tenantId` |
-| `legalhold.liberado` | Evento | `audit.events` | `tenant-service`, `audit-service` | `documentId` / `tenantId` |
+| `auditoria.alerta_integridad` | Evento | `audit.control` | `audit-service` | `tenantId`, datos de la alerta sin PII |
+| `legalhold.aplicado` | Evento | `audit.control` | `tenant-service`, `audit-service` | `documentId` / `tenantId` |
+| `legalhold.liberado` | Evento | `audit.control` | `tenant-service`, `audit-service` | `documentId` / `tenantId` |
 | `webhook.entregado` | Evento | `notification.events` | `notification-service` | `webhookId`, `documentId` |
 | `webhook.fallido` | Evento | `notification.events` | `notification-service` | `webhookId`, `documentId`, `motivo` |
-| `chat.respuesta_bloqueada` | Evento | `audit.events` | `chat-service` | `sessionId`, `tenantId` |
-| `chat.respuesta_desde_cache`| Evento | `audit.events` | `chat-service` | `sessionId`, `tenantId` |
-| `consumo.registrado` | Evento | `audit.events` | `tenant-service` (cuotas), `extraction-service` (tokens y documentos extraídos) | `tenantId`, `metricName`, `value` |
+| `chat.respuesta_bloqueada` | Evento | `audit.signals` | `chat-service` | `sessionId`, `tenantId` |
+| `chat.respuesta_desde_cache`| Evento | `audit.signals` | `chat-service` | `sessionId`, `tenantId` |
+| `consumo.registrado` | Evento | `audit.control` | `tenant-service` (cuotas), `extraction-service` (tokens y documentos extraídos) | `tenantId`, `metricName`, `value` |
 | `cuota.umbral_alcanzado` | Evento | `idp.tenant.events` | `tenant-service` | `tenantId`, `porcentaje` |
 
 ## 5. Topología Kafka y Patrón Outbox
 
 - **Infraestructura:** Kafka en modo KRaft (sin Zookeeper).
-- **Tópicos y Particiones:** Tópicos globales (sin tópicos ni credenciales por tenant), uno por productor o familia de productores (ADR 0029). Clave `documentId` en los tópicos del pipeline y `tenantId` en auditoría y tenant. La asignación `eventType -> tópico -> productor -> clave` vive en `contracts/events/topology.yaml` (`EventTopology` en `libs/events`).
-- **Tópico de Auditoría:** `audit.events` usa clave `tenantId`. Su consumidor implementa reintento BLOQUEANTE (sin `@RetryableTopic`) para no romper el orden de la hash-chain, disparando alerta en caso de fallo.
+- **Tópicos y Particiones:** Tópicos globales (sin tópicos ni credenciales por tenant), uno por productor o familia de productores (ADR 0031). Clave `documentId` en los tópicos del pipeline y `tenantId` en auditoría y tenant. La asignación `eventType -> tópico -> productor -> clave` vive en `contracts/events/topology.yaml` (`EventTopology` en `libs/events`).
+- **Tópicos de Auditoría:** `audit.signals` (señales `seguridad.*` y `chat.*`, multi-productor) y `audit.control` (`legalhold.*`, `consumo.registrado`, `auditoria.alerta_integridad`, con productores explícitos por eventType) usan clave `tenantId`. Estado y control nunca comparten tópico con las señales abiertas: un servicio con `Write` en `audit.signals` solo puede falsear señales, no el dossier probatorio. Su consumidor (`audit-service`, ambos tópicos con `EventOriginGuard`) implementa reintento BLOQUEANTE (sin `@RetryableTopic`) solo ante errores de infraestructura o de integridad de la cadena, para no romper el orden de la hash-chain; los errores atribuibles al contenido (fuera de contrato, tenant inexistente en el directorio, restricción de BD violada por el mensaje) se descartan con alerta CRITICAL y sin payload (SEC-053).
 - **Seguridad (ACL):** Acceso estricto por `KafkaUser` de Strimzi. Cada servicio tiene `Write` SOLO sobre los tópicos de los eventTypes que produce (más los `*-dlt` de los tópicos que consume) y `Read` sobre los que consume; `renderer` y `edge-gateway` no tienen usuario. Así, ningún servicio puede suplantar a otro productor (p. ej. emitir `revision.completada` o `calidad.muestra_ciega_solicitada`). `tools/ci/check_kafka_topics.py` lo valida en CI contra la topología.
-- **Validación de origen (SEC-052):** cada consumidor comprueba que el `eventType` llegó POR el tópico que `EventTopology` le asigna (`EventOriginGuard`, topic del `ConsumerRecord`); si no, ignora el evento, incrementa `idp.events.origin.rejected` y registra una alerta `SECURITY` sin payload. Aplica a document, extraction, review, quality, notification, audit y a los listeners de `libs/security` (`acceso.revocado`, `tenant.baja_iniciada`).
+- **Validación de origen (SEC-052):** cada consumidor comprueba que el `eventType` llegó POR el tópico que `EventTopology` le asigna (`EventOriginGuard`, topic del `ConsumerRecord`); si no, ignora el evento, incrementa `idp.events.origin.rejected` y registra una alerta `SECURITY` sin payload. Aplica a document, extraction, review, quality, notification, audit y a los listeners de `libs/security` (`acceso.revocado`, `tenant.baja_iniciada`). El log se limita a 1 por minuto por (tópico, eventType) y el contador es exacto; `deploy/platform/prometheus-rules-eventos.yaml` alerta con `increase(idp_events_origin_rejected_total[5m]) > 0`. Además, el consumidor no confía solo en el origen: `document-service` auto-aprueba solo con `routing=AUTO` y una extracción solicitada por él, y aprueba una revisión solo con una solicitud registrada y un revisor distinto del cargador; `review-service` acepta una muestra ciega solo si, en su silo, el documento está `APROBADO` por `AUTO_STP`, no es `ALTAMENTE_CONFIDENCIAL` y el tenant está activo.
 - **Productores:** el relay del outbox de cada servicio publica cada evento en el tópico que dicta `EventTopology` (por eventType, no un tópico fijo por servicio) y encolar o publicar un eventType que el servicio no produce falla de forma explícita.
 - **Producción (Outbox):** Se usa una tabla `outbox` en la base de datos de cada tenant (excepción: `quality-service` no tiene silo y usa un `outbox` propio en la base de control; ADR 0028). Un proceso relay por servicio recorre las bases de datos de los tenants con `FOR UPDATE SKIP LOCKED`. Los tenants se reparten por hash entre las réplicas usando ShedLock. Se implementa Debezium diferido.
 - **Consumo:** Idempotencia en cada consumidor.
@@ -208,12 +208,13 @@ Cada eventType pertenece a un único tópico y a un productor (o a una familia d
 | `quality.events` | Pipeline | `documentId` | 3 | 7 días | `quality-service` | `review-service` (`calidad.muestra_ciega_solicitada`), `audit-service` |
 | `notification.events` | Pipeline | `documentId` | 6 | 7 días | `notification-service` | `audit-service` |
 | `idp.tenant.events` | Control de tenant | `tenantId` | 3 | 7 días | `tenant-service` (outbox) | `audit-service`; `document-service`, `extraction-service`, `review-service`, `quality-service`, `notification-service` (grupos efímeros `<app>-acceso-revocado-*` y `<app>-pool-evict-*`, `auto.offset.reset=latest`; eventos `acceso.revocado`, `tenant.baja_iniciada`, `tenant.credenciales_rotadas`) |
-| `audit.events` | Auditoría (señales) | `tenantId` | 6 | 365 días | Excepción documentada: varios productores, solo para señales de seguridad y metering (`seguridad.*`, `chat.*`, `consumo.registrado`, `legalhold.*`, `auditoria.alerta_integridad`); cada servicio solo escribe los eventTypes de la topología | `audit-service` |
+| `audit.signals` | Auditoría (señales) | `tenantId` | 6 | 365 días | Excepción documentada: varios productores, solo señales de seguridad y chat (`seguridad.*`, `chat.*`); nunca estado ni control; cada servicio solo escribe los eventTypes de la topología | `audit-service` |
+| `audit.control` | Auditoría (control) | `tenantId` | 6 | 365 días | `tenant-service` (`legalhold.*`, `consumo.registrado`), `audit-service` (`legalhold.*`, `auditoria.alerta_integridad`), `extraction-service` (`consumo.registrado`); productores explícitos por eventType | `audit-service` |
 | `document.events-dlt`, `extraction.events-dlt`, `review.events-dlt`, `quality.events-dlt` | Dead letter | original | = tópico origen | 14 días | Los consumidores de ese tópico (`DeadLetterPublishingRecoverer`, misma partición que el original) | Operación (sin consumidores de pipeline) |
 
-`audit.events` es la única excepción a "un tópico, un productor": sus eventos son señales que `audit-service` ingiere en la cadena de hash pero NO estado autoritativo; ningún servicio actúa sobre ellos como si lo fueran. Los DLT no son tópicos de eventos de dominio: no admiten reproducción hacia el pipeline sin pasar por la validación de origen del consumidor.
+`audit.signals` y `audit.control` son las únicas excepciones a "un tópico, un productor". Las señales son multi-productor abiertas pero no estado autoritativo (ningún servicio actúa sobre ellas); el control tiene productores explícitos por eventType y se separa de las señales para que un servicio comprometido con `Write` en `audit.signals` no pueda contaminar el dossier probatorio. CI (`check_kafka_topics.py`, regla R04) falla si un tópico multi-productor abierto contiene eventTypes de estado o de control. Los DLT no son tópicos de eventos de dominio: el replay desde un DLT solo se hace con identidad de operación auditada y revalidando el productor del eventType (ADR 0031).
 
-El `audit-service` consume todos los tópicos de la topología con su propio consumer group independiente (también valida el tópico de origen de cada evento). Los eventos exclusivos de seguridad van al tópico `audit.events`. El orden de la cadena de hash (hash-chain) está determinado por el orden de ingesta en el `audit-service` y es serializado por tenant en su base de datos, no depende del orden de llegada o retención en Kafka. Al ingerir cada evento, `audit-service` asigna el número de secuencia de la cadena por tenant; esa secuencia (no el offset de Kafka) es la que entra al hash y se firma.
+El `audit-service` consume todos los tópicos de la topología con su propio consumer group independiente (también valida el tópico de origen de cada evento). Las señales de seguridad van a `audit.signals` y los eventos de control a `audit.control`. Antes de abrir o extender la cadena de un tenant, `audit-service` valida el `tenantId` contra el directorio de tenants de la plataforma (SEC-053). El orden de la cadena de hash (hash-chain) está determinado por el orden de ingesta en el `audit-service` y es serializado por tenant en su base de datos, no depende del orden de llegada o retención en Kafka. Al ingerir cada evento, `audit-service` asigna el número de secuencia de la cadena por tenant; esa secuencia (no el offset de Kafka) es la que entra al hash y se firma.
 
 ## 6. Modelo de Datos y Silos
 

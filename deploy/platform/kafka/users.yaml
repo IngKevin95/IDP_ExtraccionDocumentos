@@ -1,4 +1,4 @@
-# Write exclusivo por productor (ADR 0029, SEC-052): cada KafkaUser escribe SOLO los topicos de los eventTypes que
+# Write exclusivo por productor (ADR 0031, SEC-052): cada KafkaUser escribe SOLO los topicos de los eventTypes que
 # produce segun contracts/events/topology.yaml (mas los *-dlt de los topicos que consume) y lee los que consume.
 # renderer y edge-gateway no usan Kafka y no tienen KafkaUser. tools/ci/check_kafka_topics.py valida este fichero.
 apiVersion: kafka.strimzi.io/v1beta2
@@ -19,9 +19,9 @@ spec:
         operation: Write
       - resource: { type: topic, name: document.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.signals, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.signals, patternType: literal }
         operation: Describe
       - resource: { type: topic, name: extraction.events, patternType: literal }
         operation: Read
@@ -69,9 +69,13 @@ spec:
         operation: Write
       - resource: { type: topic, name: extraction.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.signals, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.signals, patternType: literal }
+        operation: Describe
+      - resource: { type: topic, name: audit.control, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: audit.control, patternType: literal }
         operation: Describe
       - resource: { type: topic, name: document.events, patternType: literal }
         operation: Read
@@ -87,8 +91,6 @@ spec:
         operation: Read
       - resource: { type: topic, name: idp.tenant.events, patternType: literal }
         operation: Describe
-      - resource: { type: group, name: extraction-service-acceso-revocado-, patternType: prefix }
-        operation: Read
       - resource: { type: group, name: extraction-service-pool-evict-, patternType: prefix }
         operation: Read
 
@@ -112,9 +114,9 @@ spec:
         operation: Write
       - resource: { type: topic, name: review.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.signals, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.signals, patternType: literal }
         operation: Describe
       - resource: { type: topic, name: extraction.events, patternType: literal }
         operation: Read
@@ -162,9 +164,9 @@ spec:
         operation: Write
       - resource: { type: topic, name: quality.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.signals, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.signals, patternType: literal }
         operation: Describe
       - resource: { type: topic, name: document.events, patternType: literal }
         operation: Read
@@ -206,16 +208,16 @@ metadata:
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
-  # Solo emite senales de seguridad/chat en audit.events; aun no consume topicos.
+  # Solo emite senales de seguridad/chat en audit.signals; aun no consume topicos.
 spec:
   authentication:
     type: tls
   authorization:
     type: simple
     acls:
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.signals, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.signals, patternType: literal }
         operation: Describe
 ---
 apiVersion: kafka.strimzi.io/v1beta2
@@ -237,9 +239,9 @@ spec:
         operation: Write
       - resource: { type: topic, name: notification.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.signals, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.signals, patternType: literal }
         operation: Describe
       - resource: { type: topic, name: document.events, patternType: literal }
         operation: Read
@@ -276,7 +278,7 @@ metadata:
   labels:
     strimzi.io/cluster: idp-kafka
   # Consume todos los topicos de eventos (senales y estado); produce auditoria.alerta_integridad y legalhold.*
-  # en audit.events.
+  # en audit.control.
 spec:
   authentication:
     type: tls
@@ -303,11 +305,15 @@ spec:
         operation: Read
       - resource: { type: topic, name: notification.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.signals, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.signals, patternType: literal }
+        operation: Describe
+      - resource: { type: topic, name: audit.control, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: audit.control, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.control, patternType: literal }
         operation: Describe
       - resource: { type: topic, name: idp.tenant.events, patternType: literal }
         operation: Read
@@ -316,8 +322,6 @@ spec:
       - resource: { type: group, name: audit-service, patternType: literal }
         operation: Read
       - resource: { type: group, name: audit-service-acceso-revocado-, patternType: prefix }
-        operation: Read
-      - resource: { type: group, name: audit-service-pool-evict-, patternType: prefix }
         operation: Read
 
 ---
@@ -328,7 +332,7 @@ metadata:
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
-  # Productor de idp.tenant.events; ademas emite consumo.registrado, legalhold.* y senales en audit.events.
+  # Productor de idp.tenant.events; ademas emite consumo.registrado y legalhold.* (audit.control) y senales (audit.signals).
 spec:
   authentication:
     type: tls
@@ -338,14 +342,12 @@ spec:
       - resource: { type: topic, name: idp.tenant.events, patternType: literal }
         operation: Write
       - resource: { type: topic, name: idp.tenant.events, patternType: literal }
-        operation: Read
-      - resource: { type: topic, name: idp.tenant.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.signals, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: audit.events, patternType: literal }
+      - resource: { type: topic, name: audit.signals, patternType: literal }
         operation: Describe
-      - resource: { type: group, name: tenant-service-acceso-revocado-, patternType: prefix }
-        operation: Read
-      - resource: { type: group, name: tenant-service-pool-evict-, patternType: prefix }
-        operation: Read
+      - resource: { type: topic, name: audit.control, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: audit.control, patternType: literal }
+        operation: Describe

@@ -57,6 +57,14 @@
       "minimum": 0,
       "description": "Latencia de la extraccion en milisegundos (opcional)."
     },
+    "routing": {
+      "type": "string",
+      "enum": [
+        "AUTO",
+        "REVIEW"
+      ],
+      "description": "Resultado del ruteo por score y umbral calculado por extraction-service. document-service solo auto-aprueba con AUTO (campo aditivo)."
+    },
     "costMicros": {
       "type": "integer",
       "minimum": 0,

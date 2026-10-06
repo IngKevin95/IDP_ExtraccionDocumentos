@@ -85,7 +85,7 @@ class OutboxTest extends ApiTestSupport {
         }
         verify(ok, atLeastOnce()).send(eq("idp.tenant.events"), eq(t.toString()),
                 org.mockito.ArgumentMatchers.contains("tenant.baja_iniciada"));
-        verify(ok, atLeastOnce()).send(eq("audit.events"), eq(t.toString()),
+        verify(ok, atLeastOnce()).send(eq("audit.control"), eq(t.toString()),
                 org.mockito.ArgumentMatchers.contains("consumo.registrado"));
     }
 

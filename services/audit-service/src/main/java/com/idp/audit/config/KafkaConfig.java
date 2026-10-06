@@ -1,21 +1,24 @@
 package com.idp.audit.config;
 
 import com.idp.audit.application.AuditMetrics;
+import com.idp.audit.domain.Exceptions.UnknownTenantException;
 import com.idp.events.EventValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.util.backoff.BackOff;
 import org.springframework.util.backoff.ExponentialBackOff;
 
 /**
  * Consumo con reintento BLOQUEANTE: sin {@code @RetryableTopic} y sin DLT, para no reordenar ni perder
- * eventos de la hash-chain (ADR 0016). Todo error de persistencia o de integridad se reintenta
- * indefinidamente con backoff acotado; la particion queda detenida y el offset sin avanzar. Unica excepcion:
- * un mensaje fuera de contrato (no puede encadenarse jamas) se descarta con alerta CRITICA para no
- * detener la auditoria de todo el tenant.
+ * eventos de la hash-chain (ADR 0016). Los errores de infraestructura (persistencia caida) y de integridad de
+ * la cadena se reintentan indefinidamente con backoff acotado; la particion queda detenida y el offset sin
+ * avanzar. Excepcion: los errores atribuibles al contenido (fuera de contrato, tenant inexistente, argumento o
+ * restriccion de BD violados por el mensaje) no se pueden arreglar reintentando y se descartan con alerta
+ * CRITICA para no detener la auditoria de todo el tenant (SEC-053).
  */
 @Configuration
 public class KafkaConfig {
@@ -36,7 +39,10 @@ public class KafkaConfig {
             LOG.error("CRITICAL evento descartado por violar el contrato: topico={} particion={} offset={} causa={}",
                     record.topic(), record.partition(), record.offset(), ex.getClass().getSimpleName());
         }, blockingBackOff());
-        handler.addNotRetryableExceptions(EventValidationException.class);
+        // Errores atribuibles al contenido del mensaje (no a la infraestructura): reintentar no los arregla y un
+        // productor malicioso podria detener la particion para siempre. Se descartan con alerta.
+        handler.addNotRetryableExceptions(EventValidationException.class, UnknownTenantException.class,
+                IllegalArgumentException.class, DataIntegrityViolationException.class);
         handler.setRetryListeners((record, ex, attempt) -> {
             metrics.count("audit.ingestion.retries");
             LOG.error("CRITICAL ingesta de auditoria bloqueada: topico={} particion={} offset={} intento={} causa={}",

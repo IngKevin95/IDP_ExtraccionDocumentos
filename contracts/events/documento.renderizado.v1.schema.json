@@ -51,9 +51,11 @@
     "pageArtifactKeys": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "maxLength": 512
       },
-      "minItems": 1
+      "minItems": 1,
+      "maxItems": 500
     }
   },
   "additionalProperties": false

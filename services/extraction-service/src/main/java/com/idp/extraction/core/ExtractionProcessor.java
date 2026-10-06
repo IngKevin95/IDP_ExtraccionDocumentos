@@ -238,6 +238,8 @@ public final class ExtractionProcessor {
             p.put("modelPromptKey", modelPromptKey(ctx.run));
             p.put("latencyMs", Math.max(0L, (System.nanoTime() - ctx.startNanos) / 1_000_000L));
             p.put("costMicros", costMicros(ctx.run));
+            // Resultado del ruteo por score/umbral: solo COMPLETED es auto-aprobable (SEC-052).
+            p.put("routing", "AUTO");
             publish(ctx, "extraccion.completada", "result", p);
         } else {
             p.put("taskId", taskId.toString());

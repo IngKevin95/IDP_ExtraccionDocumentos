@@ -24,3 +24,7 @@ target/
 
 # Restos locales de la metodología anterior (no versionar)
 docs/.reviews/
+
+# Python
+__pycache__/
+*.pyc

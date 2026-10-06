@@ -106,10 +106,12 @@ Base de datos: **Silo Lógico por Tenant (PostgreSQL)**
   - *Given* un documento en EN_EXTRACCION.
   - *When* se consume el evento `extraccion.completada`.
   - *Then* actualiza su estado a APROBADO y emite `extraccion.aprobada`.
+  - *Y* solo si el evento trae `routing=AUTO` y el servicio registró la solicitud de extracción de ese documento; sin eso se ignora con alerta SECURITY (SEC-052). Test: `sec052_autoAprobacionExigeRoutingAutoYExtraccionSolicitada`.
 - **AC-06 (Consumo de requiere revisión):** 
   - *Given* un documento en EN_EXTRACCION.
   - *When* se consume el evento `extraccion.requiere_revision`.
-  - *Then* actualiza su estado a EN_REVISION y cesa su actividad hasta una resolución externa.
+  - *Then* actualiza su estado a EN_REVISION, registra la solicitud de revisión (`taskId`, `documentId`, fecha) y cesa su actividad hasta una resolución externa.
+  - *Y* un `revision.completada` posterior solo cambia el estado si su `taskId` coincide con una solicitud registrada y, al aprobar, el revisor es distinto de quien cargó el documento. Test: `sec052_revisionCompletadaExigeSolicitudRegistradaYRevisorDistintoDelCargador`.
 - **AC-07 (Aprobación Altamente Confidencial restringida):** 
   - *Given* un documento clasificado como Altamente Confidencial en estado APROBADO_PENDIENTE_STEWARD.
   - *When* el Data Steward aprueba mediante `/v1/documents/{documentId}/approve-confidential`.

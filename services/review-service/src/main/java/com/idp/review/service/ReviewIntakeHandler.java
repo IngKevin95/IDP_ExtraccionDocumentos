@@ -1,6 +1,7 @@
 package com.idp.review.service;
 
 import com.idp.events.EventEnvelope;
+import com.idp.events.EventOriginGuard;
 import com.idp.review.config.ReviewProperties;
 import com.idp.review.domain.FieldCandidate;
 import com.idp.review.domain.FieldStatus;
@@ -9,6 +10,7 @@ import com.idp.review.domain.ReviewTask;
 import com.idp.review.domain.TaskStatus;
 import com.idp.review.infra.FieldCandidateSource;
 import com.idp.review.infra.ReviewRepository;
+import com.idp.tenant.context.TenantDirectory;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.time.OffsetDateTime;
@@ -36,9 +38,11 @@ public class ReviewIntakeHandler {
     private final ReviewProperties props;
     private final MeterRegistry meters;
     private final Clock clock;
+    private final TenantDirectory tenants;
 
     public ReviewIntakeHandler(ReviewRepository repo, FieldCandidateSource fieldSource, CriticalFields critical,
-                               ReviewProperties props, MeterRegistry meters, Clock clock) {
+                               ReviewProperties props, MeterRegistry meters, Clock clock, TenantDirectory tenants) {
+        this.tenants = tenants;
         this.repo = repo;
         this.fieldSource = fieldSource;
         this.critical = critical;
@@ -76,6 +80,36 @@ public class ReviewIntakeHandler {
     }
 
     /**
+     * SEC-052: el evento solo prueba que alguien lo publico. La muestra ciega solo se acepta si el tenant esta activo
+     * y, en SU silo, el documento esta APROBADO por AUTO_STP y no es ALTAMENTE_CONFIDENCIAL. Si no, se ignora con
+     * alerta SECURITY sin payload (un productor comprometido no puede forzar tareas sobre documentos arbitrarios).
+     */
+    private boolean blindEligible(EventEnvelope e, UUID documentId) {
+        String reason = null;
+        if (!tenants.activeTenants().contains(e.tenantId().toString())) {
+            reason = "tenant_inactive";
+        } else {
+            var doc = fieldSource.approvedDocument(documentId);
+            if (doc.isEmpty()) {
+                reason = "document_unverifiable";
+            } else if (!"APROBADO".equals(doc.get().status())) {
+                reason = "document_not_approved";
+            } else if (!"AUTO_STP".equals(doc.get().approvedBy())) {
+                reason = "not_auto_approved";
+            } else if ("ALTAMENTE_CONFIDENCIAL".equals(doc.get().classification())) {
+                reason = "highly_confidential";
+            }
+        }
+        if (reason != null) {
+            meters.counter("idp_review_blind_rejected_total", "reason", reason).increment();
+            LOG.error(EventOriginGuard.SECURITY, "Muestra ciega ignorada: reason={} documento={} tenant={}", reason,
+                    documentId, e.tenantId());
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * calidad.muestra_ciega_solicitada: crea la tarea de revision ciega de un oficio ya auto-aprobado. El id de la
      * tarea es el sampleId. Los campos son todos los extraidos (el revisor los transcribe sin ver el valor del modelo ni
      * su score). No toca el estado del documento. Sin campos disponibles no se crea tarea: transcribir nada no mide
@@ -84,6 +118,9 @@ public class ReviewIntakeHandler {
     public void handleBlind(EventEnvelope e) {
         UUID taskId = UUID.fromString(e.payload().path("sampleId").asText());
         UUID documentId = UUID.fromString(e.payload().path("documentId").asText());
+        if (!blindEligible(e, documentId)) {
+            return;
+        }
         Map<String, FieldCandidate> unique = new LinkedHashMap<>();
         for (FieldCandidate c : fieldSource.approvedFields(documentId)) {
             unique.putIfAbsent(c.fieldName(), c);

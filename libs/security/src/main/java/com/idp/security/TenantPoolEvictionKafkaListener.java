@@ -25,10 +25,6 @@ public final class TenantPoolEvictionKafkaListener {
     private final EventSerde serde;
     private final EventOriginGuard guard;
 
-    public TenantPoolEvictionKafkaListener(TenantDataSourceRouter router, EventSerde serde) {
-        this(router, serde, EventOriginGuard.standalone());
-    }
-
     public TenantPoolEvictionKafkaListener(TenantDataSourceRouter router, EventSerde serde,
                                            EventOriginGuard guard) {
         this.router = router;

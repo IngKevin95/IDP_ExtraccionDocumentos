@@ -53,7 +53,7 @@ import org.springframework.kafka.test.EmbeddedKafkaKraftBroker;
 final class E2eEnvironment {
 
     static final com.idp.events.EventTopology TOPOLOGY = com.idp.events.EventTopology.defaults();
-    /** Topicos de la topologia (un topico por productor, ADR 0029); el broker embebido los crea todos. */
+    /** Topicos de la topologia (un topico por productor, ADR 0031); el broker embebido los crea todos. */
     static final String[] TOPICS = TOPOLOGY.allTopics();
     static final String CONTROL_URL = "jdbc:h2:mem:e2e_control;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;"
         + "DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1;INIT=CREATE DOMAIN IF NOT EXISTS JSONB AS VARCHAR(100000)";
@@ -167,12 +167,14 @@ final class E2eEnvironment {
                 ScriptUtils.executeSqlScript(c, new ClassPathResource("db/migration/tenant/V3__task_origin.sql"));
                 ScriptUtils.executeSqlScript(c, new ClassPathResource("extraction-silo-h2.sql"));
                 c.createStatement().execute("create table document (id uuid primary key, "
-                    + "uploaded_by varchar(128))");
+                    + "uploaded_by varchar(128), status varchar(32), approved_by varchar(32), "
+                    + "classification varchar(32))");
             }
         }
         for (String t : List.of(TENANT_A, TENANT_B, TENANT_C, TENANT_D)) {
             try (Connection c = DriverManager.getConnection(documentUrl(t), "sa", "")) {
                 ScriptUtils.executeSqlScript(c, new ClassPathResource("db/migration/V1__init_document_schema.sql"));
+                ScriptUtils.executeSqlScript(c, new ClassPathResource("db/migration/V2__pipeline_registry.sql"));
             }
             try (Connection c = DriverManager.getConnection(Overrides.extractionUrl(t), "sa", "")) {
                 ScriptUtils.executeSqlScript(c, new ClassPathResource("extraction-silo-h2.sql"));
@@ -384,7 +386,7 @@ final class E2eEnvironment {
         List<Object[]> timed = new ArrayList<>();
         try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props)) {
             for (String topic : TOPICS) {
-                if (topic.equals("audit.events") || topic.equals("idp.tenant.events")) {
+                if (topic.startsWith("audit.") || topic.equals("idp.tenant.events")) {
                     continue;
                 }
                 TopicPartition tp = new TopicPartition(topic, 0);

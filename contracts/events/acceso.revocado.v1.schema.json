@@ -39,7 +39,8 @@
       "format": "uuid"
     },
     "subjectId": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 256
     }
   },
   "additionalProperties": false

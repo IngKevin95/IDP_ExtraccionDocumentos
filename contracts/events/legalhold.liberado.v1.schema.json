@@ -48,7 +48,8 @@
       "format": "uuid"
     },
     "releasedBy": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 256
     }
   },
   "additionalProperties": false
