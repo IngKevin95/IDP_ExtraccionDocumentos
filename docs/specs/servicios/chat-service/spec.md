@@ -57,7 +57,16 @@ La persistencia reside en la **Base de Datos por Tenant** (silo físico o lógic
 * **Tabla `chat_message`**:
   * Columnas: `id` (PK, UUID), `session_id` (FK, UUID), `role` (VARCHAR), `content` (TEXT), `created_at` (TIMESTAMP).
 * **Tabla `citation`**:
-  * Columnas: `id` (PK, UUID), `message_id` (FK, UUID), `chunk_id` (FK, UUID), `exact_quote` (TEXT).
+  * Columnas: `id` (PK, UUID), `message_id` (FK, UUID), `chunk_id` (FK, UUID), `exact_quote` (TEXT), `ordinal` (INT; posición de la cita, para que `[n]` apunte a la misma cita al servir desde caché).
+
+**Notas de implementación (enmienda):**
+* `chat_session.document_id` no lleva FK: el documento vive en el `document-service` y la sesión puede abrirse antes de que termine la indexación; la existencia y el acceso se verifican con el puerto `DocumentAccessChecker` (SEC-007). `chunk.document_id` sí referencia `document_index_status`.
+* Columnas adicionales: `chunk.ordinal` (con `UNIQUE (document_id, ordinal)`, idempotencia de la indexación); `chat_message.question_embedding` (caché semántica sin recalcular el historial), `reply_to`, `outcome` (`ANSWERED`, `ABSTAINED`, `BLOCKED`, `CACHED`) y `cached_from`. Solo `ANSWERED` es elegible para caché.
+* La dimensión del vector es `idp.chat.embedding-dimension` (por defecto 1536, máximo 2000 por HNSW); cambiarla exige re-indexar. Distancia coseno: consulta con `<=>` y similitud `1 - distancia`.
+* Inyección indirecta (RN de rechazo): un fragmento recuperado con instrucciones maliciosas se excluye del contexto y emite `seguridad.prompt_injection_detectado`; la consulta continúa solo con los fragmentos limpios (si ninguno queda, se abstiene).
+* Acceso a documentos ALTAMENTE_CONFIDENCIAL: los roles `DATA_STEWARD`, `TENANT_ADMIN` y `BREAK_GLASS` (RN-06, acceso transparente tras otorgarse) además del cargador. Es una extensión deliberada sobre la regla de `document-service`.
+* Grounding léxico: toda cita debe ser un fragmento recuperado y su `exact_quote` debe estar contenida en él; no se verifica semánticamente cada oración (riesgo residual medido en la métrica de fidelidad de F6).
+* `chat_message` y `citation` rechazan UPDATE, DELETE y TRUNCATE por trigger. Las tablas `outbox` y `processed_event` siguen el patrón de `libs/events`.
 
 ## 7. Controles de Seguridad
 * **SEC-001 (Silo de datos):** Tablas de chat e índices vectoriales residen en la base de datos exclusiva del tenant.
