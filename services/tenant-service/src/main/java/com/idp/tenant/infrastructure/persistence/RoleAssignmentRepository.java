@@ -27,22 +27,38 @@ public class RoleAssignmentRepository {
     }
 
     public void insert(RoleAssignment r) {
-        jdbc.sql("INSERT INTO role_assignment(id, tenant_id, user_id, role, granted_by, approved_by, expires_at, "
-                        + "created_at, justification) VALUES (:id, :t, :u, :r, :g, :a, :e, :c, :j)")
-                .param("id", r.id()).param("t", r.tenantId()).param("u", r.userId()).param("r", r.role())
+        jdbc.sql("INSERT INTO role_assignment(id, tenant_id, user_id, user_hash, role, granted_by, approved_by, expires_at, "
+                        + "created_at, justification) VALUES (:id, :t, :u, :h, :r, :g, :a, :e, :c, :j)")
+                .param("id", r.id()).param("t", r.tenantId()).param("u", r.userId())
+                .param("h", hash(r.userId()))
+                .param("r", r.role())
                 .param("g", r.grantedBy()).param("a", r.approvedBy())
                 .param("e", Db.odt(r.expiresAt()), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("c", Db.odt(r.createdAt())).param("j", r.justification()).update();
+    }
+
+    private String hash(String userId) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(userId.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /** A1: tenant ACTIVE; los roles de supervision (RN-14) sobreviven mientras el tenant no este DELETED. */
     public boolean hasActiveRole(UUID tenantId, String userId, String role, Instant now) {
         int retained = com.idp.security.JdbcRoleAssignmentSource.isRetained(role) ? 1 : 0;
         Integer n = jdbc.sql("SELECT COUNT(*) FROM role_assignment ra JOIN tenants t ON t.id = ra.tenant_id "
-                        + "WHERE ra.tenant_id = :t AND ra.user_id = :u AND ra.role = :r "
+                        + "WHERE ra.tenant_id = :t AND ra.user_hash = :h AND ra.role = :r "
                         + "AND ra.deleted_at IS NULL AND (ra.expires_at IS NULL OR ra.expires_at > :now) "
                         + "AND (t.status = 'ACTIVE' OR (t.status <> 'DELETED' AND :ret = 1))")
-                .param("t", tenantId).param("u", userId).param("r", role).param("now", Db.odt(now))
+                .param("t", tenantId).param("h", hash(userId)).param("r", role).param("now", Db.odt(now))
                 .param("ret", retained).query(Integer.class).single();
         return n != null && n > 0;
     }
@@ -54,8 +70,8 @@ public class RoleAssignmentRepository {
     }
 
     public List<RoleAssignment> findActiveByUser(UUID tenantId, String userId, Instant now) {
-        return jdbc.sql("SELECT * FROM role_assignment WHERE tenant_id = :t AND user_id = :u AND " + ACTIVE)
-                .param("t", tenantId).param("u", userId).param("now", Db.odt(now)).query(MAPPER).list();
+        return jdbc.sql("SELECT * FROM role_assignment WHERE tenant_id = :t AND user_hash = :h AND " + ACTIVE)
+                .param("t", tenantId).param("h", hash(userId)).param("now", Db.odt(now)).query(MAPPER).list();
     }
 
     public List<RoleAssignment> findAllByTenant(UUID tenantId) {
