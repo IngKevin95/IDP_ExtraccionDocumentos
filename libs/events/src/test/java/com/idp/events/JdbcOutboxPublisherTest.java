@@ -53,6 +53,16 @@ class JdbcOutboxPublisherTest {
     }
 
     @Test
+    void sec052_productorNoPuedeEncolarEventTypeAjeno() {
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        JdbcOutboxPublisher quality = new JdbcOutboxPublisher(repo, new EventSchemaValidator(serde), serde,
+            EventTopology.defaults(), "quality-service");
+        assertThrows(IllegalStateException.class,
+            () -> quality.publish("k", TestEvents.accesoRevocado(UUID.randomUUID())));
+        verify(repo, never()).insert(any(), any(), any(), any(), any());
+    }
+
+    @Test
     void particionRequerida() {
         TransactionSynchronizationManager.setActualTransactionActive(true);
         assertThrows(IllegalArgumentException.class,

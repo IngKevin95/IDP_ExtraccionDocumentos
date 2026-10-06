@@ -31,7 +31,7 @@ jobs:
           cache: 'maven'
 
       - name: Validate Kafka topics and ACLs
-        run: python3 tools/ci/check_kafka_topics.py
+        run: python3 tools/ci/check_kafka_topics.py && python3 tools/ci/check_kafka_topics.py --self-test
 
       - name: Build and verify with Maven
         run: ./mvnw -B verify

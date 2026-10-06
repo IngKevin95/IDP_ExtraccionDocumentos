@@ -1,5 +1,6 @@
 package com.idp.extraction.config;
 
+import com.idp.events.EventTopology;
 import com.idp.events.JdbcTenantOutboxAccess;
 import com.idp.events.OutboxRelay;
 import com.idp.tenant.context.JdbcTenantDirectory;
@@ -41,7 +42,7 @@ public class OutboxRelayConfig {
     OutboxRelay outboxRelay(DataSource tenantDataSource, TenantDirectory tenants, ExtractionProperties props,
                             KafkaTemplate<String, String> kafka) {
         return new OutboxRelay(new JdbcTenantOutboxAccess(tenantDataSource), tenants::activeTenants, kafka,
-            eventType -> props.kafka().domainTopic(), 100, Duration.ofSeconds(10));
+            EventTopology.defaults(), "extraction-service", 100, Duration.ofSeconds(10));
     }
 
     @Bean

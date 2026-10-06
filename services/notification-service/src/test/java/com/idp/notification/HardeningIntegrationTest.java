@@ -1,5 +1,7 @@
 package com.idp.notification;
 
+import com.idp.testsupport.Topics;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -84,7 +86,7 @@ class HardeningIntegrationTest extends AbstractIntegrationTest {
     void elReintentoManualTieneTopePorEntrega() throws Exception {
         Setup s = setup("/webhook");
         receiver.otherwise(r -> Reply.status(400));
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         runWorker(s.tenant());
         assertThat(status(s.tenant())).isEqualTo("FALLIDO");
         String deliveryId = deliveries(s.tenant()).get(0).get("id").toString();
@@ -115,7 +117,7 @@ class HardeningIntegrationTest extends AbstractIntegrationTest {
         Setup s = setup("/webhook");
         inTenant(s.tenant(), () -> jdbc.update("update webhook_subscription set secret_current = ? where id = ?",
             "CORRUPTO-NO-ES-UN-SOBRE", s.webhookId()));
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
 
         assertThat(runWorker(s.tenant())).isEqualTo(1);
 

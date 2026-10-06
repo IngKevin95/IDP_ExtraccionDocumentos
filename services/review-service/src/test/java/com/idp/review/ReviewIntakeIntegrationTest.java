@@ -1,5 +1,7 @@
 package com.idp.review;
 
+import com.idp.testsupport.Topics;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -28,7 +30,7 @@ class ReviewIntakeIntegrationTest extends AbstractReviewIntegrationTest {
         UUID documentId = UUID.randomUUID();
         fields.program(taskId, field("direccion", 1, "[0.1,0.1,0.4,0.05]"), field("monto_numeros", 2, "[0.2,0.5,0.3,0.05]"));
 
-        listener.onMessage(requiereRevision(tenant, UUID.randomUUID().toString(), documentId.toString(),
+        Topics.deliver(listener::onMessage, requiereRevision(tenant, UUID.randomUUID().toString(), documentId.toString(),
                 taskId.toString()));
 
         Map<String, Object> row = inTenant(tenant, () -> jdbc.queryForMap("select * from review_task where id = ?",
@@ -56,7 +58,7 @@ class ReviewIntakeIntegrationTest extends AbstractReviewIntegrationTest {
         n.put("typology", "EC");
         n.put("blindSample", true);
         validator.validateFlat(n);
-        listener.onMessage(n.toString());
+        Topics.deliver(listener::onMessage, n.toString());
 
         post("ana", "/v1/review/tasks/" + taskId + "/claim");
         assertThat(status(post("ana", "/v1/review/tasks/" + taskId + "/approve"))).isEqualTo(200);
@@ -84,8 +86,8 @@ class ReviewIntakeIntegrationTest extends AbstractReviewIntegrationTest {
         String json = requiereRevision(tenant, UUID.randomUUID().toString(), UUID.randomUUID().toString(),
                 taskId.toString());
 
-        listener.onMessage(json);
-        listener.onMessage(json);
+        Topics.deliver(listener::onMessage, json);
+        Topics.deliver(listener::onMessage, json);
 
         assertThat(tasks()).isEqualTo(1);
     }
@@ -96,9 +98,9 @@ class ReviewIntakeIntegrationTest extends AbstractReviewIntegrationTest {
         UUID documentId = UUID.randomUUID();
         fields.program(taskId, field("direccion", 1, "[0.1,0.1,0.4,0.05]"));
 
-        listener.onMessage(requiereRevision(tenant, UUID.randomUUID().toString(), documentId.toString(),
+        Topics.deliver(listener::onMessage, requiereRevision(tenant, UUID.randomUUID().toString(), documentId.toString(),
                 taskId.toString()));
-        listener.onMessage(requiereRevision(tenant, UUID.randomUUID().toString(), documentId.toString(),
+        Topics.deliver(listener::onMessage, requiereRevision(tenant, UUID.randomUUID().toString(), documentId.toString(),
                 taskId.toString()));
 
         assertThat(tasks()).isEqualTo(1);
@@ -111,8 +113,8 @@ class ReviewIntakeIntegrationTest extends AbstractReviewIntegrationTest {
         String sinTaskId = requiereRevision(tenant, UUID.randomUUID().toString(), UUID.randomUUID().toString(),
                 UUID.randomUUID().toString()).replaceFirst("\"taskId\":\"[^\"]+\",?", "").replace(",}", "}");
 
-        assertThatThrownBy(() -> listener.onMessage(sinTaskId)).isInstanceOf(EventValidationException.class);
-        assertThatThrownBy(() -> listener.onMessage("{no es json")).isInstanceOf(EventValidationException.class);
+        assertThatThrownBy(() -> Topics.deliver(listener::onMessage, sinTaskId)).isInstanceOf(EventValidationException.class);
+        assertThatThrownBy(() -> Topics.deliver(listener::onMessage, "{no es json")).isInstanceOf(EventValidationException.class);
         assertThat(tasks()).isZero();
     }
 
@@ -121,7 +123,7 @@ class ReviewIntakeIntegrationTest extends AbstractReviewIntegrationTest {
         String other = requiereRevision(tenant, UUID.randomUUID().toString(), UUID.randomUUID().toString(),
                 UUID.randomUUID().toString()).replace("extraccion.requiere_revision", "documento.recibido");
 
-        listener.onMessage(other);
+        Topics.deliver(listener::onMessage, other);
 
         assertThat(tasks()).isZero();
     }

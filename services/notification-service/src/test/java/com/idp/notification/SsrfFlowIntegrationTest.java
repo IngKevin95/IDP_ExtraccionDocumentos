@@ -1,5 +1,7 @@
 package com.idp.notification;
 
+import com.idp.testsupport.Topics;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -41,7 +43,7 @@ class SsrfFlowIntegrationTest extends AbstractIntegrationTest {
             throws Exception {
         dns.map(PRIVATE_HOST, "10.0.5.5");
         String tenant = tenantFor(PRIVATE_HOST);
-        listener.onMessage(aprobada(tenant, UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(tenant, UUID.randomUUID().toString()));
 
         assertThat(runWorker(tenant)).isEqualTo(1);
 
@@ -67,7 +69,7 @@ class SsrfFlowIntegrationTest extends AbstractIntegrationTest {
     void ac14_ningunRangoPrivadoLinkLocalCgnatOIpv6LlegaAAbrirConexion(String ip) throws Exception {
         dns.map(PRIVATE_HOST, ip);
         String tenant = tenantFor(PRIVATE_HOST);
-        listener.onMessage(aprobada(tenant, UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(tenant, UUID.randomUUID().toString()));
         runWorker(tenant);
         assertThat(status(tenant)).as(ip).isEqualTo("FALLIDO");
         assertThat(deliveries(tenant).get(0).get("error_code")).as(ip).isEqualTo("BLOCKED_ADDRESS");
@@ -78,7 +80,7 @@ class SsrfFlowIntegrationTest extends AbstractIntegrationTest {
     void ac14_registrosMixtosConUnaIpPrivadaSeRechazanCompletos() throws Exception {
         dns.map(PRIVATE_HOST, "127.0.0.1", "10.0.0.5");
         String tenant = tenantFor(PRIVATE_HOST);
-        listener.onMessage(aprobada(tenant, UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(tenant, UUID.randomUUID().toString()));
         runWorker(tenant);
         assertThat(status(tenant)).isEqualTo("FALLIDO");
         assertThat(receiver.count()).isZero();
@@ -92,7 +94,7 @@ class SsrfFlowIntegrationTest extends AbstractIntegrationTest {
         // Dato preexistente (el alta ya lo impide): la revalidacion al despachar lo detiene igualmente.
         inTenant(tenant, () -> jdbc.update("update webhook_subscription set url = ?",
             "http://169.254.169.254/latest/meta-data/"));
-        listener.onMessage(aprobada(tenant, UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(tenant, UUID.randomUUID().toString()));
         runWorker(tenant);
         assertThat(status(tenant)).isEqualTo("FALLIDO");
         assertThat(deliveries(tenant).get(0).get("error_code")).isEqualTo("BLOCKED_ADDRESS");
@@ -106,9 +108,9 @@ class SsrfFlowIntegrationTest extends AbstractIntegrationTest {
         // 127.0.0.1 hace de "IP publica" permitida por la politica de pruebas; luego el DNS apunta a la red privada.
         dns.sequence(PRIVATE_HOST, new String[] {"127.0.0.1"}, new String[] {"10.0.0.5"});
         String tenant = tenantFor(PRIVATE_HOST);
-        listener.onMessage(aprobada(tenant, UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(tenant, UUID.randomUUID().toString()));
         runWorker(tenant);
-        listener.onMessage(aprobada(tenant, UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(tenant, UUID.randomUUID().toString()));
         runWorker(tenant);
 
         var rows = deliveries(tenant);
@@ -123,7 +125,7 @@ class SsrfFlowIntegrationTest extends AbstractIntegrationTest {
     void ac14_cadaIntentoResuelveElNombreExactamenteUnaVez() throws Exception {
         dns.map(PRIVATE_HOST, "127.0.0.1");
         String tenant = tenantFor(PRIVATE_HOST);
-        listener.onMessage(aprobada(tenant, UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(tenant, UUID.randomUUID().toString()));
         runWorker(tenant);
         assertThat(status(tenant)).isEqualTo("ENTREGADO");
         assertThat(dns.calls(PRIVATE_HOST)).isEqualTo(1);
@@ -135,7 +137,7 @@ class SsrfFlowIntegrationTest extends AbstractIntegrationTest {
         dns.map(PRIVATE_HOST, "127.0.0.1");
         String tenant = tenantFor(PRIVATE_HOST);
         receiver.reply(Reply.redirect("http://169.254.169.254/latest/meta-data/"));
-        listener.onMessage(aprobada(tenant, UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(tenant, UUID.randomUUID().toString()));
         runWorker(tenant);
         assertThat(status(tenant)).isEqualTo("FALLIDO");
         assertThat(deliveries(tenant).get(0).get("last_http_status")).isEqualTo(302);
@@ -146,7 +148,7 @@ class SsrfFlowIntegrationTest extends AbstractIntegrationTest {
     @Test
     void unaFallaDeResolucionDnsNoEsSsrfSinoErrorReintentable() throws Exception {
         String tenant = tenantFor("sin-dns.banco.test");
-        listener.onMessage(aprobada(tenant, UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(tenant, UUID.randomUUID().toString()));
         runWorker(tenant);
         assertThat(status(tenant)).isEqualTo("PENDIENTE");
         assertThat(deliveries(tenant).get(0).get("error_code")).isEqualTo("UNREACHABLE");

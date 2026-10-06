@@ -1,5 +1,7 @@
 package com.idp.review;
 
+import com.idp.testsupport.Topics;
+
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
@@ -81,7 +83,7 @@ abstract class AbstractReviewIntegrationTest {
     UUID createTask(FieldCandidate... candidates) {
         UUID taskId = UUID.randomUUID();
         fields.program(taskId, candidates);
-        listener.onMessage(requiereRevision(tenant, UUID.randomUUID().toString(), UUID.randomUUID().toString(),
+        Topics.deliver(listener::onMessage, requiereRevision(tenant, UUID.randomUUID().toString(), UUID.randomUUID().toString(),
                 taskId.toString()));
         return taskId;
     }

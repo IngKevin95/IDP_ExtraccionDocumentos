@@ -1,12 +1,72 @@
+# Un topico por productor o familia (ADR 0029, SEC-052). La asignacion eventType -> topico vive en
+# contracts/events/topology.yaml; tools/ci/check_kafka_topics.py valida este fichero contra ella.
+# Los topicos *-dlt reciben los mensajes que un consumidor no pudo procesar (DeadLetterPublishingRecoverer publica
+# en la misma particion que el original: mismas particiones que su topico de origen).
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: dominio.documentos
+  name: documentos.eventos
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
 spec:
   partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: extraccion.eventos
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: revision.eventos
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: calidad.eventos
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: notificaciones.eventos
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  partitions: 6
   replicas: 3
   config:
     retention.ms: 604800000
@@ -38,4 +98,60 @@ spec:
   replicas: 3
   config:
     retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: documentos.eventos-dlt
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 1209600000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: extraccion.eventos-dlt
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 1209600000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: revision.eventos-dlt
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: 1209600000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: calidad.eventos-dlt
+  namespace: idp-platform
+  labels:
+    strimzi.io/cluster: idp-kafka
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 1209600000
     min.insync.replicas: 2

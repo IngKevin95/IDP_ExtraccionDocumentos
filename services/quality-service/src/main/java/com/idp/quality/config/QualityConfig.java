@@ -80,8 +80,15 @@ public class QualityConfig {
     }
 
     @Bean
+    com.idp.events.EventOriginGuard eventOriginGuard(
+            org.springframework.beans.factory.ObjectProvider<io.micrometer.core.instrument.MeterRegistry> registry) {
+        return new com.idp.events.EventOriginGuard(com.idp.events.EventTopology.defaults(),
+            registry.getIfAvailable());
+    }
+
+    @Bean
     OutboxPublisher outboxPublisher(OutboxRepository repo, EventSchemaValidator validator, EventSerde serde) {
-        return new JdbcOutboxPublisher(repo, validator, serde);
+        return new JdbcOutboxPublisher(repo, validator, serde, com.idp.events.EventTopology.defaults(), "quality-service");
     }
 
     /**
@@ -100,10 +107,9 @@ public class QualityConfig {
 
     @Bean
     @ConditionalOnProperty(value = "quality.relay.enabled", matchIfMissing = true)
-    OutboxRelayJob outboxRelayJob(TenantOutboxAccess access, KafkaTemplate<String, String> kafka,
-                                  @Value("${quality.kafka.topic:dominio.documentos}") String topic) {
-        return new OutboxRelayJob(new OutboxRelay(access, () -> List.of("control"), kafka, eventType -> topic, 100,
-            Duration.ofSeconds(10)));
+    OutboxRelayJob outboxRelayJob(TenantOutboxAccess access, KafkaTemplate<String, String> kafka) {
+        return new OutboxRelayJob(new OutboxRelay(access, () -> List.of("control"), kafka,
+            com.idp.events.EventTopology.defaults(), "quality-service", 100, Duration.ofSeconds(10)));
     }
 
     /** Planifica el relay del outbox de la base de control hacia Kafka. */
@@ -182,8 +188,9 @@ public class QualityConfig {
 
     /** acceso.revocado purga la cache de roles de este servicio. */
     @Bean
-    AccesoRevocadoKafkaListener accesoRevocadoListener(CachingRoleAssignmentVerifier verifier, EventSerde serde) {
-        return new AccesoRevocadoKafkaListener(verifier, serde);
+    AccesoRevocadoKafkaListener accesoRevocadoListener(CachingRoleAssignmentVerifier verifier, EventSerde serde,
+            com.idp.events.EventOriginGuard guard) {
+        return new AccesoRevocadoKafkaListener(verifier, serde, guard);
     }
 
     @Bean

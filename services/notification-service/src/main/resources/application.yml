@@ -43,7 +43,6 @@ management:
 idp:
   security:
     audience: ${IDP_JWT_AUDIENCE:notification-service}
-  topic: dominio.documentos
   tenants: ${IDP_TENANTS:}
   tenant-db:
     jdbc-url-template: ${IDP_TENANT_DB_URL:}

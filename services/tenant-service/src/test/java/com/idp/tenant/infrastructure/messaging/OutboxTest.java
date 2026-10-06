@@ -54,18 +54,48 @@ class OutboxTest extends ApiTestSupport {
         KafkaTemplate<String, String> broken = mock(KafkaTemplate.class);
         when(broken.send(any(String.class), any(String.class), any(String.class)))
                 .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("broker caido")));
-        assertEquals(0, new OutboxRelay(outbox, broken, "topic.test").relay());
+        assertEquals(0, new OutboxRelay(outbox, broken).relay());
         assertEquals(1, pending(t));
 
         KafkaTemplate<String, String> ok = mock(KafkaTemplate.class);
-        when(ok.send(eq("topic.test"), any(String.class), any(String.class)))
+        when(ok.send(eq("idp.tenant.events"), any(String.class), any(String.class)))
                 .thenReturn(CompletableFuture.<SendResult<String, String>>completedFuture(null));
-        OutboxRelay relay = new OutboxRelay(outbox, ok, "topic.test");
+        OutboxRelay relay = new OutboxRelay(outbox, ok);
         while (relay.relay() > 0) {
             // drena el outbox compartido por los demas tests
         }
         assertEquals(0, pending(t));
-        verify(ok, atLeastOnce()).send(eq("topic.test"), eq(t.toString()), any(String.class));
+        verify(ok, atLeastOnce()).send(eq("idp.tenant.events"), eq(t.toString()), any(String.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void sec052_relayPublicaCadaEventTypeEnElTopicoDeLaTopologia() throws Exception {
+        UUID t = createTenant();
+        tx.executeWithoutResult(s -> {
+            events.bajaIniciada(t);
+            events.consumoRegistrado(t, "DOCUMENTS_EXTRACTED", 1);
+        });
+        KafkaTemplate<String, String> ok = mock(KafkaTemplate.class);
+        when(ok.send(any(String.class), any(String.class), any(String.class)))
+                .thenReturn(CompletableFuture.<SendResult<String, String>>completedFuture(null));
+        OutboxRelay relay = new OutboxRelay(outbox, ok);
+        while (relay.relay() > 0) {
+            // drena el outbox compartido por los demas tests
+        }
+        verify(ok, atLeastOnce()).send(eq("idp.tenant.events"), eq(t.toString()),
+                org.mockito.ArgumentMatchers.contains("tenant.baja_iniciada"));
+        verify(ok, atLeastOnce()).send(eq("auditoria.eventos"), eq(t.toString()),
+                org.mockito.ArgumentMatchers.contains("consumo.registrado"));
+    }
+
+    @Test
+    void sec052_tenantServiceNoPuedeEncolarEventosDeOtroProductor() throws Exception {
+        UUID t = createTenant();
+        EventEnvelope ajeno = new EventEnvelope(UUID.randomUUID(), "revision.completada", 1, Instant.now(), t,
+                UUID.randomUUID(), JsonSupport.MAPPER.createObjectNode());
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                () -> tx.executeWithoutResult(s -> outbox.publish(t.toString(), ajeno)));
     }
 
     private int pending(UUID tenant) {

@@ -1,5 +1,7 @@
 package com.idp.notification;
 
+import com.idp.testsupport.Topics;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.idp.notification.support.TestReceiver.Reply;
@@ -39,7 +41,7 @@ class CircuitBreakerIntegrationTest extends AbstractIntegrationTest {
         receiver.otherwise(r -> Reply.status(503));
         String tenant = tenantFor(CB_HOST);
         for (int i = 0; i < 3; i++) {
-            listener.onMessage(aprobada(tenant, UUID.randomUUID().toString()));
+            Topics.deliver(listener::onMessage, aprobada(tenant, UUID.randomUUID().toString()));
         }
 
         assertThat(runWorker(tenant)).isEqualTo(3);
@@ -58,7 +60,7 @@ class CircuitBreakerIntegrationTest extends AbstractIntegrationTest {
 
         // Otro tenant hacia el mismo host tampoco le pega mientras el breaker esta abierto.
         String other = tenantFor(CB_HOST);
-        listener.onMessage(aprobada(other, UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(other, UUID.randomUUID().toString()));
         assertThat(runWorker(other)).isEqualTo(1);
         assertThat(receiver.count()).isEqualTo(2);
         assertThat(deliveries(other).get(0).get("attempts")).isEqualTo(0);
@@ -69,7 +71,7 @@ class CircuitBreakerIntegrationTest extends AbstractIntegrationTest {
     void unHostSanoNoSeVeAfectadoPorElBreakerDeOtro() throws Exception {
         dns.map("sano.banco.test", "127.0.0.1");
         String tenant = tenantFor("sano.banco.test");
-        listener.onMessage(aprobada(tenant, UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(tenant, UUID.randomUUID().toString()));
         assertThat(runWorker(tenant)).isEqualTo(1);
         assertThat(deliveries(tenant).get(0).get("status")).isEqualTo("ENTREGADO");
     }

@@ -1,5 +1,7 @@
 package com.idp.review;
 
+import com.idp.testsupport.Topics;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -101,7 +103,7 @@ class ReviewHardeningIntegrationTest extends AbstractReviewIntegrationTest {
         ObjectNode n = (ObjectNode) JSON.readTree(requiereRevision(tenant, UUID.randomUUID().toString(),
                 UUID.randomUUID().toString(), taskId.toString()));
         n.put("blindSample", true);
-        listener.onMessage(n.toString());
+        Topics.deliver(listener::onMessage, n.toString());
 
         JsonNode asReviewer = body(getAs("ana", path(taskId, "")));
         JsonNode listed = body(getAs("ana", "/v1/review/tasks?status=PENDING")).path("content").get(0);

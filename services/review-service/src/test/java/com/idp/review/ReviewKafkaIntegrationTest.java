@@ -44,7 +44,6 @@ import org.testcontainers.kafka.KafkaContainer;
     "spring.kafka.security.protocol=PLAINTEXT",
     "idp.review.relay.enabled=true",
     "idp.review.relay.interval=200ms",
-    "idp.topic=dominio.review-it",
     "idp.tenants=" + ReviewKafkaIntegrationTest.TENANT
 })
 @AutoConfigureMockMvc
@@ -52,7 +51,9 @@ import org.testcontainers.kafka.KafkaContainer;
 class ReviewKafkaIntegrationTest {
 
     static final String TENANT = "6f1c3b0e-8d2a-4c57-9a43-2b7e5d9f1a10";
-    private static final String TOPIC = "dominio.review-it";
+    /** requiere_revision llega por extraccion.eventos; revision.completada se publica en revision.eventos. */
+    private static final String IN_TOPIC = "extraccion.eventos";
+    private static final String OUT_TOPIC = "revision.eventos";
 
     @Container
     static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka-native:3.8.0");
@@ -100,7 +101,7 @@ class ReviewKafkaIntegrationTest {
                 ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class,
                 ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(cfg)) {
-            consumer.subscribe(List.of(TOPIC));
+            consumer.subscribe(List.of(OUT_TOPIC));
             List<JsonNode> found = new ArrayList<>();
             await().atMost(Duration.ofSeconds(45)).until(() -> {
                 for (ConsumerRecord<String, String> r : consumer.poll(Duration.ofMillis(500))) {
@@ -124,7 +125,7 @@ class ReviewKafkaIntegrationTest {
         UUID taskId = UUID.randomUUID();
         UUID documentId = UUID.randomUUID();
 
-        kafka.send(TOPIC, documentId.toString(), requiereRevision(documentId, taskId)).get();
+        kafka.send(IN_TOPIC, documentId.toString(), requiereRevision(documentId, taskId)).get();
         await().atMost(Duration.ofSeconds(45)).until(() -> taskRows(taskId) == 1);
 
         mvc.perform(post("/v1/review/tasks/" + taskId + "/corrections")

@@ -238,7 +238,7 @@ public class DeliveryWorker {
      */
     private void secretUnavailable(WebhookDelivery d, TenantPolicy policy, RuntimeException e) {
         Attempt a = new Attempt(WebhookDispatcher.Kind.PERMANENT, null, SECRET_UNAVAILABLE,
-            FailureReason.ENDPOINT_UNREACHABLE, 0);
+            FailureReason.SECRET_UNAVAILABLE, 0);
         tx.executeWithoutResult(status -> record(d, policy, a));
         meters.counter("webhook.secret.unavailable", "tenant", d.tenantId().toString()).increment();
         LOG.error("SECURITY_ALERT webhook con secreto no disponible tenant={} webhook={} causa={}", d.tenantId(),
@@ -360,6 +360,7 @@ public class DeliveryWorker {
             case SSRF_BLOCKED -> "ssrf_blocked";
             case CONNECTION_TIMEOUT -> "timeout";
             case ENDPOINT_UNREACHABLE -> "unreachable";
+            case SECRET_UNAVAILABLE -> "secret_unavailable";
             case HTTP_ERROR_THRESHOLD_EXCEEDED -> "http_error";
         };
     }

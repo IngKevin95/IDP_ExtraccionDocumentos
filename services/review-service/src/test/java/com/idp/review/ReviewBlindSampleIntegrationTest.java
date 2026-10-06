@@ -1,5 +1,7 @@
 package com.idp.review;
 
+import com.idp.testsupport.Topics;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -48,7 +50,7 @@ class ReviewBlindSampleIntegrationTest extends AbstractReviewIntegrationTest {
     private UUID blindTask(UUID documentId, FieldCandidate... modelOutput) {
         UUID sampleId = UUID.randomUUID();
         fields.programApproved(documentId, modelOutput);
-        listener.onMessage(muestraCiega(tenant, documentId, sampleId));
+        Topics.deliver(listener::onMessage, muestraCiega(tenant, documentId, sampleId));
         return sampleId;
     }
 
@@ -83,9 +85,9 @@ class ReviewBlindSampleIntegrationTest extends AbstractReviewIntegrationTest {
         fields.programApproved(doc, modelField("monto", "1000"));
         String first = muestraCiega(tenant, doc, sampleId);
 
-        listener.onMessage(first);
-        listener.onMessage(first);
-        listener.onMessage(muestraCiega(tenant, doc, sampleId));
+        Topics.deliver(listener::onMessage, first);
+        Topics.deliver(listener::onMessage, first);
+        Topics.deliver(listener::onMessage, muestraCiega(tenant, doc, sampleId));
 
         assertThat(count("select count(*) from review_task")).isEqualTo(1);
         assertThat(count("select count(*) from review_field")).isEqualTo(1);
@@ -93,7 +95,7 @@ class ReviewBlindSampleIntegrationTest extends AbstractReviewIntegrationTest {
 
     @Test
     void acB1_sinCamposExtraidosNoSeCreaTarea() {
-        listener.onMessage(muestraCiega(tenant, UUID.randomUUID(), UUID.randomUUID()));
+        Topics.deliver(listener::onMessage, muestraCiega(tenant, UUID.randomUUID(), UUID.randomUUID()));
 
         assertThat(count("select count(*) from review_task")).isZero();
     }
@@ -103,7 +105,7 @@ class ReviewBlindSampleIntegrationTest extends AbstractReviewIntegrationTest {
         ObjectNode n = (ObjectNode) JSON.readTree(muestraCiega(tenant, UUID.randomUUID(), UUID.randomUUID()));
         n.remove("sampleId");
 
-        assertThatThrownBy(() -> listener.onMessage(n.toString())).isInstanceOf(EventValidationException.class);
+        assertThatThrownBy(() -> Topics.deliver(listener::onMessage, n.toString())).isInstanceOf(EventValidationException.class);
         assertThat(count("select count(*) from review_task")).isZero();
     }
 
@@ -241,7 +243,7 @@ class ReviewBlindSampleIntegrationTest extends AbstractReviewIntegrationTest {
         reviewer("beto");
         UUID doc = UUID.randomUUID();
         UUID normalTask = UUID.randomUUID();
-        listener.onMessage(requiereRevision(tenant, UUID.randomUUID().toString(), doc.toString(),
+        Topics.deliver(listener::onMessage, requiereRevision(tenant, UUID.randomUUID().toString(), doc.toString(),
                 normalTask.toString()));
         postJson("ana", path(normalTask, "/corrections"), "[{\"fieldName\":\"direccion\",\"correctedValue\":\"x\"}]");
         assertThat(status(post("ana", path(normalTask, "/approve")))).isEqualTo(200);
@@ -260,7 +262,7 @@ class ReviewBlindSampleIntegrationTest extends AbstractReviewIntegrationTest {
         UUID doc = UUID.randomUUID();
         fields.uploadedBy(doc, "ana");
         UUID normalTask = UUID.randomUUID();
-        listener.onMessage(requiereRevision(tenant, UUID.randomUUID().toString(), doc.toString(),
+        Topics.deliver(listener::onMessage, requiereRevision(tenant, UUID.randomUUID().toString(), doc.toString(),
                 normalTask.toString()));
 
         assertThat(status(post("ana", path(normalTask, "/claim")))).isEqualTo(200);

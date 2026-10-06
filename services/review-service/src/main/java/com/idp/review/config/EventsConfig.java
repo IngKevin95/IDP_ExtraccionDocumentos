@@ -2,6 +2,7 @@ package com.idp.review.config;
 
 import com.idp.events.EventErrorHandlers;
 import com.idp.events.EventSchemaValidator;
+import com.idp.events.EventTopology;
 import com.idp.events.EventSerde;
 import com.idp.events.IdempotentEventConsumer;
 import com.idp.events.JdbcOutboxPublisher;
@@ -15,7 +16,6 @@ import com.idp.tenant.context.TenantDirectory;
 import java.time.Clock;
 import java.time.Duration;
 import javax.sql.DataSource;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,6 +30,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Configuration
 @EnableScheduling
 public class EventsConfig {
+
+    static final String PRODUCER = "review-service";
 
     @Bean
     Clock clock() {
@@ -47,13 +49,20 @@ public class EventsConfig {
     }
 
     @Bean
+    com.idp.events.EventOriginGuard eventOriginGuard(
+            org.springframework.beans.factory.ObjectProvider<io.micrometer.core.instrument.MeterRegistry> registry) {
+        return new com.idp.events.EventOriginGuard(com.idp.events.EventTopology.defaults(),
+                registry.getIfAvailable());
+    }
+
+    @Bean
     OutboxRepository outboxRepository(JdbcTemplate jdbc) {
         return new OutboxRepository(jdbc);
     }
 
     @Bean
     OutboxPublisher outboxPublisher(OutboxRepository repo, EventSchemaValidator validator, EventSerde serde) {
-        return new JdbcOutboxPublisher(repo, validator, serde);
+        return new JdbcOutboxPublisher(repo, validator, serde, EventTopology.defaults(), PRODUCER);
     }
 
     @Bean
@@ -76,10 +85,9 @@ public class EventsConfig {
     @Bean
     @ConditionalOnProperty(value = "idp.review.relay.enabled", matchIfMissing = true)
     OutboxRelayJob outboxRelayJob(TenantOutboxAccess access, KafkaTemplate<String, String> kafka,
-                                  @Value("${idp.topic:dominio.documentos}") String topic,
                                   TenantDirectory tenants) {
-        OutboxRelay relay = new OutboxRelay(access, tenants::activeTenants, kafka,
-                eventType -> topic, 100, Duration.ofSeconds(10));
+        OutboxRelay relay = new OutboxRelay(access, tenants::activeTenants, kafka, EventTopology.defaults(),
+                PRODUCER, 100, Duration.ofSeconds(10));
         return new OutboxRelayJob(relay);
     }
 

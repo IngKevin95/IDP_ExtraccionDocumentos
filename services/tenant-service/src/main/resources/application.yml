@@ -48,7 +48,6 @@ idp:
       alert-threshold-percent: 80
   outbox:
     relay-enabled: ${OUTBOX_RELAY_ENABLED:true}
-    topic: ${OUTBOX_TOPIC:idp.tenant.events}
     interval-ms: 1000
 
 management:

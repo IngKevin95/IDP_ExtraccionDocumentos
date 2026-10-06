@@ -31,7 +31,7 @@
 * **Validación:** Testcontainers + Wiremock (AC-06).
 
 **T-07: Consumidor Kafka Idempotente (`extraccion.aprobada`)**
-* **Descripción:** Implementar `@KafkaListener` que lee del tópico `dominio.documentos`. Realiza setup del contexto del tenant. Comprueba idempotencia (que el documento no se haya notificado previamente) y dispara la creación del `WebhookDelivery`.
+* **Descripción:** Implementar `@KafkaListener` que lee de `documentos.eventos` y `revision.eventos` (ignora con alerta SECURITY los eventos que no llegan por el tópico de su productor, SEC-052). Realiza setup del contexto del tenant. Comprueba idempotencia (que el documento no se haya notificado previamente) y dispara la creación del `WebhookDelivery`.
 * **Criterio de hecho:** Recepción del evento dispara proceso asíncrono.
 * **Validación:** Prueba de integración con Kafka embebido (AC-02, AC-07).
 

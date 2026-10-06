@@ -19,8 +19,6 @@ spring:
 
 idp:
   audit:
-    topics: dominio.documentos,auditoria.eventos
-    alerts-topic: auditoria.eventos
     signing-key-id: audit-signing
     anchor:
       job-enabled: false

@@ -163,8 +163,9 @@ public class InfraConfig {
     /** acceso.revocado purga la cache de roles de este servicio (H10). */
     @Bean
     com.idp.security.AccesoRevocadoKafkaListener accesoRevocadoListener(CachingRoleAssignmentVerifier verifier,
-                                                                         com.idp.events.EventSerde serde) {
-        return new com.idp.security.AccesoRevocadoKafkaListener(verifier, serde);
+                                                                         com.idp.events.EventSerde serde,
+            com.idp.events.EventOriginGuard guard) {
+        return new com.idp.security.AccesoRevocadoKafkaListener(verifier, serde, guard);
     }
 
     @Bean

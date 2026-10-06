@@ -51,9 +51,8 @@ idp:
     audience: ${IDP_JWT_AUDIENCE:quality-service}
     dev-mode: ${IDP_DEV_MODE:false}
 quality:
-  kafka:
-    topic: ${QUALITY_KAFKA_TOPIC:dominio.documentos}
-  # Relay del outbox (calidad.muestra_ciega_solicitada) hacia el topico de dominio.
+  # Topicos de consumo y de publicacion: por defecto los que dicta contracts/events/topology.yaml (EventTopology).
+  # Relay del outbox (calidad.muestra_ciega_solicitada) hacia calidad.eventos.
   relay:
     enabled: true
     interval: 1s

@@ -7,7 +7,7 @@ Fecha: 2026-10-05
 `quality-service` decide el muestreo ciego de los oficios auto-aprobados (`AUTO_STP`) al consumir `extraccion.aprobada`, pero ningún camino enviaba esos oficios a revisión humana: sin esa revisión no existe la medición del error real de lo auto-aprobado (KPI de error silente, `docs/producto.md`; fiabilidad AC-04). El documento ya está en estado `APROBADO` y su resultado ya pudo notificarse al integrador, así que la revisión no puede reabrir el flujo normal de HITL.
 
 ## Decisión
-- Nuevo evento `calidad.muestra_ciega_solicitada.v1` (`documentId`, `tenantId`, `typology`, `sampleId`, sin PII). Lo publica `quality-service`, único productor, por outbox en la misma transacción que registra la selección, en `dominio.documentos` (clave `documentId`; no se crea un tópico dedicado porque el volumen es bajo y la topología y las ACL de dominio ya cubren a ambos servicios).
+- Nuevo evento `calidad.muestra_ciega_solicitada.v1` (`documentId`, `tenantId`, `typology`, `sampleId`, sin PII). Lo publica `quality-service`, único productor, por outbox en la misma transacción que registra la selección, en `calidad.eventos` (clave `documentId`). Originalmente se publicaba en `dominio.documentos`; el ADR 0029 lo reemplazó por un tópico por productor (Write exclusivo) para impedir que otro servicio forzara muestras ciegas.
 - Como `quality-service` no tiene silo por tenant, su outbox vive en la base de control (esquema `quality`); se reutiliza `OutboxRelay` con un `TenantOutboxAccess` que ignora el tenant. Es una excepción acotada al patrón de outbox por silo de `docs/arquitectura.md` §5.
 - `review-service` lo consume y crea una tarea ciega (`blind_sample=true`, id = `sampleId`) con todos los campos de la última extracción. No toca el estado del documento. Sin extracción disponible no crea tarea.
 - El revisor ve el recorte de página y los campos a completar; `confidence` y `originalValue` se enmascaran y el original que se compara es siempre el guardado. La comparación (transcrito vs. extraído) la hace `review-service`, que ya posee ambos valores; el evento `revision.completada` solo lleva nombre y tipo de la diferencia con `blindSample=true`. `quality-service` cuenta un desacuerdo como error silente.
@@ -18,7 +18,7 @@ Fecha: 2026-10-05
 - Que `extraction-service` fuerce HITL antes de aprobar: contradice AUTO_STP, retrasa al cliente y mide un documento ya intervenido por humanos, no el error silente.
 - Que `quality-service` consulte y compare valores: exigiría acceso a datos extraídos (PII) y rompe SEC-050 y el aislamiento de quality (SEC-035).
 - Reutilizar `extraccion.requiere_revision` con `blindSample`: ese evento hace que `document-service` mueva el documento a `EN_REVISION`; el campo ya existe en el schema pero no debe emitirse para documentos aprobados.
-- Tópico dedicado `calidad.eventos`: más topología y ACL sin beneficio al volumen esperado.
+- Tópico dedicado `calidad.eventos`: descartado inicialmente por volumen; adoptado en el ADR 0029 por integridad de origen.
 
 ## Consecuencias
 - Positivas: el KPI de error silente pasa a alimentarse de revisiones reales; sin PII en Kafka; sin tocar el flujo de aprobación.

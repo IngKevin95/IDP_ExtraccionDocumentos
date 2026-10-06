@@ -1,5 +1,7 @@
 package com.idp.quality;
 
+import com.idp.testsupport.Topics;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -131,6 +133,6 @@ class QualityIngestionTest extends AbstractQualityTest {
 
     @Test
     void eventosAjenosSeIgnoranSinValidarlos() {
-        consumer.onMessage("{\"eventType\":\"documento.recibido\",\"schemaVersion\":1}");
+        Topics.deliver(consumer::onMessage, "{\"eventType\":\"documento.recibido\",\"schemaVersion\":1}");
     }
 }

@@ -93,10 +93,13 @@ class QualityKafkaPostgresIntegrationTest {
         blind.putArray("correctedFields").addObject().put("field", "radicado").put("correctionType", "FORMATO");
 
         String key = tenant.toString();
-        kafka.send("dominio.documentos", key, stp.toString()).get();
-        kafka.send("dominio.documentos", key, stp.toString()).get(); // reentrega del mismo eventId
-        kafka.send("dominio.documentos", key, review.toString()).get();
-        kafka.send("dominio.documentos", key, blind.toString()).get();
+        kafka.send("documentos.eventos", key, stp.toString()).get();
+        kafka.send("documentos.eventos", key, stp.toString()).get(); // reentrega del mismo eventId
+        kafka.send("revision.eventos", key, review.toString()).get();
+        kafka.send("revision.eventos", key, blind.toString()).get();
+        // SEC-052: una aprobacion publicada por el topico de otro productor se ignora (no cuenta).
+        kafka.send("revision.eventos", key, event("extraccion.aprobada", tenant, now).put("approvedBy", "AUTO_STP")
+            .put("typology", "EC").toString()).get();
 
         awaitTotal(tenant, 3); // 1 aprobada + 1 hitl + 1 muestra ciega
         Thread.sleep(1000); // margen para detectar un doble conteo de la reentrega

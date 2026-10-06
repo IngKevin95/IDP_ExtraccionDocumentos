@@ -43,6 +43,17 @@ public final class OutboxRelay {
         this.sendTimeout = sendTimeout;
     }
 
+    /**
+     * Relay de un servicio productor: cada evento va al topico que dicta {@link EventTopology} (por eventType). Un
+     * eventType que el servicio no produce falla de forma explicita (la fila queda FAILED y no se publica).
+     */
+    public OutboxRelay(TenantOutboxAccess access, Supplier<Collection<String>> tenantIds,
+                       KafkaTemplate<String, String> kafka, EventTopology topology, String producerService,
+                       int batchSize, Duration sendTimeout) {
+        this(access, tenantIds, kafka, eventType -> topology.allowedTopicFor(producerService, eventType),
+            batchSize, sendTimeout);
+    }
+
     /** Topic por defecto: el eventType. */
     public OutboxRelay(TenantOutboxAccess access, Supplier<Collection<String>> tenantIds,
                        KafkaTemplate<String, String> kafka) {

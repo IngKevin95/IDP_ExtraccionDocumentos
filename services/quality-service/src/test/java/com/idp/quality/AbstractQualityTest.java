@@ -1,5 +1,7 @@
 package com.idp.quality;
 
+import com.idp.testsupport.Topics;
+
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -88,7 +90,7 @@ public abstract class AbstractQualityTest {
     }
 
     protected void send(ObjectNode event) {
-        consumer.onMessage(event.toString());
+        Topics.deliver(consumer::onMessage, event.toString());
     }
 
     protected int countRows(String sql, Object... args) {

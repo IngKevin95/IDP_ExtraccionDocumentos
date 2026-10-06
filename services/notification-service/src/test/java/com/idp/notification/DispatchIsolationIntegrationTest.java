@@ -1,5 +1,7 @@
 package com.idp.notification;
 
+import com.idp.testsupport.Topics;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.idp.notification.support.TestReceiver;
@@ -48,9 +50,9 @@ class DispatchIsolationIntegrationTest extends AbstractIntegrationTest {
             createWebhook(SLOW, "http://lento.banco.test:" + slow.port() + "/h", "extraccion.aprobada");
             createWebhook(FAST, "http://rapido.banco.test:" + receiver.port() + "/h", "extraccion.aprobada");
             for (int i = 0; i < 3; i++) {
-                listener.onMessage(aprobada(SLOW, UUID.randomUUID().toString()));
+                Topics.deliver(listener::onMessage, aprobada(SLOW, UUID.randomUUID().toString()));
             }
-            listener.onMessage(aprobada(FAST, UUID.randomUUID().toString()));
+            Topics.deliver(listener::onMessage, aprobada(FAST, UUID.randomUUID().toString()));
 
             long t0 = System.nanoTime();
             int queued = worker.runAll();

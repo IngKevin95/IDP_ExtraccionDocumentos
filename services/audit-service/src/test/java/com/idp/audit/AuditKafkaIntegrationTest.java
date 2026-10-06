@@ -20,7 +20,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 /**
- * Consumo real desde dominio.documentos y auditoria.eventos con consumer group propio (AC-01, AC-05):
+ * Consumo real desde todos los topicos de la topologia con consumer group propio (AC-01, AC-05):
  * la secuencia la asigna la ingesta, no el offset. Se omite sin Docker; corre en CI.
  */
 @Testcontainers(disabledWithoutDocker = true)
@@ -47,6 +47,11 @@ class AuditKafkaIntegrationTest extends AuditTestSupport {
     @Autowired KafkaTemplate<String, String> kafka;
     @Autowired AuditVerificationService verification;
 
+    /** Publica por el topico que la topologia asigna al eventType (lo que haria su productor). */
+    private void send(EventEnvelope e) throws Exception {
+        send(com.idp.events.EventTopology.defaults().topicFor(e.eventType()), e);
+    }
+
     private void send(String topic, EventEnvelope e) throws Exception {
         kafka.send(topic, e.tenantId().toString(), SERDE.toJson(e)).get();
     }
@@ -64,13 +69,18 @@ class AuditKafkaIntegrationTest extends AuditTestSupport {
         UUID a = newTenant();
         UUID b = newTenant();
         UUID doc = UUID.randomUUID();
-        send("dominio.documentos", recibida(a, doc));
-        send("dominio.documentos", aprobada(a, doc));
-        send("auditoria.eventos", breakGlass(a));
-        send("dominio.documentos", recibida(b, UUID.randomUUID()));
+        send(recibida(a, doc));
+        send(aprobada(a, doc));
+        send(breakGlass(a));
+        send(recibida(b, UUID.randomUUID()));
+        // SEC-052: eventos por un topico que no es el de su productor se ignoran (no entran a la cadena).
+        send("auditoria.eventos", aprobada(b, UUID.randomUUID()));
+        send("revision.eventos", recibida(b, UUID.randomUUID()));
 
         awaitEntries(a, 3);
         awaitEntries(b, 1);
+        Thread.sleep(1000); // margen para detectar que los eventos suplantados no se ingieren
+        assertEquals(1, countEntries(b));
         assertTrue(verification.verify(a, null, null).isChainIntact());
         assertTrue(verification.verify(b, null, null).isChainIntact());
     }

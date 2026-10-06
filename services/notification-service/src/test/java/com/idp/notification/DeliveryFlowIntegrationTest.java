@@ -1,5 +1,7 @@
 package com.idp.notification;
 
+import com.idp.testsupport.Topics;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -76,7 +78,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     void ac02_eventoAprobadoSeFirmaSeEnviaComoClaimCheckYPublicaWebhookEntregado() throws Exception {
         Setup s = setup();
         UUID doc = UUID.randomUUID();
-        listener.onMessage(aprobada(s.tenant(), doc.toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), doc.toString()));
         assertThat(deliveries(s.tenant())).hasSize(1);
         assertThat(status(s.tenant())).isEqualTo("PENDIENTE");
 
@@ -118,10 +120,10 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     @Test
     void ac08_eventosPublicadosSoloLlevanIdentificadoresYContadoresSinPii() throws Exception {
         Setup s = setup();
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         runWorker(s.tenant());
         receiver.otherwise(r -> Reply.status(400));
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         runWorker(s.tenant());
 
         JsonNode entregado = outbox(s.tenant(), "webhook.entregado").get(0);
@@ -143,7 +145,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     void ac05_laCabeceraDeTimestampAvanzaConElRelojPeroElIdYElCuerpoSonEstablesEnReintentos() throws Exception {
         Setup s = setup();
         receiver.reply(Reply.status(503), Reply.status(200));
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         runWorker(s.tenant());
         clock.advance(Duration.ofSeconds(30));
         runWorker(s.tenant());
@@ -162,7 +164,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     void ac06_cincoRespuestas503ConBackoffExponencialTerminanEnFallidoYPublicanWebhookFallido() throws Exception {
         Setup s = setup();
         receiver.otherwise(r -> Reply.status(503));
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
 
         long[] expectedWaits = {30, 60, 120, 240};
         for (int attempt = 1; attempt <= 4; attempt++) {
@@ -200,7 +202,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     void ac06_siElReceptorSeRecuperaLaEntregaTerminaEntregadaConElNumeroDeIntentos() throws Exception {
         Setup s = setup();
         receiver.reply(Reply.status(503), Reply.status(500), Reply.status(200));
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         runWorker(s.tenant());
         clock.advance(Duration.ofSeconds(30));
         runWorker(s.tenant());
@@ -217,7 +219,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     void ac06_errores429Y408SonReintentablesPeroLos4xxDelReceptorNo() throws Exception {
         Setup s = setup();
         receiver.reply(Reply.status(429), Reply.status(408), Reply.status(200));
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         runWorker(s.tenant());
         clock.advance(Duration.ofSeconds(30));
         runWorker(s.tenant());
@@ -230,7 +232,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
             TestReceiver own = new TestReceiver().reply(Reply.status(code));
             try {
                 jdbcSetUrl(t.tenant(), "http://" + HOST + ":" + own.port() + "/webhook");
-                listener.onMessage(aprobada(t.tenant(), UUID.randomUUID().toString()));
+                Topics.deliver(listener::onMessage, aprobada(t.tenant(), UUID.randomUUID().toString()));
                 assertThat(runWorker(t.tenant())).isEqualTo(1);
                 assertThat(status(t.tenant())).as("HTTP %d", code).isEqualTo("FALLIDO");
                 assertThat(deliveries(t.tenant()).get(0).get("attempts")).isEqualTo(1);
@@ -249,7 +251,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     void ac05_unRedirectNoSeSigueYSeTrataComoFalloDefinitivoSinTocarElDestinoDelRedirect() throws Exception {
         Setup s = setup();
         receiver.reply(Reply.redirect("/otra-ruta"));
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         runWorker(s.tenant());
         assertThat(receiver.received()).extracting(TestReceiver.Received::path).containsExactly("/webhook");
         assertThat(status(s.tenant())).isEqualTo("FALLIDO");
@@ -265,7 +267,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
             closedPort = ss.getLocalPort();
         }
         createWebhook(tenant, "http://" + HOST + ":" + closedPort + "/webhook", "extraccion.aprobada");
-        listener.onMessage(aprobada(tenant, UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(tenant, UUID.randomUUID().toString()));
         runWorker(tenant);
         assertThat(status(tenant)).isEqualTo("PENDIENTE");
         clock.advance(Duration.ofSeconds(30));
@@ -283,8 +285,8 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
         Setup def = setup();
         receiver.otherwise(r -> Reply.status(503));
 
-        listener.onMessage(aprobada(a, UUID.randomUUID().toString()));
-        listener.onMessage(aprobada(def.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(a, UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(def.tenant(), UUID.randomUUID().toString()));
         runWorker(a);
         runWorker(def.tenant());
         assertThat(Duration.between(clock.instant(), instantOf(deliveries(a).get(0).get("next_attempt_at"))))
@@ -320,7 +322,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
                 .path("id").asText();
             mvc.perform(delete("/v1/webhooks/" + bajaId).with(token(tenant, "admin"))).andReturn();
 
-            listener.onMessage(aprobada(tenant, UUID.randomUUID().toString()));
+            Topics.deliver(listener::onMessage, aprobada(tenant, UUID.randomUUID().toString()));
             assertThat(deliveries(tenant)).hasSize(1);
             assertThat(deliveries(tenant).get(0).get("webhook_id").toString()).isEqualTo(aprobadas.path("id").asText());
             runWorker(tenant);
@@ -341,7 +343,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
         try {
             JsonNode w1 = createWebhook(tenant, hookUrl(), "extraccion.aprobada");
             JsonNode w2 = createWebhook(tenant, "http://" + HOST + ":" + second.port() + "/two", "extraccion.aprobada");
-            listener.onMessage(aprobada(tenant, UUID.randomUUID().toString()));
+            Topics.deliver(listener::onMessage, aprobada(tenant, UUID.randomUUID().toString()));
             assertThat(runWorker(tenant)).isEqualTo(2);
             TestReceiver.Received r1 = receiver.received().get(0);
             TestReceiver.Received r2 = second.received().get(0);
@@ -365,11 +367,11 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     void ac13_elMismoEventoEntregadoDosVecesNoDuplicaLaEntrega() throws Exception {
         Setup s = setup();
         String event = aprobada(s.tenant(), UUID.randomUUID().toString());
-        listener.onMessage(event);
-        listener.onMessage(event);
+        Topics.deliver(listener::onMessage, event);
+        Topics.deliver(listener::onMessage, event);
         assertThat(deliveries(s.tenant())).hasSize(1);
         runWorker(s.tenant());
-        listener.onMessage(event);
+        Topics.deliver(listener::onMessage, event);
         assertThat(deliveries(s.tenant())).hasSize(1);
         assertThat(receiver.count()).isEqualTo(1);
         assertThat(inTenant(s.tenant(), () -> jdbc.queryForObject("select count(*) from processed_event", Integer.class)))
@@ -380,20 +382,20 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     void ac13_dosEventosDistintosDelMismoDocumentoSonDosEntregas() throws Exception {
         Setup s = setup("extraccion.aprobada", "revision.completada");
         UUID doc = UUID.randomUUID();
-        listener.onMessage(aprobada(s.tenant(), doc.toString()));
-        listener.onMessage(aprobada(s.tenant(), doc.toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), doc.toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), doc.toString()));
         assertThat(deliveries(s.tenant())).hasSize(2);
     }
 
     @Test
     void ac13_eventosFueraDeContratoOAjenosNoGeneranEntregas() throws Exception {
         Setup s = setup();
-        listener.onMessage(event("documento.recibido", s.tenant(), UUID.randomUUID().toString(), "hashSha256", "x"));
+        Topics.deliver(listener::onMessage, event("documento.recibido", s.tenant(), UUID.randomUUID().toString(), "hashSha256", "x"));
         assertThat(deliveries(s.tenant())).isEmpty();
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> listener.onMessage("no es json"))
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> Topics.deliver(listener::onMessage, "no es json"))
             .isInstanceOf(com.idp.events.EventValidationException.class);
         // approvedBy invalido: viola el schema y va al DLT del consumidor (no reintentable).
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> listener.onMessage(
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> Topics.deliver(listener::onMessage, 
             event("extraccion.aprobada", s.tenant(), UUID.randomUUID().toString(), "approvedBy", "NADIE")))
             .isInstanceOf(com.idp.events.EventValidationException.class);
         assertThat(deliveries(s.tenant())).isEmpty();
@@ -406,9 +408,9 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
         Setup s = setup("revision.completada", "documento.rechazado");
         UUID d1 = UUID.randomUUID();
         UUID d2 = UUID.randomUUID();
-        listener.onMessage(event("revision.completada", s.tenant(), d1.toString(), "taskId",
+        Topics.deliver(listener::onMessage, event("revision.completada", s.tenant(), d1.toString(), "taskId",
             UUID.randomUUID().toString(), "action", "APROBADO", "reviewerId", "revisor-1"));
-        listener.onMessage(event("documento.rechazado", s.tenant(), d2.toString(), "reasonCode", "MALWARE_DETECTED"));
+        Topics.deliver(listener::onMessage, event("documento.rechazado", s.tenant(), d2.toString(), "reasonCode", "MALWARE_DETECTED"));
         assertThat(runWorker(s.tenant())).isEqualTo(2);
 
         JsonNode revision = bodyOf("revision.completada");
@@ -430,7 +432,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
                 "taskId", UUID.randomUUID().toString(), "action", "APROBADO", "reviewerId", "revisor-1"));
         blind.put("blindSample", true);
 
-        listener.onMessage(blind.toString());
+        Topics.deliver(listener::onMessage, blind.toString());
 
         assertThat(deliveries(s.tenant())).isEmpty();
     }
@@ -446,7 +448,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
         try {
             createWebhook(b, "http://" + HOST + ":" + receiverB.port() + "/b", "extraccion.aprobada");
 
-            listener.onMessage(aprobada(a.tenant(), UUID.randomUUID().toString()));
+            Topics.deliver(listener::onMessage, aprobada(a.tenant(), UUID.randomUUID().toString()));
             runWorker(a.tenant());
             runWorker(b);
 
@@ -469,7 +471,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     void ac07_elOutboxYLaIdempotenciaSeGuardanEnElSiloDelTenantDelEvento() throws Exception {
         Setup a = setup();
         Setup b = setup();
-        listener.onMessage(aprobada(a.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(a.tenant(), UUID.randomUUID().toString()));
         assertThat(inTenant(a.tenant(), () -> jdbc.queryForObject("select count(*) from processed_event", Integer.class)))
             .isEqualTo(1);
         assertThat(inTenant(b.tenant(), () -> jdbc.queryForObject("select count(*) from processed_event", Integer.class)))
@@ -484,7 +486,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
         String fresh = json(mvc.perform(post("/v1/webhooks/" + s.webhookId() + "/secret/rotate")
             .with(token(s.tenant(), "admin"))).andReturn()).path("secret").asText();
 
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         runWorker(s.tenant());
         TestReceiver.Received during = receiver.received().get(0);
         long ts = Long.parseLong(during.header("X-Hub-Timestamp"));
@@ -497,7 +499,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
 
         mvc.perform(delete("/v1/webhooks/" + s.webhookId() + "/secret/previous").with(token(s.tenant(), "admin")))
             .andReturn();
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         runWorker(s.tenant());
         TestReceiver.Received after = receiver.received().get(1);
         long ts2 = Long.parseLong(after.header("X-Hub-Timestamp"));
@@ -514,7 +516,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
         String fresh = json(mvc.perform(post("/v1/webhooks/" + s.webhookId() + "/secret/rotate")
             .with(token(s.tenant(), "admin"))).andReturn()).path("secret").asText();
         clock.advance(Duration.ofDays(8));
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         runWorker(s.tenant());
         TestReceiver.Received r = receiver.received().get(0);
         assertThat(r.header("X-Hub-Signature-256").split(",")).hasSize(1);
@@ -526,7 +528,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     void ac09_unaEntregaPendienteUsaLosSecretosVigentesAlMomentoDelIntento() throws Exception {
         Setup s = setup();
         receiver.reply(Reply.status(503), Reply.status(200));
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         runWorker(s.tenant());
         String fresh = json(mvc.perform(post("/v1/webhooks/" + s.webhookId() + "/secret/rotate")
             .with(token(s.tenant(), "admin"))).andReturn()).path("secret").asText();
@@ -544,7 +546,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     void ac12_lasEntregasFallidasQuedanEnDltYSePuedenReintentarAManoConHistorial() throws Exception {
         Setup s = setup();
         receiver.reply(Reply.status(400));
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         runWorker(s.tenant());
         assertThat(status(s.tenant())).isEqualTo("FALLIDO");
         String deliveryId = deliveries(s.tenant()).get(0).get("id").toString();
@@ -585,11 +587,11 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     void ac12_historialPaginadoYFiltradoPorEstadoSoloDelTenantYWebhook() throws Exception {
         Setup s = setup();
         for (int i = 0; i < 3; i++) {
-            listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+            Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         }
         runWorker(s.tenant());
         receiver.otherwise(r -> Reply.status(400));
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         runWorker(s.tenant());
 
         JsonNode all = json(mvc.perform(get("/v1/webhooks/" + s.webhookId() + "/deliveries?limit=3")
@@ -614,7 +616,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
         Setup a = setup();
         Setup other = setup();
         receiver.reply(Reply.status(400));
-        listener.onMessage(aprobada(a.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(a.tenant(), UUID.randomUUID().toString()));
         runWorker(a.tenant());
         String deliveryId = deliveries(a.tenant()).get(0).get("id").toString();
         // Otro tenant (con su propio webhook) no la ve ni la reintenta.
@@ -634,7 +636,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     @Test
     void entregaPendienteDeUnWebhookDadoDeBajaSeCancelaSinEnviar() throws Exception {
         Setup s = setup();
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         mvc.perform(delete("/v1/webhooks/" + s.webhookId()).with(token(s.tenant(), "admin"))).andReturn();
         runWorker(s.tenant());
         assertThat(status(s.tenant())).isEqualTo("CANCELADO");
@@ -645,7 +647,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     @Test
     void elArrendamientoEvitaDobleEnvioYSeLiberaSiElProcesoMuere() throws Exception {
         Setup s = setup();
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         // Otra instancia reclamo la entrega y murio antes de enviar.
         var claimed = inTenant(s.tenant(), () -> new org.springframework.transaction.support.TransactionTemplate(
             new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()))
@@ -663,7 +665,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     @Test
     void siLaKekDelTenantFueDestruidaNoSeEnviaNadaYLaEntregaPasaAFallidoConSecretUnavailable() throws Exception {
         Setup s = setup();
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         ((InMemoryKeyService) keys).disableKek(new TenantId(s.tenant()), "webhooks");
         assertThat(runWorker(s.tenant())).isEqualTo(1);
         assertThat(receiver.count()).isZero();
@@ -671,6 +673,8 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
         assertThat(deliveries(s.tenant()).get(0).get("error_code")).isEqualTo("SECRET_UNAVAILABLE");
         assertThat(deliveries(s.tenant()).get(0).get("attempts")).isEqualTo(1);
         assertThat(outbox(s.tenant(), "webhook.fallido")).hasSize(1);
+        assertThat(outbox(s.tenant(), "webhook.fallido").get(0).path("reasonCode").asText())
+            .isEqualTo("SECRET_UNAVAILABLE");
         // No reaparece en el ciclo siguiente.
         clock.advance(Duration.ofMinutes(10));
         assertThat(runWorker(s.tenant())).isZero();
@@ -680,7 +684,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     void elLoteLimitaCuantasEntregasSeReclamanPorPasada() throws Exception {
         Setup s = setup();
         for (int i = 0; i < 12; i++) {
-            listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+            Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         }
         assertThat(runWorker(s.tenant())).isEqualTo(10);
         assertThat(runWorker(s.tenant())).isEqualTo(2);
@@ -698,7 +702,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     @Test
     void cambiosDePoliticaAplicanAEntregasPendientes() throws Exception {
         Setup s = setup();
-        listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
+        Topics.deliver(listener::onMessage, aprobada(s.tenant(), UUID.randomUUID().toString()));
         // El tenant retira el host de la allowlist antes del envio: la entrega se bloquea al despachar.
         allowHosts(s.tenant(), "otro.banco.test");
         runWorker(s.tenant());

@@ -7,7 +7,6 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 /** Configuracion externa de quality-service. Los secretos (semilla del muestreo) llegan por entorno. */
 @ConfigurationProperties(prefix = "quality")
 public record QualityProperties(
-    @DefaultValue Kafka kafka,
     @DefaultValue BlindSampling blindSampling,
     @DefaultValue Drift drift,
     @DefaultValue Performance performance,
@@ -16,9 +15,6 @@ public record QualityProperties(
     @DefaultValue Runner runner,
     @DefaultValue Scheduler scheduler,
     @DefaultValue("") String currentModelPrompt) {
-
-    public record Kafka(@DefaultValue("dominio.documentos") String topic) {
-    }
 
     /** {@code rate}: fraccion de auto-aprobados a revision ciega (0 a 1); {@code rateByTypology} la sobreescribe. */
     public record BlindSampling(@DefaultValue("0.02") double rate, @DefaultValue("") String seed,

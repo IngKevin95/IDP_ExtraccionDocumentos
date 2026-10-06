@@ -13,7 +13,6 @@ public record ExtractionProperties(
     @DefaultValue Llm llm,
     @DefaultValue Storage storage,
     @DefaultValue Registry registry,
-    @DefaultValue Kafka kafka,
     @DefaultValue Calibration calibration,
     @DefaultValue Relay relay,
     @DefaultValue Db db,
@@ -37,10 +36,6 @@ public record ExtractionProperties(
     }
 
     public record Registry(@DefaultValue("ai-registry") String signingKeyId) {
-    }
-
-    public record Kafka(@DefaultValue("dominio.documentos") String commandTopic,
-                        @DefaultValue("dominio.documentos") String domainTopic) {
     }
 
     /** {@code resource}: JSON de la curva isotonica (file: o classpath:); vacio = calibracion identidad. */

@@ -31,12 +31,12 @@ Gestionar las suscripciones de webhooks por tenant y orquestar la notificación 
 ## 5. Contrato
 * **API REST:** `contracts/openapi/notification-service.yaml` (Rutas bajo `/v1/webhooks`)
 * **Eventos Consumidos:**
-  * `extraccion.aprobada` (desde `dominio.documentos`)
-  * `documento.rechazado` (desde `dominio.documentos`)
-  * `revision.completada` (desde `dominio.documentos`; se notifica solo el resultado `APROBADO`/`RECHAZADO`, nunca revisor ni tarea)
+  * `extraccion.aprobada` (desde `documentos.eventos`)
+  * `documento.rechazado` (desde `documentos.eventos`)
+  * `revision.completada` (desde `revision.eventos`; se notifica solo el resultado `APROBADO`/`RECHAZADO`, nunca revisor ni tarea)
 * **Eventos Publicados:**
-  * `webhook.entregado` (hacia `dominio.documentos` mediante outbox)
-  * `webhook.fallido` (hacia `dominio.documentos` mediante outbox)
+  * `webhook.entregado` (hacia `notificaciones.eventos` mediante outbox)
+  * `webhook.fallido` (hacia `notificaciones.eventos` mediante outbox; `reasonCode` `SECRET_UNAVAILABLE` cuando el secreto no se puede descifrar)
   * Referencia: `contracts/events/webhook.entregado.v1.schema.json`, `contracts/events/webhook.fallido.v1.schema.json`.
 
 ## 6. Modelo de Datos
@@ -92,7 +92,7 @@ La persistencia reside en la base de datos lógica o física por tenant (aislada
 * **Then** el `AbstractRoutingDataSource` selecciona el silo de A, lee la suscripción de A, envía el webhook de A e ignora completamente la configuración de B.
 
 **AC-08: Ausencia de PII en eventos publicados (SEC-050)**
-* **Given** que se publica el evento `webhook.entregado` al tópico `dominio.documentos`
+* **Given** que se publica el evento `webhook.entregado` al tópico `notificaciones.eventos`
 * **When** el auditor revisa el JSON enviado
 * **Then** se verifica que solo contiene `webhookId`, `documentId`, `tenantId`, sin datos extraídos de la persona.
 

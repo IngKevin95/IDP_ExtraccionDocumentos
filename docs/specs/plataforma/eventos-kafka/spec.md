@@ -15,9 +15,11 @@ RNF-105 (resiliencia basada en eventos, consumidores idempotentes), RF-601 (traz
 2. Todo evento debe publicarse primero en la tabla outbox de la transaccion de negocio.
 3. Los consumidores deben ser idempotentes basandose en el correlationId o eventId.
 4. Fallos en el consumo tras los reintentos permitidos iran a una Dead Letter Topic (DLT).
+5. Un topico por productor o familia (ADR 0029): cada eventType pertenece a un unico topico y solo sus productores declarados en `contracts/events/topology.yaml` tienen `Write` sobre el (unica excepcion: `auditoria.eventos`, senales). Los productores resuelven el topico con `EventTopology`; publicar un eventType ajeno falla de forma explicita.
+6. Todo consumidor valida que el eventType llego por el topico que la topologia le asigna; si no, ignora el evento, cuenta `idp.events.origin.rejected` y registra una alerta SECURITY sin payload.
 
 ## Contrato
-Eventos publicados: Esquemas JSON en `contracts/events/` con formato de sobre comun (eventId, eventType, occurredAt, tenantId, correlationId, payload).
+Eventos publicados: Esquemas JSON en `contracts/events/` con formato de sobre comun (eventId, eventType, occurredAt, tenantId, correlationId, payload). Topologia (eventType, topico, productores, clave): `contracts/events/topology.yaml`.
 
 ## Modelo de datos
 Base de datos de tenant: Tabla `outbox_events` (id, event_type, payload, status, created_at).
@@ -26,6 +28,7 @@ Base de datos de control: Tabla `consumed_events` para control de idempotencia (
 ## Controles de seguridad
 SEC-050 Patron Claim-Check para evitar filtracion de PII en topics de Kafka.
 SEC-014 Cifrado en tránsito (TLS) y autenticación mTLS de los KafkaUser de Strimzi con los brokers.
+SEC-052 Integridad de origen de eventos: Write exclusivo por topico y validacion del topico de origen en cada consumidor.
 
 ## Escenarios de aceptacion
 
@@ -76,3 +79,20 @@ Metricas: Lag del consumidor, tasa de reintentos, mensajes enviados a DLT, tiemp
 ## Dependencias
 Cluster de Apache Kafka.
 Base de datos relacional para tabla Outbox.
+
+### AC-09 Topico por productor (SEC-052)
+Given la topologia `contracts/events/topology.yaml`
+When un relay u outbox de un servicio intenta publicar un eventType que ese servicio no produce
+Then falla de forma explicita y no se publica; y cada eventType publicado va al topico que dicta la topologia.
+Test: `EventTopologyTest`, `OutboxRelayTest` (sec052_*), `JdbcOutboxPublisherTest`.
+
+### AC-10 Validacion de origen en el consumidor (SEC-052)
+Given un consumidor que recibe un evento cuyo eventType llego por un topico distinto al asignado por la topologia
+When procesa el mensaje
+Then lo ignora, incrementa `idp.events.origin.rejected` y registra una alerta SECURITY sin payload; el estado no cambia.
+Test: `DocumentFlowIntegrationTest` (revision.completada por topico ajeno no aprueba el documento), `AuditKafkaIntegrationTest`, `QualityKafkaPostgresIntegrationTest`, `ExtractionKafkaListenerTest`, `RevocationListenersTest`.
+
+### AC-11 ACL de Kafka coherentes con la topologia (SEC-052)
+Given `users.yaml`, `topics.yaml` y la topologia
+When corre `tools/ci/check_kafka_topics.py` en CI
+Then cada servicio escribe exactamente los topicos de sus eventTypes productores (mas los `*-dlt` de los que consume), lee los que escucha, y el script falla al romper cualquiera de esas reglas (`--self-test`).

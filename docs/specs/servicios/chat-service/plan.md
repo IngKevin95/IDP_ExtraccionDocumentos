@@ -31,7 +31,7 @@ El servicio residirá en el directorio `services/chat-service`.
 * `PromptInjectionDetector`: Interfaz con implementación basada en heurística y/o un modelo LLM pequeño de clasificación, antes del procesamiento RAG.
 
 ## 4. Configuración Spring
-* `application.yml`: Configuración de base de CNPG, pool Hikari (dinámico vía OpenBao), tópicos de Kafka (`dominio.documentos`, `auditoria.eventos`), configuraciones base de Spring AI.
+* `application.yml`: Configuración de base de CNPG, pool Hikari (dinámico vía OpenBao), tópicos de Kafka (escribe solo `auditoria.eventos`; consumirá `documentos.eventos` para `extraccion.aprobada`), configuraciones base de Spring AI.
 * `KafkaConsumerConfig`: Factory para consumers idempotentes con offsets manuales (ack local tras commit DB).
 * `SecurityConfig`: Integración con `security-lib` para validar JWT, tenant y extraer claims (MDC logger).
 

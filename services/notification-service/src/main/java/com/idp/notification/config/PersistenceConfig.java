@@ -69,8 +69,9 @@ public class PersistenceConfig {
     /** tenant.baja_iniciada / rotacion de credenciales desalojan el pool con drenado. */
     @Bean
     com.idp.security.TenantPoolEvictionKafkaListener tenantPoolEvictionListener(TenantDataSourceRouter router,
-                                                                              com.idp.events.EventSerde serde) {
-        return new com.idp.security.TenantPoolEvictionKafkaListener(router, serde);
+                                                                              com.idp.events.EventSerde serde,
+            com.idp.events.EventOriginGuard guard) {
+        return new com.idp.security.TenantPoolEvictionKafkaListener(router, serde, guard);
     }
 
     @Bean
