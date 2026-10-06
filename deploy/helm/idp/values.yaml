@@ -86,6 +86,11 @@ global:
         name: idp-worm-credentials
         remoteKey: idp/audit-worm
         properties: {ACCESS_KEY_ID: access_key_id, SECRET_ACCESS_KEY: secret_access_key}
+      # Clave del proveedor LLM del chat-service (API compatible con OpenAI); solo hace falta si provider != none.
+      llm:
+        name: idp-llm-credentials
+        remoteKey: idp/chat-llm
+        properties: {apiKey: api_key}
 
 edgeGateway:
   enabled: true
@@ -185,6 +190,15 @@ chatService:
   image:
     repository: ghcr.io/ingkevin95/idp_extracciondocumentos/chat-service
     tag: ""
+  # Proveedor de IA del chat (SEC-049): modelos fijados por version (nunca alias "latest"), registrados por respuesta.
+  # provider "none" = fallo cerrado (el chat responde 503 hasta configurar uno); "openai" = API compatible con OpenAI
+  # (endpoint opcional para gateways/vLLM/Ollama). La clave sale del Secret global.platform.secrets.llm.
+  llm:
+    provider: none
+    model: gpt-4o-mini-2024-07-18
+    embeddingModel: text-embedding-3-small
+    fallbackModel: ""
+    endpoint: ""
   resources:
     requests:
       cpu: "100m"

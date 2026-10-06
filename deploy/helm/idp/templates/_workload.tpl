@@ -101,6 +101,25 @@ Argumento: dict "root" <contexto raiz> "key" <clave del servicio en values> "val
 {{- $vols = append $vols (dict "name" "renderer-tls" "secret" (dict "secretName" $p.renderer.serverTlsSecret "defaultMode" 288)) -}}
 {{- $mounts = append $mounts (dict "name" "renderer-tls" "mountPath" "/etc/idp/tls" "readOnly" true) -}}
 {{- end -}}
+{{- /* chat-service: proveedor de IA (fallo cerrado: provider "none" = el chat responde 503), modelos fijados por version
+       y clave del proveedor siempre desde Secret (opcional: sin clave y con provider "none" el pod arranca igual). */ -}}
+{{- if eq $app "chat-service" -}}
+{{- $llm := .values.llm | default dict -}}
+{{- $env = append $env (dict "name" "CHAT_AI_PROVIDER" "value" ($llm.provider | default "none")) -}}
+{{- if $llm.model -}}
+{{- $env = append $env (dict "name" "CHAT_LLM_MODEL" "value" $llm.model) -}}
+{{- end -}}
+{{- if $llm.embeddingModel -}}
+{{- $env = append $env (dict "name" "CHAT_EMBEDDING_MODEL" "value" $llm.embeddingModel) -}}
+{{- end -}}
+{{- if $llm.fallbackModel -}}
+{{- $env = append $env (dict "name" "CHAT_LLM_FALLBACK_MODEL" "value" $llm.fallbackModel) -}}
+{{- end -}}
+{{- if $llm.endpoint -}}
+{{- $env = append $env (dict "name" "SPRING_AI_OPENAI_BASE_URL" "value" $llm.endpoint) -}}
+{{- end -}}
+{{- $env = append $env (dict "name" "SPRING_AI_OPENAI_API_KEY" "valueFrom" (dict "secretKeyRef" (dict "name" $s.llm.name "key" "apiKey" "optional" true))) -}}
+{{- end -}}
 {{- /* dev-mode solo con global.devMode=true (unicamente values-local.yaml; lo verifica tools/ci/check_dev_mode.sh) */ -}}
 {{- if $g.devMode -}}
 {{- $env = append $env (dict "name" "IDP_SECURITY_DEV_MODE" "value" "true") -}}

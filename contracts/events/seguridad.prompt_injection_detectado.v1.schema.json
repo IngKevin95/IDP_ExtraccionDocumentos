@@ -53,6 +53,20 @@
     "sessionId": {
       "type": "string",
       "format": "uuid"
+    },
+    "ruleId": {
+      "type": "string",
+      "description": "Regla del clasificador que disparo (codigo fijo, nunca el texto detectado). Aditivo, opcional.",
+      "enum": [
+        "ignore_instructions",
+        "ignore_previous",
+        "reveal_prompt",
+        "system_prompt",
+        "role_override",
+        "jailbreak",
+        "bypass_controls",
+        "chat_template_marker"
+      ]
     }
   },
   "additionalProperties": false

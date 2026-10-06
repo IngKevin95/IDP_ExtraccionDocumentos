@@ -38,9 +38,14 @@
 ## T-08: Controladores REST y Manejo de Errores
 * **Descripción:** Crear `ChatController` para `POST /v1/chat/sessions` y `POST /v1/chat/sessions/{sessionId}/messages`. Implementar validación de propiedad de sesión (asegurar que el JWT actual coincide con el `user_id` de la sesión). Agregar `ControllerAdvice` para devolver la taxonomía de errores del banco.
 * **Criterio de hecho:** API expone endpoints según contrato OpenAPI. Seguridad rechaza accesos cruzados.
-* **Validación:** Test MVC mockeando UseCases, validando HTTP 200, HTTP 403 para usuarios incorrectos (valida AC-05, SEC-004).
+* **Validación:** Test MVC mockeando UseCases, validando HTTP 200, HTTP 404 uniforme para usuarios incorrectos (valida AC-05, SEC-004, SEC-003).
 
 ## T-09: Integración de Autorización (Middleware)
 * **Descripción:** Configurar `SecurityConfig` usando `libs/security-lib` para extraer contexto del tenant y validar que el usuario tenga acceso al documento específico previo a crear la sesión.
 * **Criterio de hecho:** Un JWT válido pero sin rol/acceso al recurso es bloqueado tempranamente (403).
 * **Validación:** Test E2E de seguridad de endpoints (valida AC-08 y SEC-007).
+
+## T-10: Endurecimiento tras la auditoría de F6 (SEC-048, SEC-049, SEC-022, SEC-015, SEC-030, SEC-054)
+* **Descripción:** (a) `GroundingVerifier` verifica cifras, montos (dígitos o letras), fechas y monedas del texto libre contra citas y fragmento citado (`FactTokens`), cita mínima de 16 caracteres; (b) caché semántica a >= 0.995 con hash de pregunta normalizada o firma de tokens significativos, sesión activa y documento vigente; (c) `ResilientLlm` (timeout real, bulkhead por tenant, failover) y `ChatLimiter` (tasa por usuario y tenant, tope diario de tokens en `chat_token_usage`) antes del embedding, con caché de embeddings por hash; (d) migración V2 con `model`, `prompt_version`, `config_hash`, tokens y señal `chat.respuesta_emitida`; (e) consumidor idempotente de `documento.purgado` y triggers que admiten solo esa purga; (f) cifrado en reposo con el sobre del tenant (`ContentCipher`); (g) `OutputSanitizer`; (h) 404 uniforme de sesión y `ruleId` en la señal de prompt injection.
+* **Criterio de hecho:** AC-09 a AC-15 cubiertos por tests; `check_kafka_topics.py` y su `--self-test` en OK.
+* **Validación:** `GroundingVerifierTest`, `FactTokensTest`, `OutputSanitizerTest`, `ResilientLlmTest`, `ChatHardeningIntegrationTest`, `ChatLimitsIntegrationTest` (Postgres y Kafka reales con Testcontainers).

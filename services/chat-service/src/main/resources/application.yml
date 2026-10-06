@@ -7,6 +7,15 @@ spring:
     # El silo de cada tenant se migra con TenantSchemaMigrator (aprovisionamiento o idp.chat.migrate-on-startup).
     enabled: false
   ai:
+    # Modelos fijados explicitamente (SEC-049): nada de alias "latest"; salen de idp.chat.llm.* y se registran por
+    # respuesta. Endpoint y clave del proveedor: SPRING_AI_OPENAI_BASE_URL y SPRING_AI_OPENAI_API_KEY (secreto).
+    openai:
+      chat:
+        options:
+          model: ${idp.chat.llm.model}
+      embedding:
+        options:
+          model: ${idp.chat.llm.embedding-model}
     model:
       # Seleccione el proveedor por despliegue (openai = compatible con OpenAI). Sin proveedor el chat falla cerrado.
       chat: ${CHAT_AI_PROVIDER:none}
@@ -68,9 +77,27 @@ idp:
     top-k: 5
     # Similitud coseno minima (1 - distancia) para considerar un fragmento relevante; bajo el umbral hay abstencion.
     min-similarity: 0.30
-    # Similitud coseno minima para servir una respuesta desde cache semantica.
-    cache-similarity: 0.98
+    # Similitud coseno minima para servir una respuesta desde cache semantica (ademas de misma pregunta normalizada
+    # o mismos tokens significativos: cifras, identificadores y nombres propios).
+    cache-similarity: 0.995
     max-message-chars: 1000
+    llm:
+      # Version de modelo fijada por despliegue (CHAT_LLM_MODEL / CHAT_EMBEDDING_MODEL). El embedding debe producir
+      # embedding-dimension dimensiones. fallback-model (opcional): failover cuando el principal falla o vence el timeout.
+      model: ${CHAT_LLM_MODEL:gpt-4o-mini-2024-07-18}
+      embedding-model: ${CHAT_EMBEDDING_MODEL:text-embedding-3-small}
+      fallback-model: ${CHAT_LLM_FALLBACK_MODEL:}
+      # Concurrencia maxima hacia el LLM por tenant; saturado = 503 con Retry-After.
+      bulkhead-max-concurrent: 4
+      bulkhead-max-wait: 0s
+      retry-after: 5s
+      embedding-cache-size: 1000
+    limits:
+      # Peticiones por minuto por (tenant, usuario) y por tenant; 429 con Retry-After.
+      user-per-minute: 20
+      tenant-per-minute: 300
+      # Tope diario de tokens del LLM por tenant (dia UTC, contado en el silo); 429 CHAT_QUOTA_EXCEEDED. <= 0 lo apaga.
+      daily-tokens: 2000000
     migrate-on-startup: false
     relay:
       enabled: true

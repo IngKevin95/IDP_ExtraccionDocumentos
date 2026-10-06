@@ -2,6 +2,7 @@ package com.idp.chat.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.idp.chat.service.Exceptions;
 import com.idp.chat.service.Exceptions.PromptInjectionException;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -30,5 +31,36 @@ class GlobalExceptionHandlerTest {
         assertThat(r.getStatusCode().value()).isEqualTo(400);
         assertThat(r.getBody().code()).isEqualTo("SEC-033-PROMPT-INJECTION");
         assertThat(r.getBody().incidentId()).isEqualTo(incident);
+    }
+
+    @Test
+    void limiteDeTasaYCuotaDan429ConRetryAfter() {
+        var rate = handler.rateLimited(new Exceptions.RateLimitedException(Exceptions.RateLimitedException.RATE, 42));
+        assertThat(rate.getStatusCode().value()).isEqualTo(429);
+        assertThat(rate.getHeaders().getFirst("Retry-After")).isEqualTo("42");
+        assertThat(rate.getBody().code()).isEqualTo("CHAT_RATE_LIMITED");
+
+        var quota = handler.rateLimited(new Exceptions.RateLimitedException(Exceptions.RateLimitedException.QUOTA, 0));
+        assertThat(quota.getBody().code()).isEqualTo("CHAT_QUOTA_EXCEEDED");
+        assertThat(quota.getHeaders().getFirst("Retry-After")).isEqualTo("1");
+    }
+
+    @Test
+    void saturacionDelBulkheadDa503ConRetryAfter() {
+        var r = handler.capacity(new Exceptions.CapacityExceededException(7));
+
+        assertThat(r.getStatusCode().value()).isEqualTo(503);
+        assertThat(r.getHeaders().getFirst("Retry-After")).isEqualTo("7");
+        assertThat(r.getBody().code()).isEqualTo("CHAT_AI_BUSY");
+    }
+
+    @Test
+    void contenidoIlegibleDa410SinDetalles() {
+        var r = handler.contentUnavailable(new Exceptions.ContentUnavailableException(
+                new IllegalStateException("kek=secreto")));
+
+        assertThat(r.getStatusCode().value()).isEqualTo(410);
+        assertThat(r.getBody().code()).isEqualTo("CHAT_CONTENT_UNAVAILABLE");
+        assertThat(r.getBody().message()).doesNotContain("secreto");
     }
 }

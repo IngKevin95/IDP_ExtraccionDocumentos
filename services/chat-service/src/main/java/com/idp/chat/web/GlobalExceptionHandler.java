@@ -1,16 +1,20 @@
 package com.idp.chat.web;
 
 import com.idp.chat.service.Exceptions.AccessDeniedException;
+import com.idp.chat.service.Exceptions.CapacityExceededException;
+import com.idp.chat.service.Exceptions.ContentUnavailableException;
 import com.idp.chat.service.Exceptions.DocumentNotFoundException;
 import com.idp.chat.service.Exceptions.InvalidRequestException;
 import com.idp.chat.service.Exceptions.LlmUnavailableException;
 import com.idp.chat.service.Exceptions.PromptInjectionException;
+import com.idp.chat.service.Exceptions.RateLimitedException;
 import com.idp.chat.service.Exceptions.SessionNotFoundException;
 import com.idp.chat.service.Exceptions.UnauthenticatedException;
 import com.idp.chat.web.ChatDtos.ErrorResponse;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -60,6 +64,29 @@ public class GlobalExceptionHandler {
         LOG.error("Proveedor de IA no disponible: {}", e.getMessage());
         return body(HttpStatus.SERVICE_UNAVAILABLE, "CHAT_AI_UNAVAILABLE",
                 "El servicio de IA no está disponible, reintente.");
+    }
+
+    @ExceptionHandler(RateLimitedException.class)
+    ResponseEntity<ErrorResponse> rateLimited(RateLimitedException e) {
+        boolean quota = RateLimitedException.QUOTA.equals(e.code());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, Long.toString(e.retryAfterSeconds()))
+                .body(ErrorResponse.of(e.code(), quota ? "Cuota diaria de consultas agotada, reintente mas tarde."
+                        : "Demasiadas solicitudes, reintente."));
+    }
+
+    @ExceptionHandler(CapacityExceededException.class)
+    ResponseEntity<ErrorResponse> capacity(CapacityExceededException e) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header(HttpHeaders.RETRY_AFTER, Long.toString(e.retryAfterSeconds()))
+                .body(ErrorResponse.of("CHAT_AI_BUSY", "El servicio de IA esta saturado, reintente."));
+    }
+
+    @ExceptionHandler(ContentUnavailableException.class)
+    ResponseEntity<ErrorResponse> contentUnavailable(ContentUnavailableException e) {
+        LOG.error("Contenido cifrado ilegible: {}", e.getCause() == null ? "ausente"
+                : e.getCause().getClass().getSimpleName());
+        return body(HttpStatus.GONE, "CHAT_CONTENT_UNAVAILABLE", "El contenido ya no esta disponible.");
     }
 
     @ExceptionHandler(Exception.class)

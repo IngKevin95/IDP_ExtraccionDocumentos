@@ -101,12 +101,12 @@ graph TD
 
 ### 2.7 `chat-service`
 - **Responsabilidad:** RAG, pgvector, citación verificable. Abstención obligatoria ante información insuficiente. Búsqueda exacta por `document_id`.
-- **Datos:** `chat_session`, `chunk`, `citation`.
-- **API:** `POST /chat/{sessionId}/message`.
-- **Eventos:** Consume `extraccion.aprobada`. Publica `chat.respuesta_bloqueada`, `chat.respuesta_desde_cache`, `seguridad.prompt_injection_detectado`.
+- **Datos:** `chat_session`, `chunk`, `citation`, `chat_message`, `chat_token_usage`. El texto de fragmentos, mensajes y citas se guarda cifrado con el sobre del tenant (`*_enc`, bytea); los embeddings van en claro (riesgo residual en SEC-015).
+- **API:** `POST /v1/chat/sessions`, `POST /v1/chat/sessions/{sessionId}/messages`. Errores: 404 uniforme (sesión inexistente o ajena), 410 con la KEK destruida, 429 con `Retry-After` (tasa y cuota diaria de tokens por tenant), 503 con `Retry-After` (bulkhead del LLM saturado).
+- **Eventos:** Consume `extraccion.aprobada` (indexa) y `documento.purgado` (purga fragmentos, mensajes, citas y caché del documento, SEC-022) de `document.events`. Publica `chat.respuesta_bloqueada`, `chat.respuesta_desde_cache`, `chat.respuesta_emitida` (ANSWERED/ABSTAINED, con modelo, versión de prompt, `configHash` y tokens) y `seguridad.prompt_injection_detectado` (con `ruleId`).
 - **Privilegios:** Lectura documentos y credenciales LLM.
-- **Escalado:** Horizontal. Bulkhead por tenant.
-- **Controles SEC:** SEC-001, SEC-004, SEC-007, SEC-031, SEC-033, SEC-038, SEC-048, SEC-050.
+- **Escalado:** Horizontal. Bulkhead por tenant hacia el LLM, timeout real y failover opcional al modelo secundario; límites de tasa por (tenant, usuario) y por tenant.
+- **Controles SEC:** SEC-001, SEC-003, SEC-004, SEC-007, SEC-015, SEC-022, SEC-030, SEC-031, SEC-033, SEC-036, SEC-038, SEC-048, SEC-049, SEC-050, SEC-054.
 
 ### 2.8 `notification-service`
 - **Responsabilidad:** Webhooks HMAC seguros, reintentos DLT, validación anti-SSRF rigurosa (bloqueo RFC1918, loopback, CGNAT, metadata; DNS pinning; redirects deshabilitados).
@@ -183,6 +183,7 @@ Cada eventType pertenece a un único tópico y a un productor (o a una familia d
 | `webhook.fallido` | Evento | `notification.events` | `notification-service` | `webhookId`, `documentId`, `motivo` |
 | `chat.respuesta_bloqueada` | Evento | `audit.signals` | `chat-service` | `sessionId`, `tenantId` |
 | `chat.respuesta_desde_cache`| Evento | `audit.signals` | `chat-service` | `sessionId`, `tenantId` |
+| `chat.respuesta_emitida` | Evento | `audit.signals` | `chat-service` | `sessionId`, `messageId`, `outcome`, `model`, `promptVersion`, `configHash`, `tokensIn`, `tokensOut` (solo UUID, huellas y versiones; nunca contenido) |
 | `consumo.registrado` | Evento | `audit.control` | `tenant-service` (cuotas), `extraction-service` (tokens y documentos extraídos) | `tenantId`, `metricName`, `value` |
 | `cuota.umbral_alcanzado` | Evento | `idp.tenant.events` | `tenant-service` | `tenantId`, `porcentaje` |
 

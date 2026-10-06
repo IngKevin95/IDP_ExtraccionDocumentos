@@ -10,6 +10,7 @@ import java.util.List;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.ObjectProvider;
@@ -26,9 +27,16 @@ public final class SpringAiProviders {
 
     public static final class Llm implements LlmProvider {
         private final ObjectProvider<ChatModel> model;
+        private final String modelOverride;
 
         public Llm(ObjectProvider<ChatModel> model) {
+            this(model, null);
+        }
+
+        /** {@code modelOverride}: modelo del mismo proveedor para el failover (vacio o nulo = el configurado). */
+        public Llm(ObjectProvider<ChatModel> model, String modelOverride) {
             this.model = model;
+            this.modelOverride = modelOverride == null || modelOverride.isBlank() ? null : modelOverride;
         }
 
         @Override
@@ -37,7 +45,9 @@ public final class SpringAiProviders {
             if (chat == null) {
                 throw new LlmUnavailableException("Sin proveedor de chat configurado");
             }
-            ChatResponse response = chat.call(new Prompt(UserMessage.builder().text(request.prompt()).build()));
+            UserMessage message = UserMessage.builder().text(request.prompt()).build();
+            ChatResponse response = chat.call(modelOverride == null ? new Prompt(message)
+                    : new Prompt(message, ChatOptions.builder().model(modelOverride).build()));
             var result = response == null ? null : response.getResult();
             if (result == null || result.getOutput() == null) {
                 return new LlmResponse(null, null, null, new LlmResponse.Usage(0, 0));

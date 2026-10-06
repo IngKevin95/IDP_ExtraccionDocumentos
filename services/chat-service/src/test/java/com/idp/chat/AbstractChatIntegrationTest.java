@@ -68,6 +68,8 @@ abstract class AbstractChatIntegrationTest {
     @Autowired TenantKeyResolver keys;
     @Autowired EventSchemaValidator validator;
     @Autowired ChatProperties props;
+    @Autowired com.idp.chat.service.ContentCipher cipher;
+    @Autowired com.idp.kms.KeyService keyService;
 
     String tenant;
 
@@ -178,6 +180,19 @@ abstract class AbstractChatIntegrationTest {
 
     static int status(MvcResult r) {
         return r.getResponse().getStatus();
+    }
+
+    /** Texto en claro de los fragmentos del documento (en la base viven cifrados), de una pagina o de todas. */
+    List<String> chunkTexts(UUID documentId, Integer page) {
+        return inTenant(tenant, () -> jdbc.query("select id, content_enc from chunk where document_id = ? "
+                + (page == null ? "" : "and page_number = " + page) + " order by ordinal",
+                (rs, i) -> cipher.decrypt(tenant, documentId, rs.getObject("id", UUID.class),
+                        com.idp.chat.service.ContentCipher.FIELD_CHUNK, rs.getBytes("content_enc")), documentId));
+    }
+
+    /** Crypto-shredding en pruebas: destruye la KEK de datos del tenant. */
+    void destroyDataKek(String tenantId) {
+        keyService.disableKek(new com.idp.tenant.TenantId(tenantId), keys.resolve(tenantId).dataKekId());
     }
 
     // ---- base de datos del silo --------------------------------------------------------------------------------

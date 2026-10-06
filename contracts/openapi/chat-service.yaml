@@ -39,7 +39,9 @@ paths:
   /v1/chat/sessions/{sessionId}/messages:
     post:
       summary: Enviar un mensaje
-      description: Envía un mensaje a una sesión de chat existente y obtiene la respuesta del modelo con sus citas.
+      description: >-
+        Envía un mensaje a una sesión de chat existente y obtiene la respuesta del modelo con sus citas. Una sesión
+        inexistente y una sesión de otro usuario devuelven el mismo 404.
       operationId: sendMessage
       security:
         - bearerAuth: []
@@ -71,6 +73,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '410':
+          $ref: '#/components/responses/Gone'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
 
 components:
   securitySchemes:
@@ -142,7 +150,10 @@ components:
           example: "assistant"
         content:
           type: string
-          description: Texto de la respuesta. Puede indicar insuficiencia de información.
+          description: >-
+            Texto de la respuesta, SIEMPRE texto plano: sin HTML, imágenes, enlaces ni URLs ajenas a las citas (el
+            servidor los elimina). Los clientes deben mostrarlo como texto, nunca interpretarlo como HTML ni Markdown.
+            Puede indicar insuficiencia de información.
           example: "El monto total embargado es de $1,500,000.00 COP."
         citations:
           type: array
@@ -167,7 +178,9 @@ components:
           example: 1
         exactQuote:
           type: string
-          description: Texto exacto extraído del documento original.
+          description: >-
+            Texto literal extraído del documento original. Es texto plano: el cliente debe escaparlo y nunca
+            interpretarlo como HTML.
           example: "ORDENA EL EMBARGO DE LOS FONDOS POR LA SUMA DE $1,500,000.00"
 
     ErrorResponse:
@@ -208,6 +221,38 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
     NotFound:
       description: Recurso no encontrado (sesión o documento).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Gone:
+      description: El contenido cifrado ya no está disponible (clave del tenant destruida, crypto-shredding).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    TooManyRequests:
+      description: >-
+        Límite de tasa por usuario o por tenant (code CHAT_RATE_LIMITED) o tope diario de tokens del tenant
+        (code CHAT_QUOTA_EXCEEDED). Incluye Retry-After en segundos.
+      headers:
+        Retry-After:
+          description: Segundos hasta poder reintentar.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailable:
+      description: >-
+        Proveedor de IA no disponible o con timeout (code CHAT_AI_UNAVAILABLE) o concurrencia hacia el LLM del tenant
+        saturada (code CHAT_AI_BUSY, con Retry-After).
+      headers:
+        Retry-After:
+          description: Segundos hasta poder reintentar (solo CHAT_AI_BUSY).
+          schema:
+            type: integer
       content:
         application/json:
           schema:

@@ -35,13 +35,12 @@ class IndexingIntegrationTest extends AbstractChatIntegrationTest {
         assertThat(count("select count(*) from chunk where document_id = ? and page_number = 2", doc)).isEqualTo(1);
         assertThat(count("select count(*) from chunk where document_id = ? and page_number = 1", doc))
                 .isEqualTo(chunks - 1);
-        assertThat(count("select count(*) from chunk where document_id = ? and length(content) > 1000", doc)).isZero();
+        assertThat(chunkTexts(doc, null)).allSatisfy(c -> assertThat(c.length()).isLessThanOrEqualTo(1000));
         assertThat(count("select count(distinct ordinal) from chunk where document_id = ?", doc)).isEqualTo(chunks);
         assertThat(count("select count(*) from chunk where document_id = ? and vector_dims(embedding) = 8", doc))
                 .isEqualTo(chunks);
         // Cada fragmento es una subcadena literal de su pagina (las citas se validan contra ese contenido).
-        List<String> contents = inTenant(tenant, () -> jdbc.queryForList(
-                "select content from chunk where document_id = ? and page_number = 1", String.class, doc));
+        List<String> contents = chunkTexts(doc, 1);
         assertThat(contents).allSatisfy(c -> assertThat(p1).contains(c));
         assertThat(count("select count(*) from processed_event")).isEqualTo(1);
     }

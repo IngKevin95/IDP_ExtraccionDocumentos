@@ -60,6 +60,54 @@ public final class Exceptions {
         }
     }
 
+    /** Contenido cifrado ilegible: KEK destruida o deshabilitada (crypto-shredding) o registro sin cifrar (410). */
+    public static class ContentUnavailableException extends RuntimeException {
+        public ContentUnavailableException() {
+            super("Contenido no disponible");
+        }
+
+        public ContentUnavailableException(Throwable cause) {
+            super("Contenido no disponible", cause);
+        }
+    }
+
+    /** Limite de tasa o cuota diaria superado (429). {@code code} distingue tasa de cuota. */
+    public static class RateLimitedException extends RuntimeException {
+        public static final String RATE = "CHAT_RATE_LIMITED";
+        public static final String QUOTA = "CHAT_QUOTA_EXCEEDED";
+
+        private final String code;
+        private final long retryAfterSeconds;
+
+        public RateLimitedException(String code, long retryAfterSeconds) {
+            super("Limite superado");
+            this.code = code;
+            this.retryAfterSeconds = Math.max(1, retryAfterSeconds);
+        }
+
+        public String code() {
+            return code;
+        }
+
+        public long retryAfterSeconds() {
+            return retryAfterSeconds;
+        }
+    }
+
+    /** Concurrencia maxima hacia el LLM del tenant saturada (503 con Retry-After). */
+    public static class CapacityExceededException extends RuntimeException {
+        private final long retryAfterSeconds;
+
+        public CapacityExceededException(long retryAfterSeconds) {
+            super("Capacidad del LLM saturada");
+            this.retryAfterSeconds = Math.max(1, retryAfterSeconds);
+        }
+
+        public long retryAfterSeconds() {
+            return retryAfterSeconds;
+        }
+    }
+
     /** Peticion sin identidad utilizable (401). */
     public static class UnauthenticatedException extends RuntimeException {
         public UnauthenticatedException() {
