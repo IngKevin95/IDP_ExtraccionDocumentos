@@ -208,7 +208,8 @@ metadata:
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
-  # Solo emite senales de seguridad/chat en audit.signals; aun no consume topicos.
+  # Emite senales de seguridad/chat en audit.signals; consume extraccion.aprobada (document.events) para indexar
+  # el documento aprobado y los eventos de tenant (revocacion de acceso, desalojo de pools).
 spec:
   authentication:
     type: tls
@@ -219,6 +220,24 @@ spec:
         operation: Write
       - resource: { type: topic, name: audit.signals, patternType: literal }
         operation: Describe
+      - resource: { type: topic, name: document.events, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: document.events, patternType: literal }
+        operation: Describe
+      - resource: { type: topic, name: document.events-dlt, patternType: literal }
+        operation: Write
+      - resource: { type: topic, name: document.events-dlt, patternType: literal }
+        operation: Describe
+      - resource: { type: group, name: chat-service, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: idp.tenant.events, patternType: literal }
+        operation: Read
+      - resource: { type: topic, name: idp.tenant.events, patternType: literal }
+        operation: Describe
+      - resource: { type: group, name: chat-service-acceso-revocado-, patternType: prefix }
+        operation: Read
+      - resource: { type: group, name: chat-service-pool-evict-, patternType: prefix }
+        operation: Read
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaUser

@@ -3,6 +3,36 @@ server:
 spring:
   application:
     name: chat-service
+  flyway:
+    # El silo de cada tenant se migra con TenantSchemaMigrator (aprovisionamiento o idp.chat.migrate-on-startup).
+    enabled: false
+  ai:
+    model:
+      # Seleccione el proveedor por despliegue (openai = compatible con OpenAI). Sin proveedor el chat falla cerrado.
+      chat: ${CHAT_AI_PROVIDER:none}
+      embedding: ${CHAT_AI_PROVIDER:none}
+      # Solo chat y embeddings; el resto de capacidades de los starters quedan apagadas.
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Obligatorios y sin default: el arranque falla si faltan.
+          jwk-set-uri: ${IDP_JWK_SET_URI}
+          issuer-uri: ${IDP_JWT_ISSUER_URI}
+  kafka:
+    bootstrap-servers: ${IDP_KAFKA_BOOTSTRAP:localhost:9092}
+    security:
+      # mTLS (Strimzi KafkaUser): definir spring.kafka.ssl.bundle (SPRING_KAFKA_SSL_BUNDLE). PLAINTEXT solo con idp.security.dev-mode=true.
+      protocol: ${KAFKA_SECURITY_PROTOCOL:SSL}
+    consumer:
+      group-id: chat-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
 management:
   endpoints:
     web:
@@ -12,3 +42,36 @@ management:
     health:
       probes:
         enabled: true
+  health:
+    db:
+      # El DataSource es enrutado por tenant: sin tenant en contexto no hay conexion que sondear.
+      enabled: false
+idp:
+  security:
+    # Fail closed: solo se habilita explicitamente (pruebas locales), nunca por defecto.
+    dev-mode: false
+    audience: ${IDP_JWT_AUDIENCE:chat-service}
+  tenants: ${IDP_TENANTS:}
+  tenant-db:
+    jdbc-url-template: ${IDP_TENANT_DB_URL:}
+    username: ${IDP_TENANT_DB_USER}
+    password: ${IDP_TENANT_DB_PASSWORD}
+    max-pools: 50
+    pool-size: 5
+  chat:
+    kek-id: documents
+    # Dimension del modelo de embeddings: fija el tipo vector(N) del silo al migrar. Cambiarla exige re-indexar.
+    # HNSW de pgvector admite hasta 2000 dimensiones.
+    embedding-dimension: ${CHAT_EMBEDDING_DIMENSION:1536}
+    chunk-max-chars: 1000
+    chunk-overlap-chars: 150
+    top-k: 5
+    # Similitud coseno minima (1 - distancia) para considerar un fragmento relevante; bajo el umbral hay abstencion.
+    min-similarity: 0.30
+    # Similitud coseno minima para servir una respuesta desde cache semantica.
+    cache-similarity: 0.98
+    max-message-chars: 1000
+    migrate-on-startup: false
+    relay:
+      enabled: true
+      interval: 1s
