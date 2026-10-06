@@ -14,7 +14,7 @@ class MetricsUnitTest {
 
     @Test
     void muestreoCiegoRespetaLaTasaConfigurada() {
-        BlindSampler s = new BlindSampler("semilla", 0.02, Map.of());
+        BlindSampler s = new BlindSampler("semilla", 0.02, Map.of(), true);
         UUID tenant = UUID.randomUUID();
         int n = 50_000;
         int hits = 0;
@@ -29,9 +29,9 @@ class MetricsUnitTest {
     @Test
     void muestreoEsDeterministaPorOficioYDependeDeLaSemilla() {
         UUID tenant = UUID.randomUUID();
-        BlindSampler a = new BlindSampler("semilla-a", 0.5, Map.of());
-        BlindSampler a2 = new BlindSampler("semilla-a", 0.5, Map.of());
-        BlindSampler b = new BlindSampler("semilla-b", 0.5, Map.of());
+        BlindSampler a = new BlindSampler("semilla-a", 0.5, Map.of(), true);
+        BlindSampler a2 = new BlindSampler("semilla-a", 0.5, Map.of(), true);
+        BlindSampler b = new BlindSampler("semilla-b", 0.5, Map.of(), true);
         int differ = 0;
         for (int i = 0; i < 500; i++) {
             UUID doc = UUID.randomUUID();
@@ -44,8 +44,37 @@ class MetricsUnitTest {
     }
 
     @Test
+    void sec051_semillaCortaOVaciaSeRechazaFueraDeDevModeConMuestreoActivo() {
+        String ok = "0123456789abcdef0123456789abcdef";
+        assertThat(new BlindSampler(ok, 0.5, Map.of(), false).rateFor("EC")).isEqualTo(0.5);
+        assertThatThrownBy(() -> new BlindSampler(ok.substring(1), 0.5, Map.of(), false))
+            .isInstanceOf(IllegalStateException.class).hasMessageContaining("32 bytes");
+        assertThatThrownBy(() -> new BlindSampler("", 0.5, Map.of(), false))
+            .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new BlindSampler("", 0.0, Map.of("EC", 0.1), false))
+            .isInstanceOf(IllegalStateException.class);
+        // Sin muestreo activo no se exige semilla.
+        assertThat(new BlindSampler("", 0.0, Map.of(), false).rateFor("EC")).isZero();
+    }
+
+    @Test
+    void sec051_devModeConSemillaVaciaUsaClaveAleatoriaPorArranqueNoFija() {
+        UUID tenant = UUID.randomUUID();
+        BlindSampler a = new BlindSampler("", 0.5, Map.of(), true);
+        BlindSampler b = new BlindSampler("", 0.5, Map.of(), true);
+        int differ = 0;
+        for (int i = 0; i < 500; i++) {
+            UUID doc = UUID.randomUUID();
+            if (a.shouldSample(tenant, doc, "EC") != b.shouldSample(tenant, doc, "EC")) {
+                differ++;
+            }
+        }
+        assertThat(differ).isPositive();
+    }
+
+    @Test
     void tasaPorTipologiaSobreescribeLaGlobalYLosExtremosSonExactos() {
-        BlindSampler s = new BlindSampler("x", 0.0, Map.of("EC", 1.0, "DC", 0.0));
+        BlindSampler s = new BlindSampler("x", 0.0, Map.of("EC", 1.0, "DC", 0.0), true);
         UUID t = UUID.randomUUID();
         for (int i = 0; i < 100; i++) {
             UUID doc = UUID.randomUUID();
@@ -54,8 +83,8 @@ class MetricsUnitTest {
             assertThat(s.shouldSample(t, doc, "EJ")).isFalse();
         }
         assertThat(s.rateFor("EC")).isEqualTo(1.0);
-        assertThatThrownBy(() -> new BlindSampler("x", 1.5, Map.of())).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new BlindSampler("x", 0.1, Map.of("EC", -0.1)))
+        assertThatThrownBy(() -> new BlindSampler("x", 1.5, Map.of(), true)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new BlindSampler("x", 0.1, Map.of("EC", -0.1), true))
             .isInstanceOf(IllegalArgumentException.class);
     }
 

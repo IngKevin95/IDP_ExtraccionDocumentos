@@ -48,6 +48,19 @@ public class GlobalExceptionHandler {
         return body(HttpStatus.BAD_REQUEST, "REVIEW_INVALID_REQUEST", msg);
     }
 
+    @ExceptionHandler(com.idp.review.service.Exceptions.TooManyRequestsException.class)
+    ResponseEntity<ErrorResponse> tooMany(com.idp.review.service.Exceptions.TooManyRequestsException e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", Long.toString(Math.max(1, e.retryAfterSeconds())))
+                .body(ErrorResponse.of("REVIEW_RATE_LIMITED", e.getMessage()));
+    }
+
+    @ExceptionHandler(com.idp.review.service.Exceptions.ServiceBusyException.class)
+    ResponseEntity<ErrorResponse> busy(com.idp.review.service.Exceptions.ServiceBusyException e) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).header("Retry-After", "2")
+                .body(ErrorResponse.of("REVIEW_BUSY", e.getMessage()));
+    }
+
     @ExceptionHandler(ConflictException.class)
     ResponseEntity<ErrorResponse> conflict(ConflictException e) {
         return body(HttpStatus.CONFLICT, e.errorCode(), e.getMessage());

@@ -108,23 +108,34 @@ public class GoldenSetController {
             throws JsonProcessingException {
         Caller c = callers.require(jwt, Roles.DATA_STEWARD);
         JsonNode in = mapper.readTree(raw);
-        String nombre = in.path("nombre").isTextual() ? in.get("nombre").asText() : "";
-        String tipologia = in.path("tipologia").asText("");
-        if (nombre.isBlank() || nombre.length() > 255 || !ReportsController.TIPOLOGIAS.contains(tipologia)) {
+        if (!in.isObject()) {
             throw new IllegalArgumentException("Documento invalido");
         }
-        Map<String, String> truth = GoldenSetLoader.toTruth(in.get("payload_sintetico_json"), "payload");
+        String nombre = in.path("nombre").isTextual() ? in.get("nombre").asText() : "";
+        if (nombre.isBlank() || nombre.length() > 255) {
+            throw new IllegalArgumentException("Documento invalido");
+        }
+        // Misma validacion que el import por archivo: exige "sintetico": true (RN-07). El id es opcional en la API.
+        com.fasterxml.jackson.databind.node.ObjectNode candidate = ((com.fasterxml.jackson.databind.node.ObjectNode)
+            in).deepCopy();
+        if (!candidate.hasNonNull("id")) {
+            candidate.put("id", "api-" + UUID.randomUUID());
+        }
+        GoldenSetLoader.Loaded loaded = new GoldenSetLoader(mapper).parse(candidate, "POST golden-set");
+        String tipologia = loaded.tipologia();
+        if (!ReportsController.TIPOLOGIAS.contains(tipologia)) {
+            throw new IllegalArgumentException("Documento invalido");
+        }
+        Map<String, String> truth = loaded.verdad();
         if (truth.size() > MAX_FIELDS || truth.values().stream().anyMatch(v -> v.length() > MAX_VALUE)) {
             throw new IllegalArgumentException("Payload fuera de limites");
         }
-        List<String> tags = new java.util.ArrayList<>();
-        if (in.path("tags").isArray()) {
-            in.get("tags").forEach(t -> tags.add(t.asText()));
-        }
+        List<String> tags = loaded.tags();
         if (tags.stream().anyMatch(t -> !t.matches("[A-Za-z0-9_.-]{1,40}"))) {
             throw new IllegalArgumentException("Tag invalido");
         }
-        UUID id = repo.save(c.tenantId(), null, nombre, tipologia, tags, truth);
+        UUID id = repo.save(c.tenantId(), null, nombre, tipologia, tags, truth, "API");
+        LOG.info("Oficio sintetico creado por API tenant={} id={}", c.tenantId(), id);
         return ResponseEntity.status(HttpStatus.CREATED).body(new DocumentView(id, nombre, tipologia, tags, truth));
     }
 
@@ -148,7 +159,7 @@ public class GoldenSetController {
         try {
             List<GoldenSetLoader.Loaded> loaded = new GoldenSetLoader(mapper).loadDirectory(Path.of(dir));
             for (GoldenSetLoader.Loaded l : loaded) {
-                repo.save(c.tenantId(), l.externalId(), l.nombre(), l.tipologia(), l.tags(), l.verdad());
+                repo.save(c.tenantId(), l.externalId(), l.nombre(), l.tipologia(), l.tags(), l.verdad(), "IMPORT");
             }
             return new ImportResponse(loaded.size());
         } catch (IOException | IllegalArgumentException e) {

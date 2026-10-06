@@ -1,40 +1,42 @@
 ### Ejemplo dc-02 (oficio sintético, sin datos personales reales)
 --- TEXTO DEL OFICIO ---
-OFICINA DE COBRO COACTIVO - TESORERÍA GENERAL DE CARTAGENA
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+OFICINA DE COBRO COACTIVO - OFICINA DE RENTAS DE CARTAGENA
 
 Cartagena, 1 de junio de 2025
-Oficio No. S-2025-4027741
+Oficio No. S-2025-3615603
 
 Señores
-Banco Andino Sintético S.A.
+Banca Horizonte de Prueba S.A.
 
 Referencia: Desembargo coactivo
-Radicado: 13001710701420226239400
-Resolución No.: RES-2025-930986
-Oficio de embargo original: Oficio 2025-293804 del 14 de marzo de 2025
+Radicado: 13001990601120249312701
+Resolución No.: RES-2025-352019
+Oficio de embargo original: Oficio 2025-930986 del 1 de abril de 2025
 
-La Tesorería General de Cartagena, en ejercicio de la facultad de cobro coactivo, ha ordenado el
+La Oficina de Rentas de Cartagena, en ejercicio de la facultad de cobro coactivo, ha ordenado el
 levantamiento de la medida de embargo comunicada previamente. En consecuencia, sírvase
-desembargar los dineros retenidos, en los siguientes productos: cuentas de ahorro programado, CDT y
-depósitos a término y cuentas de ahorro, de propiedad de las personas relacionadas a continuación,
-por las sumas indicadas.
+desembargar los dineros retenidos, en los siguientes productos: cuentas de ahorro, de propiedad de las
+personas relacionadas a continuación, por las sumas indicadas.
 
 Relación de demandados:
 
 Nombre / Razón social Tipo ID Número ID Monto ($) Productos
 
-Natalia Navarro Navarro CC 69027925 52.505.000 Cuenta de ahorros
+Jorlenia Arcanelo Arcanelo CC 9914060992 52.505.000 Cuenta de ahorros
 
-Andrea Zapata Ibáñez CC 38679772 12.547.000 Cuenta corriente
+Eldemar Mirabeque Lumbrales CC 9923315976 59.425.000 Ahorro programado
 
-Lucía Arango Pardo CC 1187556507 49.861.000 CDT
+Transportes Ficticia Andina S.A. NIT 999313713-1 60.272.000 Cuenta corriente
 
-Lucía Ibáñez Castaño CC 96792691 18.551.000 Fondo de inversión
+Mirtelo Lumbrales Ventureño CC 9906468811 27.927.000 Cuenta corriente
 
-Óscar Salcedo Cifuentes CC 16636670 24.601.000 CDT
+Lunaria Arcanelo Mirabeque CC 9942651945 54.283.000 Cuenta corriente
 
-Valor total a desembargar: $ 158.065.000 (CIENTO CINCUENTA Y OCHO MILLONES
-TRESCIENTOS SESENTA Y CINCO MIL PESOS M/CTE).
+Valor total a desembargar: $ 254.412.000 (DOSCIENTOS CINCUENTA Y CINCO MILLONES
+DOSCIENTOS DOCE MIL PESOS M/CTE).
+Límite de inembargabilidad: $ 6.000.000.
 
 Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
 
@@ -43,61 +45,63 @@ Atentamente,
 ______________________________
 Jefe de la Oficina de Cobro Coactivo
 
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
 DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - dc-02 - pág. 1
 
 --- SALIDA ESPERADA (JSON) ---
 {
   "campos": {
-    "radicado": "13001710701420226239400",
-    "autoridad_emisora": "Oficina de Cobro Coactivo - Tesorería General de Cartagena",
+    "radicado": "13001990601120249312701",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Oficina de Rentas de Cartagena",
     "ciudad": "Cartagena",
     "fecha_oficio": "2025-06-01",
     "tipo_medida": "Desembargo coactivo",
-    "banco_destinatario": "Banco Andino Sintético S.A.",
-    "monto_numeros": "158065000.00",
-    "monto_letras": "CIENTO CINCUENTA Y OCHO MILLONES TRESCIENTOS SESENTA Y CINCO MIL PESOS M/CTE",
-    "limite_inembargabilidad": null,
-    "productos_o_cuentas": "cuentas de ahorro programado, CDT y depósitos a término y cuentas de ahorro",
-    "entidad_coactiva": "Tesorería General de Cartagena",
-    "numero_resolucion": "RES-2025-930986",
-    "referencia_oficio_original": "Oficio 2025-293804 del 14 de marzo de 2025"
+    "banco_destinatario": "Banca Horizonte de Prueba S.A.",
+    "monto_numeros": "254412000.00",
+    "monto_letras": "DOSCIENTOS CINCUENTA Y CINCO MILLONES DOSCIENTOS DOCE MIL PESOS M/CTE",
+    "limite_inembargabilidad": "6000000.00",
+    "productos_o_cuentas": "cuentas de ahorro",
+    "entidad_coactiva": "Oficina de Rentas de Cartagena",
+    "numero_resolucion": "RES-2025-352019",
+    "referencia_oficio_original": "Oficio 2025-930986 del 1 de abril de 2025"
   },
   "tablas": {
     "demandados": [
       {
-        "nombre": "Natalia Navarro Navarro",
+        "nombre": "Jorlenia Arcanelo Arcanelo",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "69027925",
+        "numero_identificacion": "9914060992",
         "monto": "52505000.00",
         "productos": "Cuenta de ahorros"
       },
       {
-        "nombre": "Andrea Zapata Ibáñez",
+        "nombre": "Eldemar Mirabeque Lumbrales",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "38679772",
-        "monto": "12547000.00",
+        "numero_identificacion": "9923315976",
+        "monto": "59425000.00",
+        "productos": "Ahorro programado"
+      },
+      {
+        "nombre": "Transportes Ficticia Andina S.A.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999313713-1",
+        "monto": "60272000.00",
         "productos": "Cuenta corriente"
       },
       {
-        "nombre": "Lucía Arango Pardo",
+        "nombre": "Mirtelo Lumbrales Ventureño",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "1187556507",
-        "monto": "49861000.00",
-        "productos": "CDT"
+        "numero_identificacion": "9906468811",
+        "monto": "27927000.00",
+        "productos": "Cuenta corriente"
       },
       {
-        "nombre": "Lucía Ibáñez Castaño",
+        "nombre": "Lunaria Arcanelo Mirabeque",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "96792691",
-        "monto": "18551000.00",
-        "productos": "Fondo de inversión"
-      },
-      {
-        "nombre": "Óscar Salcedo Cifuentes",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "16636670",
-        "monto": "24601000.00",
-        "productos": "CDT"
+        "numero_identificacion": "9942651945",
+        "monto": "54283000.00",
+        "productos": "Cuenta corriente"
       }
     ]
   }

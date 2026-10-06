@@ -70,12 +70,13 @@ public class ReviewController {
             @RequestParam(value = "size", defaultValue = "20") int size) {
         Caller caller = callers.require(jwt, READERS);
         TaskStatus s = status == null ? null : parse(TaskStatus.class, status, "status");
-        return PageResponse.of(queries.list(caller, s, mine, escalated, page, size), t -> TaskResponse.of(t, clock));
+        return PageResponse.of(queries.list(caller, s, mine, escalated, page, size), t -> TaskResponse.of(t, clock, showBlind(caller)));
     }
 
     @GetMapping("/tasks/{taskId}")
     public TaskResponse get(@AuthenticationPrincipal Jwt jwt, @PathVariable("taskId") UUID taskId) {
-        return TaskResponse.of(queries.get(callers.require(jwt, READERS), taskId), clock);
+        Caller caller = callers.require(jwt, READERS);
+        return TaskResponse.of(queries.get(caller, taskId), clock, showBlind(caller));
     }
 
     @GetMapping("/tasks/{taskId}/fields")
@@ -103,19 +104,22 @@ public class ReviewController {
 
     @PostMapping("/tasks/{taskId}/claim")
     public TaskResponse claim(@AuthenticationPrincipal Jwt jwt, @PathVariable("taskId") UUID taskId) {
-        return TaskResponse.of(tasks.claim(callers.require(jwt, Roles.REVISOR), taskId), clock);
+        Caller caller = callers.require(jwt, Roles.REVISOR);
+        return TaskResponse.of(tasks.claim(caller, taskId), clock, showBlind(caller));
     }
 
     @PostMapping("/tasks/{taskId}/release")
     public TaskResponse release(@AuthenticationPrincipal Jwt jwt, @PathVariable("taskId") UUID taskId) {
-        return TaskResponse.of(tasks.release(callers.require(jwt, Roles.REVISOR), taskId), clock);
+        Caller caller = callers.require(jwt, Roles.REVISOR);
+        return TaskResponse.of(tasks.release(caller, taskId), clock, showBlind(caller));
     }
 
     @PostMapping("/tasks/{taskId}/reassign")
     public TaskResponse reassign(@AuthenticationPrincipal Jwt jwt, @PathVariable("taskId") UUID taskId,
             @RequestBody ReassignRequest body) {
         Caller caller = callers.require(jwt, Roles.TENANT_ADMIN);
-        return TaskResponse.of(tasks.reassign(caller, taskId, body == null ? null : body.assigneeId()), clock);
+        return TaskResponse.of(tasks.reassign(caller, taskId, body == null ? null : body.assigneeId()), clock,
+                showBlind(caller));
     }
 
     // ---- correcciones ----------------------------------------------------------------------------------------
@@ -144,17 +148,20 @@ public class ReviewController {
 
     @PostMapping("/tasks/{taskId}/approve")
     public TaskResponse approve(@AuthenticationPrincipal Jwt jwt, @PathVariable("taskId") UUID taskId) {
-        return TaskResponse.of(tasks.approve(callers.require(jwt, Roles.REVISOR), taskId), clock);
+        Caller caller = callers.require(jwt, Roles.REVISOR);
+        return TaskResponse.of(tasks.approve(caller, taskId), clock, showBlind(caller));
     }
 
     @PostMapping("/tasks/{taskId}/approve-secondary")
     public TaskResponse approveSecondary(@AuthenticationPrincipal Jwt jwt, @PathVariable("taskId") UUID taskId) {
-        return TaskResponse.of(tasks.approveSecondary(callers.require(jwt, Roles.REVISOR), taskId), clock);
+        Caller caller = callers.require(jwt, Roles.REVISOR);
+        return TaskResponse.of(tasks.approveSecondary(caller, taskId), clock, showBlind(caller));
     }
 
     @PostMapping("/tasks/{taskId}/reject")
     public TaskResponse reject(@AuthenticationPrincipal Jwt jwt, @PathVariable("taskId") UUID taskId) {
-        return TaskResponse.of(tasks.reject(callers.require(jwt, Roles.REVISOR), taskId), clock);
+        Caller caller = callers.require(jwt, Roles.REVISOR);
+        return TaskResponse.of(tasks.reject(caller, taskId), clock, showBlind(caller));
     }
 
     // ---- recorte de pagina -----------------------------------------------------------------------------------
@@ -176,6 +183,11 @@ public class ReviewController {
                 .header("X-Content-Type-Options", "nosniff")
                 .header("Content-Disposition", "inline")
                 .body(png);
+    }
+
+    /** blindSample solo se devuelve a roles de gestion (TENANT_ADMIN): el REVISOR no debe saber que la tarea es ciega. */
+    private static boolean showBlind(Caller caller) {
+        return caller.has(Roles.TENANT_ADMIN);
     }
 
     private static <E extends Enum<E>> E parse(Class<E> type, String value, String field) {

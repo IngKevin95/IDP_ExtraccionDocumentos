@@ -1,34 +1,36 @@
-OFICINA DE COBRO COACTIVO - DIRECCIÓN DE IMPUESTOS MUNICIPALES DE
-CALI
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+OFICINA DE COBRO COACTIVO - SECRETARÍA DE HACIENDA DE CALI
 
 Cali, 31 de julio de 2024
-Oficio No. S-2024-4038319
+Oficio No. S-2024-4673372
 
 Señores
-Banco del Pacífico Ficticio S.A.
+Banco Altiplano Sintético S.A.
 
 Referencia: Desembargo coactivo
-Radicado: 76001630101720246598501
-Resolución No.: RES-2024-360385
-Oficio de embargo original: Oficio 2024-270620 del 30 de abril de 2024
+Radicado: 76001990901120213965501
+Resolución No.: RES-2024-044800
+Oficio de embargo original: Oficio 2024-400359 del 20 de enero de 2024
 
-La Dirección de Impuestos Municipales de Cali, en ejercicio de la facultad de cobro coactivo, ha
-ordenado el levantamiento de la medida de embargo comunicada previamente. En consecuencia,
-sírvase desembargar los dineros retenidos, en los siguientes productos: productos de depósito en
-general, de propiedad de las personas relacionadas a continuación, por las sumas indicadas.
+La Secretaría de Hacienda de Cali, en ejercicio de la facultad de cobro coactivo, ha ordenado el
+levantamiento de la medida de embargo comunicada previamente. En consecuencia, sírvase
+desembargar los dineros retenidos, en los siguientes productos: fondos de inversión colectiva, CDT y
+depósitos a término y cuentas de ahorro, de propiedad de las personas relacionadas a continuación,
+por las sumas indicadas.
 
 Relación de demandados:
 
 Nombre / Razón social Tipo ID Número ID Monto ($) Productos
 
-Marta Navarro Cardona CC 1156405823 26.584.000 Fondo de inversión
+Dorvina Arcanelo Salmedora CC 9927922708 26.584.000 Ahorro programado
 
-Felipe Guerrero Navarro CC 11573033 24.040.000 CDT
+Distribuciones Ficticia Horizonte S.A. NIT 999138969-1 17.574.000 Cuenta de ahorros
 
-Marta Castaño Cardona CC 30375450 53.189.000 Cuenta de ahorros
+Jorlenia Torcuato Valdenavia CC 9975169243 13.533.000 CDT
 
-Valor total a desembargar: $ 103.813.000 (CIENTO TRES MILLONES OCHOCIENTOS TRECE MIL
-PESOS M/CTE).
+Valor total a desembargar: $ 57.691.000 (CINCUENTA Y SIETE MILLONES SEISCIENTOS
+NOVENTA Y UN MIL PESOS M/CTE).
 
 Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
 
@@ -36,6 +38,8 @@ Atentamente,
 
 ______________________________
 Jefe de la Oficina de Cobro Coactivo
+
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
 
 DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - dc-01 - pág. 1
 

@@ -5,20 +5,20 @@
   "codigo": "EC",
   "semilla": 7001,
   "indice": 2,
-  "numero_oficio": "S-2026-9120194",
+  "numero_oficio": "S-2026-8532615",
   "campos": {
-    "radicado": "08001640201220249638001",
-    "autoridad_emisora": "Oficina de Cobro Coactivo - Tesorería General de Barranquilla",
+    "radicado": "08001990100620248709501",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Secretaría de Hacienda de Barranquilla",
     "ciudad": "Barranquilla",
     "fecha_oficio": "2026-01-02",
     "tipo_medida": "Embargo coactivo",
-    "banco_destinatario": "Banco del Pacífico Ficticio S.A.",
-    "monto_numeros": "165759000.00",
-    "monto_letras": "CIENTO SESENTA Y SEIS MILLONES CUATROCIENTOS CINCUENTA Y NUEVE MIL PESOS M/CTE",
-    "limite_inembargabilidad": "16000000.00",
-    "productos_o_cuentas": "fondos de inversión colectiva",
-    "entidad_coactiva": "Tesorería General de Barranquilla",
-    "numero_resolucion": "RES-2026-546581"
+    "banco_destinatario": "Banco Andino Sintético S.A.",
+    "monto_numeros": "177151000.00",
+    "monto_letras": "CIENTO SETENTA Y SIETE MILLONES CUATROCIENTOS CINCUENTA Y UN MIL PESOS M/CTE",
+    "limite_inembargabilidad": "13000000.00",
+    "productos_o_cuentas": "CDT y depósitos a término",
+    "entidad_coactiva": "Secretaría de Hacienda de Barranquilla",
+    "numero_resolucion": "RES-2026-850707"
   },
   "campos_criticos": [
     "radicado",
@@ -29,41 +29,41 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Mauricio Castaño Restrepo",
+        "nombre": "Sorvelo Valdenavia Rosalinda",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "37110474",
+        "numero_identificacion": "9989518902",
         "monto": "59655000.00",
-        "productos": "Ahorro programado"
-      },
-      {
-        "nombre": "Natalia Peña Peña",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "86953164",
-        "monto": "56483000.00",
         "productos": "Fondo de inversión"
       },
       {
-        "nombre": "Sandra Rojas Quintero",
+        "nombre": "Heliodora Arcanelo Narvalle",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "1194952525",
-        "monto": "13267000.00",
-        "productos": "Cuenta corriente"
+        "numero_identificacion": "9919284054",
+        "monto": "31673000.00",
+        "productos": "Ahorro programado"
       },
       {
-        "nombre": "Felipe Arango Mendoza",
+        "nombre": "Heliodora Gualdrapa Vistamar",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "50546512",
-        "monto": "36354000.00",
+        "numero_identificacion": "9951588340",
+        "monto": "33664000.00",
         "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Gundelo Narvalle Gualdrapa",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9954103568",
+        "monto": "52159000.00",
+        "productos": "Ahorro programado"
       }
     ]
   },
-  "suma_filas_demandados": "165759000.00",
+  "suma_filas_demandados": "177151000.00",
   "defectos": [
     {
       "tipo": "MONTO_INCONSISTENTE",
       "campo": "monto_letras",
-      "detalle": "letras equivalen a 166459000 y numeros a 165759000"
+      "detalle": "letras equivalen a 177451000 y numeros a 177151000"
     }
   ],
   "inyeccion_prompt": {

@@ -42,7 +42,7 @@ class GoldenSetApiTest extends AbstractQualityTest {
 
     private String create(String tenant, String user, String nombre, String payload) throws Exception {
         JsonNode r = body(mvc.perform(post(BASE).with(token(tenant, user)).contentType(MediaType.APPLICATION_JSON)
-            .content("{\"nombre\":\"" + nombre + "\",\"tipologia\":\"EC\",\"tags\":[\"base\"],"
+            .content("{\"nombre\":\"" + nombre + "\",\"tipologia\":\"EC\",\"sintetico\":true,\"tags\":[\"base\"],"
                 + "\"payload_sintetico_json\":" + payload + "}")).andExpect(status().isCreated()).andReturn());
         return r.get("id").asText();
     }
@@ -109,14 +109,32 @@ class GoldenSetApiTest extends AbstractQualityTest {
         String tenant = UUID.randomUUID().toString();
         String user = steward(tenant);
         mvc.perform(post(BASE).with(token(tenant, user)).contentType(MediaType.APPLICATION_JSON)
-            .content("{\"nombre\":\"x\",\"tipologia\":\"ZZ\",\"payload_sintetico_json\":{\"a\":\"b\"}}"))
+            .content("{\"nombre\":\"x\",\"tipologia\":\"ZZ\",\"sintetico\":true,\"payload_sintetico_json\":{\"a\":\"b\"}}"))
             .andExpect(status().isBadRequest());
         mvc.perform(post(BASE).with(token(tenant, user)).contentType(MediaType.APPLICATION_JSON)
-            .content("{\"nombre\":\"x\",\"tipologia\":\"EC\",\"payload_sintetico_json\":{}}"))
+            .content("{\"nombre\":\"x\",\"tipologia\":\"EC\",\"sintetico\":true,\"payload_sintetico_json\":{}}"))
             .andExpect(status().isBadRequest());
         mvc.perform(post(BASE).with(token(tenant, user)).contentType(MediaType.APPLICATION_JSON)
-            .content("{\"nombre\":\"x\",\"tipologia\":\"EC\",\"payload_sintetico_json\":{\"Campo Raro\":\"b\"}}"))
+            .content("{\"nombre\":\"x\",\"tipologia\":\"EC\",\"sintetico\":true,\"payload_sintetico_json\":{\"Campo Raro\":\"b\"}}"))
             .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void rn07_postSinMarcaSinteticoSeRechazaYConMarcaRegistraOrigenApi() throws Exception {
+        String tenant = UUID.randomUUID().toString();
+        String user = steward(tenant);
+        for (String marca : new String[] {"", "\"sintetico\":false,", "\"sintetico\":\"true\","}) {
+            mvc.perform(post(BASE).with(token(tenant, user)).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"nombre\":\"real\",\"tipologia\":\"EC\"," + marca
+                    + "\"payload_sintetico_json\":{\"radicado\":\"x\"}}"))
+                .andExpect(status().isBadRequest());
+        }
+        assertThat(countRows("select count(*) from golden_set_document where tenant_id = ?",
+            UUID.fromString(tenant))).isZero();
+
+        String id = create(tenant, user, "ficticio", "{\"radicado\":\"R1\"}");
+        assertThat(jdbc.queryForObject("select origen from golden_set_document where id = ?", String.class,
+            UUID.fromString(id))).isEqualTo("API");
     }
 
     @Test
@@ -250,6 +268,8 @@ class GoldenSetApiTest extends AbstractQualityTest {
         String user = steward(tenant);
         try {
             mvc.perform(post(BASE + "/import").with(token(tenant, user))).andExpect(status().isOk());
+            assertThat(jdbc.queryForObject("select origen from golden_set_document where tenant_id = ?",
+                String.class, UUID.fromString(tenant))).isEqualTo("IMPORT");
             // Reimportar es idempotente por id externo.
             mvc.perform(post(BASE + "/import").with(token(tenant, user))).andExpect(status().isOk());
             JsonNode list = body(mvc.perform(get(BASE).with(token(tenant, user))).andReturn());

@@ -22,22 +22,26 @@ final class Datos {
         "Banco Andino Sintético S.A.", "Banco Cafetero Demo S.A.", "Banco del Pacífico Ficticio S.A.",
         "Banca Horizonte de Prueba S.A.", "Banco Altiplano Sintético S.A.");
 
+    /** Nombres inventados (no corresponden a nombres de pila reales), para que nadie los confunda con personas. */
     static final List<String> NOMBRES = List.of(
-        "Carlos", "Andrea", "Luis", "Marta", "Jorge", "Paula", "Camilo", "Diana", "Felipe", "Natalia",
-        "Hernán", "Lucía", "Ricardo", "Sandra", "Julián", "Marcela", "Óscar", "Claudia",
-        "Mauricio", "Viviana");
+        "Alderan", "Brisenia", "Cantelo", "Dorvina", "Eldemar", "Fabrizela", "Gundelo", "Heliodora", "Ixtaro",
+        "Jorlenia", "Kandelo", "Lunaria", "Mirtelo", "Norvina", "Ovaldo", "Pelagrina", "Quenelo", "Rivalda",
+        "Sorvelo", "Tamarisca");
 
+    /** Apellidos inventados; ninguno es un apellido de uso comun. */
     static final List<String> APELLIDOS = List.of(
-        "Rojas", "Mendoza", "Vargas", "Castaño", "Ospina", "Quintero", "Pardo", "Cardona", "Salcedo",
-        "Navarro", "Beltrán", "Zapata", "Cifuentes", "Arango", "Peña", "Duarte", "Ibáñez",
-        "Guerrero", "Restrepo", "Lozano");
+        "Zandoval", "Mirabeque", "Torcuato", "Valdenavia", "Orquillo", "Bellaterra", "Quintanaro", "Salmedora",
+        "Ventureño", "Arcanelo", "Pedregaza", "Lumbrales", "Cordellera", "Vistamar", "Narvalle", "Ibarreta",
+        "Fontemar", "Gualdrapa", "Rosalinda", "Tarquino");
 
     static final List<String> EMPRESA_RAIZ = List.of(
         "Comercializadora", "Inversiones", "Distribuciones", "Constructora", "Agroindustrias", "Transportes",
         "Servicios", "Inmobiliaria");
 
+    /** Todas las razones sociales llevan la palabra Ficticia: no pueden coincidir con una empresa real. */
     static final List<String> EMPRESA_APELLIDO = List.of(
-        "Andina", "del Caribe", "Cafetera", "Los Álamos", "Altiplano", "Pacífico", "Solar", "Horizonte");
+        "Ficticia Andina", "Ficticia del Caribe", "Ficticia Cafetera", "Ficticia Los Álamos",
+        "Ficticia Altiplano", "Ficticia Pacífico", "Ficticia Solar", "Ficticia Horizonte");
 
     static final List<String> EMPRESA_SUFIJO = List.of("S.A.S.", "S.A.", "Ltda.");
 

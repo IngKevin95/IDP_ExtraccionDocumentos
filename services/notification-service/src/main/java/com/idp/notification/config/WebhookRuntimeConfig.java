@@ -6,6 +6,9 @@ import com.idp.notification.http.HmacSignatureService;
 import com.idp.notification.http.WebhookDispatcher;
 import com.idp.notification.http.WebhookTransport;
 import com.idp.notification.net.AddressPolicy;
+import com.idp.notification.net.DnsDomainOwnershipVerifier;
+import com.idp.notification.net.DomainOwnershipVerifier;
+import com.idp.notification.net.PortPolicy;
 import com.idp.notification.net.HostResolver;
 import com.idp.notification.net.SsrfGuard;
 import com.idp.notification.net.WebhookUrlPolicy;
@@ -56,7 +59,17 @@ public class WebhookRuntimeConfig {
             throw new IllegalStateException(
                 "idp.notification.allow-insecure-http solo se admite con idp.security.dev-mode=true");
         }
-        return new WebhookUrlPolicy(addresses, props.allowInsecureHttp());
+        if (props.hostVerification() == NotificationProperties.HostVerification.NONE && !devMode) {
+            throw new IllegalStateException(
+                "idp.notification.host-verification=none solo se admite con idp.security.dev-mode=true");
+        }
+        return new WebhookUrlPolicy(addresses, props.allowInsecureHttp(), new PortPolicy(props.allowedPorts(), devMode));
+    }
+
+    /** Verificacion de propiedad de dominio por TXT DNS (modo host-verification=dns). */
+    @Bean
+    DomainOwnershipVerifier domainOwnershipVerifier() {
+        return new DnsDomainOwnershipVerifier();
     }
 
     @Bean

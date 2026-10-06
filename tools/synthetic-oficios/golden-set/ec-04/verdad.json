@@ -7,17 +7,17 @@
   "indice": 4,
   "numero_oficio": "S-2026-8451632",
   "campos": {
-    "radicado": "68001360701720238629901",
-    "autoridad_emisora": "Oficina de Cobro Coactivo - Secretaría de Hacienda de Bucaramanga",
+    "radicado": "68001990300620260233201",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Dirección de Impuestos Municipales de Bucaramanga",
     "ciudad": "Bucaramanga",
     "fecha_oficio": "2026-05-09",
     "tipo_medida": "Embargo coactivo",
-    "banco_destinatario": "Banco Andino Sintético S.A.",
+    "banco_destinatario": "Banco Cafetero Demo S.A.",
     "monto_numeros": "58122000.00",
     "monto_letras": "CINCUENTA Y OCHO MILLONES CIENTO VEINTIDÓS MIL PESOS M/CTE",
     "limite_inembargabilidad": null,
-    "productos_o_cuentas": "cuentas corrientes",
-    "entidad_coactiva": "Secretaría de Hacienda de Bucaramanga",
+    "productos_o_cuentas": "cuentas de ahorro, fondos de inversión colectiva y CDT y depósitos a término",
+    "entidad_coactiva": "Dirección de Impuestos Municipales de Bucaramanga",
     "numero_resolucion": "RES-2026-286203"
   },
   "campos_criticos": [
@@ -29,18 +29,18 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Transportes Pacífico Ltda.",
+        "nombre": "Transportes Ficticia Pacífico Ltda.",
         "tipo_identificacion": "NIT",
-        "numero_identificacion": "913264313-5",
+        "numero_identificacion": "999264310-6",
         "monto": "5290000.00",
         "productos": "Fondo de inversión"
       },
       {
-        "nombre": "Marcela Arango Ibáñez",
+        "nombre": "Pelagrina Vistamar Fontemar",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "66817983",
+        "numero_identificacion": "9980708855",
         "monto": "52832000.00",
-        "productos": "Cuenta corriente"
+        "productos": "Ahorro programado"
       }
     ]
   },

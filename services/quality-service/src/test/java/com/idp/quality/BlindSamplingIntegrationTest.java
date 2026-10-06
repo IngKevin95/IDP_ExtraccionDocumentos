@@ -33,7 +33,13 @@ class BlindSamplingIntegrationTest extends AbstractQualityTest {
         String user = steward(tenant);
         JsonNode pending = body(mvc.perform(get("/v1/quality/blind-samples/pending").with(token(tenant, user)))
             .andExpect(status().isOk()).andReturn());
-        assertThat(pending.get("document_ids").get(0).asText()).isEqualTo(doc.toString());
+        // SEC-051: solo agregados; ni documentId ni sampleId llegan al Data Steward.
+        assertThat(pending.get("pending").asInt()).isEqualTo(1);
+        assertThat(pending.get("reviewed").asInt()).isZero();
+        assertThat(pending.get("pending_by_age").get("lt_1d").asInt()).isEqualTo(1);
+        assertThat(pending.toString()).doesNotContain(doc.toString()).doesNotContain("document_ids");
+        assertThat(pending.fieldNames()).toIterable().containsExactlyInAnyOrder("pending", "reviewed",
+            "pending_by_age");
 
         // La revision llega sin la marca blindSample: la seleccion registrada la identifica.
         ObjectNode review = event("revision.completada", tenant, doc, at(DAY), "taskId", UUID.randomUUID().toString(),

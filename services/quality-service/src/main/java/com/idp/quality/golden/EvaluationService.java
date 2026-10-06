@@ -56,7 +56,7 @@ public class EvaluationService {
             if (docs.isEmpty()) {
                 throw new ExtractionRunner.RunnerException("El golden set esta vacio");
             }
-            EvaluationResult result = engine.evaluate(key, docs, runner.run(key, docs));
+            EvaluationResult result = engine.evaluate(key, docs, runner.run(tenant, key, docs));
             repo.complete(id, result);
             repo.saveCalibration(id, tenant, key, result.calibration());
             repo.replaceThresholds(tenant, key, id, result.thresholds());
@@ -72,7 +72,7 @@ public class EvaluationService {
             if (docs.isEmpty()) {
                 throw new ExtractionRunner.RunnerException("El golden set esta vacio");
             }
-            repo.completeReplay(id, replay.replay(baselineKey, candidateKey, docs));
+            repo.completeReplay(id, replay.replay(tenant, baselineKey, candidateKey, docs));
         } catch (RuntimeException e) {
             fail(id, e);
         }

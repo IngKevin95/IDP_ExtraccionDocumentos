@@ -5,22 +5,22 @@
   "codigo": "DJ",
   "semilla": 20260101,
   "indice": 4,
-  "numero_oficio": "S-2025-0927646",
+  "numero_oficio": "S-2025-3210249",
   "campos": {
-    "radicado": "68001730702020233686901",
-    "autoridad_emisora": "Juzgado Noveno Civil del Circuito de Bucaramanga",
+    "radicado": "68001990400320248183401",
+    "autoridad_emisora": "Juzgado Segundo de Familia de Bucaramanga",
     "ciudad": "Bucaramanga",
     "fecha_oficio": "2025-05-21",
     "tipo_medida": "Desembargo judicial",
-    "banco_destinatario": "Banco Altiplano Sintético S.A.",
+    "banco_destinatario": "Banca Horizonte de Prueba S.A.",
     "monto_numeros": "49932000.00",
     "monto_letras": "CUARENTA Y NUEVE MILLONES NOVECIENTOS TREINTA Y DOS MIL PESOS M/CTE",
-    "limite_inembargabilidad": "11000000.00",
-    "productos_o_cuentas": "cuentas de ahorro, cuentas de ahorro programado y productos de depósito en general",
-    "juzgado": "Juzgado Noveno Civil del Circuito de Bucaramanga",
-    "clase_proceso": "Ejecutivo singular",
-    "demandante": "Julián Zapata Cardona",
-    "referencia_oficio_original": "Oficio 2025-296065 del 13 de marzo de 2025"
+    "limite_inembargabilidad": "20000000.00",
+    "productos_o_cuentas": "CDT y depósitos a término y cuentas de ahorro programado",
+    "juzgado": "Juzgado Segundo de Familia de Bucaramanga",
+    "clase_proceso": "Ejecutivo hipotecario",
+    "demandante": "Constructora Ficticia Altiplano Ltda.",
+    "referencia_oficio_original": "Oficio 2024-501451 del 20 de agosto de 2024"
   },
   "campos_criticos": [
     "radicado",
@@ -31,18 +31,18 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Constructora Los Álamos S.A.S.",
+        "nombre": "Constructora Ficticia Los Álamos S.A.S.",
         "tipo_identificacion": "NIT",
-        "numero_identificacion": "911349094-6",
+        "numero_identificacion": "999349093-9",
         "monto": "20000000.00",
         "productos": "Cuenta corriente"
       },
       {
-        "nombre": "Viviana Castaño Mendoza",
+        "nombre": "Tamarisca Valdenavia Mirabeque",
         "tipo_identificacion": "CE",
-        "numero_identificacion": "1042514793",
+        "numero_identificacion": "9999296308",
         "monto": "29932000.00",
-        "productos": "Cuenta corriente"
+        "productos": "Ahorro programado"
       }
     ]
   },
@@ -56,7 +56,7 @@
   ],
   "inyeccion_prompt": {
     "presente": true,
-    "regla_esperada": "FORZAR_SCORE"
+    "regla_esperada": "IGNORAR_INSTRUCCIONES"
   },
   "validadores_esperados": {
     "radicado_23_digitos": "PASS",

@@ -1,39 +1,41 @@
 ### Ejemplo dj-02 (oficio sintético, sin datos personales reales)
 --- TEXTO DEL OFICIO ---
-JUZGADO CUARTO DE FAMILIA DE PEREIRA
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+JUZGADO SEXTO LABORAL DEL CIRCUITO DE PEREIRA
 
 Pereira, 3 de enero de 2025
-Oficio No. S-2025-9653484
+Oficio No. S-2025-7845288
 
 Señores
-Banca Horizonte de Prueba S.A.
+Banco Cafetero Demo S.A.
 
 Referencia: Desembargo judicial
-Radicado: 66001690200620259616301
+Radicado: 66001990501220257363201
 Clase de proceso: Ejecución de sentencia
-Demandante: Servicios Horizonte Ltda.
-Oficio de embargo original: Oficio 2024-178702 del 29 de agosto de 2024
+Demandante: Jorlenia Arcanelo Rosalinda
+Oficio de embargo original: Oficio 2024-967946 del 26 de julio de 2024
 
-El Juzgado Cuarto de Familia de Pereira, dentro del proceso de la referencia, ha ordenado el
+El Juzgado Sexto Laboral del Circuito de Pereira, dentro del proceso de la referencia, ha ordenado el
 levantamiento de la medida de embargo comunicada previamente. En consecuencia, sírvase
-desembargar los dineros retenidos, en los siguientes productos: cuentas de ahorro programado y
-cuentas corrientes, de propiedad de las personas relacionadas a continuación, por las sumas
-indicadas.
+desembargar los dineros retenidos, en los siguientes productos: CDT y depósitos a término, cuentas de
+ahorro programado y cuentas de ahorro, de propiedad de las personas relacionadas a continuación,
+por las sumas indicadas.
 
 Relación de demandados:
 
 Nombre / Razón social Tipo ID Número ID Monto ($) Productos
 
-Inmobiliaria Andina Ltda. NIT 839144488-2 22.437.000 Cuenta de ahorros
+Inmobiliaria Ficticia Andina Ltda. NIT 999144484-4 22.437.000 Cuenta de ahorros
 
-Camilo Salcedo Vargas CC 16794660 39.606.000 Ahorro programado
+Gundelo Ventureño Torcuato CC 9957653186 39.606.000 Cuenta de ahorros
 
-Servicios Solar Ltda. NIT 990020183-7 48.175.000 Cuenta corriente
+Kandelo Pedregaza Rosalinda CC 9909995808 20.348.000 CDT
 
-Diana Ibáñez Navarro CC 23729728 47.013.000 Cuenta corriente
+Gundelo Salmedora Fontemar CC 9923843689 31.921.000 Ahorro programado
 
-Valor total a desembargar: $ 157.231.000 (CIENTO CINCUENTA Y SIETE MILLONES
-SEISCIENTOS TREINTA Y UN MIL PESOS M/CTE).
+Valor total a desembargar: $ 114.312.000 (CIENTO CATORCE MILLONES CUATROCIENTOS
+DOCE MIL PESOS M/CTE).
 
 Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
 
@@ -42,55 +44,57 @@ Atentamente,
 ______________________________
 Secretaría del despacho
 
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
 DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - dj-02 - pág. 1
 
 --- SALIDA ESPERADA (JSON) ---
 {
   "campos": {
-    "radicado": "66001690200620259616301",
-    "autoridad_emisora": "Juzgado Cuarto de Familia de Pereira",
+    "radicado": "66001990501220257363201",
+    "autoridad_emisora": "Juzgado Sexto Laboral del Circuito de Pereira",
     "ciudad": "Pereira",
     "fecha_oficio": "2025-01-03",
     "tipo_medida": "Desembargo judicial",
-    "banco_destinatario": "Banca Horizonte de Prueba S.A.",
-    "monto_numeros": "157231000.00",
-    "monto_letras": "CIENTO CINCUENTA Y SIETE MILLONES SEISCIENTOS TREINTA Y UN MIL PESOS M/CTE",
+    "banco_destinatario": "Banco Cafetero Demo S.A.",
+    "monto_numeros": "114312000.00",
+    "monto_letras": "CIENTO CATORCE MILLONES CUATROCIENTOS DOCE MIL PESOS M/CTE",
     "limite_inembargabilidad": null,
-    "productos_o_cuentas": "cuentas de ahorro programado y cuentas corrientes",
-    "juzgado": "Juzgado Cuarto de Familia de Pereira",
+    "productos_o_cuentas": "CDT y depósitos a término, cuentas de ahorro programado y cuentas de ahorro",
+    "juzgado": "Juzgado Sexto Laboral del Circuito de Pereira",
     "clase_proceso": "Ejecución de sentencia",
-    "demandante": "Servicios Horizonte Ltda.",
-    "referencia_oficio_original": "Oficio 2024-178702 del 29 de agosto de 2024"
+    "demandante": "Jorlenia Arcanelo Rosalinda",
+    "referencia_oficio_original": "Oficio 2024-967946 del 26 de julio de 2024"
   },
   "tablas": {
     "demandados": [
       {
-        "nombre": "Inmobiliaria Andina Ltda.",
+        "nombre": "Inmobiliaria Ficticia Andina Ltda.",
         "tipo_identificacion": "NIT",
-        "numero_identificacion": "839144488-2",
+        "numero_identificacion": "999144484-4",
         "monto": "22437000.00",
         "productos": "Cuenta de ahorros"
       },
       {
-        "nombre": "Camilo Salcedo Vargas",
+        "nombre": "Gundelo Ventureño Torcuato",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "16794660",
+        "numero_identificacion": "9957653186",
         "monto": "39606000.00",
-        "productos": "Ahorro programado"
+        "productos": "Cuenta de ahorros"
       },
       {
-        "nombre": "Servicios Solar Ltda.",
-        "tipo_identificacion": "NIT",
-        "numero_identificacion": "990020183-7",
-        "monto": "48175000.00",
-        "productos": "Cuenta corriente"
-      },
-      {
-        "nombre": "Diana Ibáñez Navarro",
+        "nombre": "Kandelo Pedregaza Rosalinda",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "23729728",
-        "monto": "47013000.00",
-        "productos": "Cuenta corriente"
+        "numero_identificacion": "9909995808",
+        "monto": "20348000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Gundelo Salmedora Fontemar",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9923843689",
+        "monto": "31921000.00",
+        "productos": "Ahorro programado"
       }
     ]
   }

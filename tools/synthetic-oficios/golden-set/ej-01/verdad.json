@@ -5,21 +5,21 @@
   "codigo": "EJ",
   "semilla": 20260101,
   "indice": 1,
-  "numero_oficio": "S-2026-9963156",
+  "numero_oficio": "S-2026-2940011",
   "campos": {
-    "radicado": "66001620701120268084000",
-    "autoridad_emisora": "Juzgado Octavo Civil Municipal de Pereira",
+    "radicado": "66001990601120253285101",
+    "autoridad_emisora": "Juzgado Primero Laboral del Circuito de Pereira",
     "ciudad": "Pereira",
     "fecha_oficio": "2026-02-10",
     "tipo_medida": "Embargo judicial",
-    "banco_destinatario": "Banco Andino Sintético S.A.",
-    "monto_numeros": "90789000.00",
-    "monto_letras": "NOVENTA MILLONES SETECIENTOS OCHENTA Y NUEVE MIL PESOS M/CTE",
-    "limite_inembargabilidad": "6000000.00",
-    "productos_o_cuentas": "cuentas de ahorro",
-    "juzgado": "Juzgado Octavo Civil Municipal de Pereira",
-    "clase_proceso": "Ejecutivo singular",
-    "demandante": "Agroindustrias del Caribe S.A.S."
+    "banco_destinatario": "Banco Cafetero Demo S.A.",
+    "monto_numeros": "69543000.00",
+    "monto_letras": "SESENTA Y NUEVE MILLONES QUINIENTOS CUARENTA Y TRES MIL PESOS M/CTE",
+    "limite_inembargabilidad": null,
+    "productos_o_cuentas": "cuentas corrientes, cuentas de ahorro programado y productos de depósito en general",
+    "juzgado": "Juzgado Primero Laboral del Circuito de Pereira",
+    "clase_proceso": "Cobro de pagaré",
+    "demandante": "Pelagrina Cordellera Vistamar"
   },
   "campos_criticos": [
     "radicado",
@@ -30,22 +30,22 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Paula Mendoza Lozano",
+        "nombre": "Fabrizela Mirabeque Tarquino",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "99027203",
+        "numero_identificacion": "9950488266",
         "monto": "31715000.00",
         "productos": "Ahorro programado"
       },
       {
-        "nombre": "Luis Ospina Zapata",
+        "nombre": "Dorvina Torcuato Orquillo",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "51668321",
-        "monto": "59074000.00",
-        "productos": "Fondo de inversión"
+        "numero_identificacion": "9970769011",
+        "monto": "37828000.00",
+        "productos": "Cuenta corriente"
       }
     ]
   },
-  "suma_filas_demandados": "90789000.00",
+  "suma_filas_demandados": "69543000.00",
   "defectos": [ ],
   "inyeccion_prompt": {
     "presente": false,

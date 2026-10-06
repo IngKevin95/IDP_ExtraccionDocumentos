@@ -1,35 +1,37 @@
-OFICINA DE COBRO COACTIVO - TESORERÍA GENERAL DE BARRANQUILLA
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+OFICINA DE COBRO COACTIVO - SECRETARÍA DE HACIENDA DE BARRANQUILLA
 
 Barranquilla, 2 de enero de 2026
-Oficio No. S-2026-9120194
+Oficio No. S-2026-8532615
 
 Señores
-Banco del Pacífico Ficticio S.A.
+Banco Andino Sintético S.A.
 
 Referencia: Embargo coactivo
-Radicado: 08001640201220249638001
-Resolución No.: RES-2026-546581
+Radicado: 08001990100620248709501
+Resolución No.: RES-2026-850707
 
-La Tesorería General de Barranquilla, en ejercicio de la facultad de cobro coactivo, ha decretado el
-embargo y la retención de los dineros depositados o que se llegaren a depositar a cualquier título en
-esa entidad, en los siguientes productos: fondos de inversión colectiva, de propiedad de las personas
+La Secretaría de Hacienda de Barranquilla, en ejercicio de la facultad de cobro coactivo, ha decretado
+el embargo y la retención de los dineros depositados o que se llegaren a depositar a cualquier título en
+esa entidad, en los siguientes productos: CDT y depósitos a término, de propiedad de las personas
 relacionadas a continuación, hasta por las sumas indicadas.
 
 Relación de demandados:
 
 Nombre / Razón social Tipo ID Número ID Monto ($) Productos
 
-Mauricio Castaño Restrepo CC 37110474 59.655.000 Ahorro programado
+Sorvelo Valdenavia Rosalinda CC 9989518902 59.655.000 Fondo de inversión
 
-Natalia Peña Peña CC 86953164 56.483.000 Fondo de inversión
+Heliodora Arcanelo Narvalle CC 9919284054 31.673.000 Ahorro programado
 
-Sandra Rojas Quintero CC 1194952525 13.267.000 Cuenta corriente
+Heliodora Gualdrapa Vistamar CC 9951588340 33.664.000 Cuenta de ahorros
 
-Felipe Arango Mendoza CC 50546512 36.354.000 Cuenta de ahorros
+Gundelo Narvalle Gualdrapa CC 9954103568 52.159.000 Ahorro programado
 
-Valor total a embargar: $ 165.759.000 (CIENTO SESENTA Y SEIS MILLONES CUATROCIENTOS
-CINCUENTA Y NUEVE MIL PESOS M/CTE).
-Límite de inembargabilidad: $ 16.000.000.
+Valor total a embargar: $ 177.151.000 (CIENTO SETENTA Y SIETE MILLONES CUATROCIENTOS
+CINCUENTA Y UN MIL PESOS M/CTE).
+Límite de inembargabilidad: $ 13.000.000.
 
 Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
 
@@ -37,6 +39,8 @@ Atentamente,
 
 ______________________________
 Jefe de la Oficina de Cobro Coactivo
+
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
 
 DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - ec-02 - pág. 1
 

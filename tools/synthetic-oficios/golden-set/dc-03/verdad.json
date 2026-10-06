@@ -5,21 +5,21 @@
   "codigo": "DC",
   "semilla": 20260101,
   "indice": 3,
-  "numero_oficio": "S-2025-6561636",
+  "numero_oficio": "S-2025-1225548",
   "campos": {
-    "radicado": "13001700200320259627100",
-    "autoridad_emisora": "Oficina de Cobro Coactivo - Dirección de Impuestos Municipales de Cartagena",
+    "radicado": "13001990301020232837700",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Oficina de Rentas de Cartagena",
     "ciudad": "Cartagena",
     "fecha_oficio": "2025-02-20",
     "tipo_medida": "Desembargo coactivo",
-    "banco_destinatario": "Banco del Pacífico Ficticio S.A.",
-    "monto_numeros": "90930000.00",
-    "monto_letras": "NOVENTA MILLONES NOVECIENTOS TREINTA MIL PESOS M/CTE",
-    "limite_inembargabilidad": "6000000.00",
-    "productos_o_cuentas": "fondos de inversión colectiva y cuentas de ahorro programado",
-    "entidad_coactiva": "Dirección de Impuestos Municipales de Cartagena",
-    "numero_resolucion": "RES-2025-233609",
-    "referencia_oficio_original": "Oficio 2024-151330 del 4 de septiembre de 2024"
+    "banco_destinatario": "Banco Andino Sintético S.A.",
+    "monto_numeros": "184534000.00",
+    "monto_letras": "CIENTO OCHENTA Y CUATRO MILLONES QUINIENTOS TREINTA Y CUATRO MIL PESOS M/CTE",
+    "limite_inembargabilidad": null,
+    "productos_o_cuentas": "CDT y depósitos a término",
+    "entidad_coactiva": "Oficina de Rentas de Cartagena",
+    "numero_resolucion": "RES-2025-457712",
+    "referencia_oficio_original": "Oficio 2024-449377 del 10 de julio de 2024"
   },
   "campos_criticos": [
     "radicado",
@@ -30,48 +30,48 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Hernán Vargas Arango",
+        "nombre": "Kandelo Torcuato Vistamar",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "88751212",
+        "numero_identificacion": "9956638773",
         "monto": "3849000.00",
-        "productos": "Cuenta corriente"
+        "productos": "CDT"
       },
       {
-        "nombre": "Sandra Cardona Mendoza",
+        "nombre": "Cantelo Vistamar Salmedora",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "1171897752",
-        "monto": "33763000.00",
-        "productos": "Ahorro programado"
-      },
-      {
-        "nombre": "Marta Duarte Beltrán",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "1174612465",
-        "monto": "34886000.00",
-        "productos": "Cuenta de ahorros"
-      },
-      {
-        "nombre": "Óscar Duarte Ibáñez",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "46582681",
-        "monto": "737000.00",
+        "numero_identificacion": "9953200801",
+        "monto": "45651000.00",
         "productos": "Fondo de inversión"
       },
       {
-        "nombre": "Sandra Salcedo Quintero",
+        "nombre": "Gundelo Ibarreta Valdenavia",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "1043028377",
-        "monto": "15695000.00",
-        "productos": "Ahorro programado"
+        "numero_identificacion": "9967691355",
+        "monto": "18252000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Fabrizela Pedregaza Gualdrapa",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9965721668",
+        "monto": "60127000.00",
+        "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Ovaldo Mirabeque Orquillo",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9987975195",
+        "monto": "52655000.00",
+        "productos": "Fondo de inversión"
       }
     ]
   },
-  "suma_filas_demandados": "88930000.00",
+  "suma_filas_demandados": "180534000.00",
   "defectos": [
     {
       "tipo": "TABLA_NO_SUMA",
       "campo": "monto_numeros",
-      "detalle": "total declarado 90930000 distinto de la suma de filas 88930000"
+      "detalle": "total declarado 184534000 distinto de la suma de filas 180534000"
     }
   ],
   "inyeccion_prompt": {

@@ -26,11 +26,12 @@ public final class ReviewDtos {
                                int escalationLevel, boolean overdue, OffsetDateTime createdAt,
                                OffsetDateTime updatedAt, boolean blindSample) {
 
-        public static TaskResponse of(ReviewTask t, Clock clock) {
+        /** {@code showBlind=false} oculta blindSample (siempre false) para no romper la ceguera del revisor. */
+        public static TaskResponse of(ReviewTask t, Clock clock, boolean showBlind) {
             OffsetDateTime now = OffsetDateTime.ofInstant(clock.instant(), java.time.ZoneOffset.UTC);
             return new TaskResponse(t.id(), t.documentId(), t.status().name(), t.assigneeId(), t.firstReviewerId(),
                     t.secondReviewerId(), t.criticalCorrection(), t.slaDueAt(), t.escalationLevel(), t.overdue(now),
-                    t.createdAt(), t.updatedAt(), t.blindSample());
+                    t.createdAt(), t.updatedAt(), showBlind && t.blindSample());
         }
     }
 

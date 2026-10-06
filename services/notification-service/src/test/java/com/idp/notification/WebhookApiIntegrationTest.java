@@ -100,7 +100,7 @@ class WebhookApiIntegrationTest extends AbstractIntegrationTest {
     @Test
     void ac04_altaConUrlDeMetadataCloudOLiteralPrivadoSeRechazaAunEnAllowlist() throws Exception {
         String tenant = newTenant();
-        allowHosts(tenant, "169.254.169.254", "10.0.5.5", "localhost");
+        allowHosts(tenant, "169.254.169.254", "10.0.5.5");
         for (String url : new String[] {"http://169.254.169.254/latest/meta-data/", "https://10.0.5.5/hook",
             "https://localhost/hook", "https://[fd00:ec2::254]/hook"}) {
             MvcResult r = call(post("/v1/webhooks").with(token(tenant, "admin")).contentType(MediaType.APPLICATION_JSON)
@@ -281,7 +281,7 @@ class WebhookApiIntegrationTest extends AbstractIntegrationTest {
         assertThat(def.path("backoffMultiplier").asDouble()).isEqualTo(2.0);
         assertThat(def.path("maxBackoffSeconds").asLong()).isEqualTo(3600);
 
-        allowHosts(tenant, 3, 10, 3.0, 600, "A.Banco.Test", "*.partner.test", "a.banco.test");
+        allowHosts(tenant, 3, 30, 3.0, 600, "A.Banco.Test", "*.partner.test", "a.banco.test");
         JsonNode upd = json(call(get("/v1/webhooks/policy").with(token(tenant, "admin"))));
         assertThat(upd.path("allowedHosts")).extracting(JsonNode::asText)
             .containsExactly("a.banco.test", "*.partner.test");

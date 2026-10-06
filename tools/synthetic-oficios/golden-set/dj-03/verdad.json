@@ -5,22 +5,22 @@
   "codigo": "DJ",
   "semilla": 20260101,
   "indice": 3,
-  "numero_oficio": "S-2026-3021799",
+  "numero_oficio": "S-2026-2185461",
   "campos": {
-    "radicado": "08001460202020249053301",
-    "autoridad_emisora": "Juzgado Cuarto de Familia de Barranquilla",
+    "radicado": "08001990901220251814400",
+    "autoridad_emisora": "Juzgado Sexto de Familia de Barranquilla",
     "ciudad": "Barranquilla",
     "fecha_oficio": "2026-02-28",
     "tipo_medida": "Desembargo judicial",
-    "banco_destinatario": "Banco Cafetero Demo S.A.",
-    "monto_numeros": "203400000.00",
-    "monto_letras": "DOSCIENTOS TRES MILLONES CUATROCIENTOS MIL PESOS M/CTE",
-    "limite_inembargabilidad": null,
-    "productos_o_cuentas": "cuentas de ahorro",
-    "juzgado": "Juzgado Cuarto de Familia de Barranquilla",
-    "clase_proceso": "Ejecución de sentencia",
-    "demandante": "Andrea Vargas Beltrán",
-    "referencia_oficio_original": "Oficio 2026-236015 del 15 de enero de 2026"
+    "banco_destinatario": "Banco Altiplano Sintético S.A.",
+    "monto_numeros": "240640000.00",
+    "monto_letras": "DOSCIENTOS CUARENTA MILLONES SEISCIENTOS CUARENTA MIL PESOS M/CTE",
+    "limite_inembargabilidad": "15000000.00",
+    "productos_o_cuentas": "productos de depósito en general",
+    "juzgado": "Juzgado Sexto de Familia de Barranquilla",
+    "clase_proceso": "Ejecutivo con garantía real",
+    "demandante": "Cantelo Valdenavia Fontemar",
+    "referencia_oficio_original": "Oficio 2025-195568 del 12 de septiembre de 2025"
   },
   "campos_criticos": [
     "radicado",
@@ -31,55 +31,55 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Marta Ospina Arango",
+        "nombre": "Dorvina Orquillo Vistamar",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "51854609",
+        "numero_identificacion": "9966917384",
         "monto": "58068000.00",
-        "productos": "Cuenta de ahorros"
-      },
-      {
-        "nombre": "Agroindustrias Cafetera Ltda.",
-        "tipo_identificacion": "NIT",
-        "numero_identificacion": "985940004-6",
-        "monto": "12847000.00",
-        "productos": "Ahorro programado"
-      },
-      {
-        "nombre": "Camilo Salcedo Ibáñez",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "1048339135",
-        "monto": "29222000.00",
-        "productos": "CDT"
-      },
-      {
-        "nombre": "Camilo Vargas Restrepo",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "41270821",
-        "monto": "22356000.00",
         "productos": "Fondo de inversión"
       },
       {
-        "nombre": "Felipe Navarro Arango",
+        "nombre": "Brisenia Arcanelo Pedregaza",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "26492209",
-        "monto": "45618000.00",
-        "productos": "Cuenta de ahorros"
+        "numero_identificacion": "9945963149",
+        "monto": "50480000.00",
+        "productos": "Ahorro programado"
       },
       {
-        "nombre": "Jorge Zapata Restrepo",
-        "tipo_identificacion": "CE",
-        "numero_identificacion": "81065871",
-        "monto": "31289000.00",
+        "nombre": "Rivalda Quintanaro Ventureño",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9945594776",
+        "monto": "5668000.00",
+        "productos": "Fondo de inversión"
+      },
+      {
+        "nombre": "Quenelo Rosalinda Quintanaro",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9975997282",
+        "monto": "39635000.00",
+        "productos": "Ahorro programado"
+      },
+      {
+        "nombre": "Transportes Ficticia Pacífico Ltda.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999529048-1",
+        "monto": "48376000.00",
+        "productos": "Fondo de inversión"
+      },
+      {
+        "nombre": "Jorlenia Ibarreta Arcanelo",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9925400679",
+        "monto": "36413000.00",
         "productos": "Fondo de inversión"
       }
     ]
   },
-  "suma_filas_demandados": "199400000.00",
+  "suma_filas_demandados": "238640000.00",
   "defectos": [
     {
       "tipo": "TABLA_NO_SUMA",
       "campo": "monto_numeros",
-      "detalle": "total declarado 203400000 distinto de la suma de filas 199400000"
+      "detalle": "total declarado 240640000 distinto de la suma de filas 238640000"
     }
   ],
   "inyeccion_prompt": {

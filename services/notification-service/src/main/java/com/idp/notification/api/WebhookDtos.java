@@ -27,9 +27,9 @@ public final class WebhookDtos {
 
     public record ListItem(UUID id, String url, List<String> events, Instant createdAt, boolean rotating,
                            Instant previousSecretExpiresAt) {
-        static ListItem of(WebhookSubscription s, Instant now) {
+        static ListItem of(WebhookSubscription s, Instant now, boolean maskPath) {
             boolean rotating = s.previousSecretActive(now);
-            return new ListItem(s.id(), s.url(), eventNames(s), s.createdAt(), rotating,
+            return new ListItem(s.id(), maskPath ? maskedUrl(s.url()) : s.url(), eventNames(s), s.createdAt(), rotating,
                 rotating ? s.secretPreviousExpiresAt() : null);
         }
     }
@@ -64,6 +64,23 @@ public final class WebhookDtos {
     public record ErrorBody(String code, String message, Instant timestamp) {
         static ErrorBody of(String code, String message) {
             return new ErrorBody(code, message, Instant.now());
+        }
+    }
+
+    /**
+     * Para roles de solo lectura: host visible y ruta enmascarada (la ruta suele contener identificadores o tokens
+     * del receptor). Si la URL no se puede interpretar se oculta por completo.
+     */
+    static String maskedUrl(String url) {
+        try {
+            java.net.URI u = new java.net.URI(url);
+            if (u.getScheme() == null || u.getHost() == null) {
+                return "***";
+            }
+            String port = u.getPort() >= 0 ? ":" + u.getPort() : "";
+            return u.getScheme() + "://" + u.getHost() + port + "/***";
+        } catch (java.net.URISyntaxException e) {
+            return "***";
         }
     }
 

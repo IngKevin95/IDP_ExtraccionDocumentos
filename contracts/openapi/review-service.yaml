@@ -212,6 +212,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Limite de recortes por usuario excedido (REVIEW_RATE_LIMITED); incluye Retry-After
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Capacidad de decodificacion simultanea agotada (REVIEW_BUSY); incluye Retry-After
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /v1/review/tasks/{taskId}/claim:
     post:
       summary: Toma la tarea (asignacion)
@@ -352,7 +372,9 @@ paths:
       operationId: approveTask
       description: |
         Sin correcciones criticas la tarea pasa a APPROVED y se emite revision.completada. Con al menos una correccion
-        critica pasa a PENDING_SECOND_APPROVAL, se libera la asignacion y no se emite evento.
+        critica pasa a PENDING_SECOND_APPROVAL, se libera la asignacion y no se emite evento. Solo el revisor asignado
+        puede aprobar: sin tomar la tarea responde 409 REVIEW_NOT_ASSIGNEE. La lectura de correcciones y la
+        transicion ocurren bajo bloqueo de la fila de la tarea (una correccion critica concurrente no se pierde).
       parameters:
         - $ref: '#/components/parameters/TaskId'
       responses:
@@ -374,7 +396,8 @@ paths:
       operationId: approveSecondaryTask
       description: |
         Revisor distinto del primero; ambos con rol REVISOR vigente al momento de la aprobacion. Emite
-        revision.completada con reviewerId (primer revisor), secondReviewerId y criticalCorrection=true.
+        revision.completada con reviewerId (primer revisor), secondReviewerId y criticalCorrection=true. El segundo
+        aprobador no puede ser autor de ninguna correccion de la tarea (403).
       parameters:
         - $ref: '#/components/parameters/TaskId'
       responses:
@@ -406,7 +429,8 @@ paths:
       operationId: rejectTask
       description: |
         Cualquier revisor, en primera o segunda instancia. Emite revision.completada con action RECHAZADO,
-        criticalCorrection=false y sin segundo aprobador (el rechazo descarta las correcciones).
+        criticalCorrection=false y sin segundo aprobador (el rechazo descarta las correcciones). En primera instancia
+        solo rechaza el revisor asignado (409 REVIEW_NOT_ASSIGNEE si no tomo la tarea).
       parameters:
         - $ref: '#/components/parameters/TaskId'
       responses:
@@ -512,9 +536,10 @@ components:
         blindSample:
           type: boolean
           description: >-
-            true en una revision ciega de un oficio ya auto-aprobado (muestreo de calidad). En esas tareas
-            confidence y originalValue se devuelven nulos, no hay segunda aprobacion ni rechazo, y el revisor debe
-            ser independiente de quien intervino en el documento.
+            true en una revision ciega de un oficio ya auto-aprobado (muestreo de calidad). Solo se devuelve a roles
+            de gestion (TENANT_ADMIN); para el rol REVISOR siempre es false, para no romper la ceguera. En esas
+            tareas confidence y originalValue se devuelven nulos, no hay segunda aprobacion ni rechazo, y el revisor
+            debe ser independiente de quien intervino en el documento.
         createdAt:
           type: string
           format: date-time
@@ -641,7 +666,9 @@ components:
           maxLength: 200
         originalValue:
           type: string
-          description: Opcional; si falta se toma el valor original del campo dudoso
+          description: >-
+            Ignorado si el campo existe en la tarea: el original es siempre el valor guardado del campo. Solo se usa
+            para un campo inexistente (tarea normal).
         correctedValue:
           type: string
           maxLength: 10000

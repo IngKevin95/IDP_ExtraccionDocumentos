@@ -103,6 +103,7 @@ paths:
                   $ref: '#/components/schemas/GoldenSetDocument'
     post:
       summary: Crear documento ficticio
+      description: Exige sintetico=true, igual que el import por archivo (RN-07); sin la marca responde 400. Se registra el origen API.
       security:
         - bearerAuth: []
       requestBody:
@@ -113,7 +114,9 @@ paths:
               $ref: '#/components/schemas/GoldenSetDocumentInput'
       responses:
         '201':
-          description: Documento creado.
+          description: Documento creado (origen API).
+        '400':
+          description: Documento invalido o sin la marca sintetico=true.
 
   /v1/quality/reports/golden-set/evaluate:
     post:
@@ -317,18 +320,31 @@ paths:
 
   /v1/quality/blind-samples/pending:
     get:
-      summary: Oficios auto-aprobados elegidos para revision ciega y aun sin revisar
+      summary: Estado agregado de la cola de revision ciega
+      description: Solo conteos y antiguedad (SEC-051). Nunca devuelve identificadores de documento ni de muestra, para que el muestreo no sea predecible por operadores.
       security:
         - bearerAuth: []
-      parameters:
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 100
       responses:
         '200':
-          description: Identificadores opacos de documento.
+          description: Conteos agregados.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pending:
+                    type: integer
+                  reviewed:
+                    type: integer
+                  pending_by_age:
+                    type: object
+                    properties:
+                      lt_1d:
+                        type: integer
+                      '1d_7d':
+                        type: integer
+                      gt_7d:
+                        type: integer
 
 components:
   securitySchemes:
@@ -407,8 +423,16 @@ components:
       required:
         - nombre
         - tipologia
+        - sintetico
         - payload_sintetico_json
       properties:
+        sintetico:
+          type: boolean
+          enum: [true]
+          description: Marca obligatoria de dato sintetico (RN-07).
+        id:
+          type: string
+          description: Id externo opcional (se genera uno si falta).
         nombre:
           type: string
           example: "Oficio Ficticio EC - Caso Base"

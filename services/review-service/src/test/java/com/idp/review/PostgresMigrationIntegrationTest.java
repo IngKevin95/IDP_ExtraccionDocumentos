@@ -93,6 +93,8 @@ class PostgresMigrationIntegrationTest {
         String tenant = UUID.randomUUID().toString();
         ReviewTask t = task(tenant);
         repo.insertTaskIfAbsent(t);
+        assertThat(repo.firstApprove(tenant, t.id(), "ana", true, now(), 5)).isFalse();
+        assertThat(repo.claim(tenant, t.id(), "ana", now())).isTrue();
         assertThat(repo.firstApprove(tenant, t.id(), "ana", true, now(), 5)).isTrue();
 
         assertThat(repo.secondApprove(tenant, t.id(), "ana", now(), 5)).isFalse();
@@ -137,6 +139,7 @@ class PostgresMigrationIntegrationTest {
         ReviewTask t = task(tenant);
         repo.insertTaskIfAbsent(t);
         CountDownLatch start = new CountDownLatch(1);
+        repo.claim(tenant, t.id(), "ana", now());
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
             Future<Boolean> approve = pool.submit(() -> {
@@ -145,7 +148,7 @@ class PostgresMigrationIntegrationTest {
             });
             Future<Boolean> reject = pool.submit(() -> {
                 start.await();
-                return repo.reject(tenant, t.id(), "beto", now(), 1);
+                return repo.reject(tenant, t.id(), "ana", now(), 1);
             });
             start.countDown();
             assertThat(approve.get() ^ reject.get()).isTrue();

@@ -1,36 +1,36 @@
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
 OFICINA DE COBRO COACTIVO - OFICINA DE RENTAS DE MEDELLÍN
 
 Medellín, 18 de mayo de 2025
-Oficio No. S-2025-0588811
+Oficio No. S-2025-3954639
 
 Señores
-Gerente de la entidad financiera
+Banca Horizonte de Prueba S.A.
 
 Referencia: Desembargo coactivo
-Radicado: 05001710500220228337600
-Resolución No.: RES-2025-077428
-Oficio de embargo original: Oficio 2024-808298 del 14 de septiembre de 2024
+Radicado: 05001990800120254263400
+Oficio de embargo original: Oficio 2024-336450 del 15 de septiembre de 2024
 
 La Oficina de Rentas de Medellín, en ejercicio de la facultad de cobro coactivo, ha ordenado el
 levantamiento de la medida de embargo comunicada previamente. En consecuencia, sírvase
-desembargar los dineros retenidos, en los siguientes productos: CDT y depósitos a término, de
+desembargar los dineros retenidos, en los siguientes productos: cuentas de ahorro programado, de
 propiedad de las personas relacionadas a continuación, por las sumas indicadas.
 
 Relación de demandados:
 
 Nombre / Razón social Tipo ID Número ID Monto ($) Productos
 
-Sandra Restrepo Guerrero CC 26304909 15.296.000 CDT
+Norvina Rosalinda Gualdrapa CC 9964255536 15.296.000 CDT
 
-Andrea Rojas Guerrero CE 1007348281 1.271.000 Fondo de inversión
+Lunaria Arcanelo Mirabeque CC 9958195140 45.409.000 CDT
 
-Ricardo Vargas Peña CC 1132814834 28.246.000 Fondo de inversión
+Brisenia Tarquino Quintanaro CC 9972137853 48.888.000 CDT
 
-Servicios Los Álamos S.A. NIT 905018276-8 47.290.000 Cuenta corriente
+Sorvelo Fontemar Narvalle CC 9961591349 29.342.000 Cuenta de ahorros
 
-Valor total a desembargar: $ 92.103.000 (NOVENTA Y DOS MILLONES CIENTO TRES MIL PESOS
-M/CTE).
-Límite de inembargabilidad: $ 5.000.000.
+Valor total a desembargar: $ 138.935.000 (CIENTO TREINTA Y OCHO MILLONES NOVECIENTOS
+TREINTA Y CINCO MIL PESOS M/CTE).
 
 Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
 
@@ -38,6 +38,8 @@ Atentamente,
 
 ______________________________
 Jefe de la Oficina de Cobro Coactivo
+
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
 
 DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - dc-05 - pág. 1
 

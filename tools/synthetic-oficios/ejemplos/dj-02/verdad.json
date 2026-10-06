@@ -5,22 +5,22 @@
   "codigo": "DJ",
   "semilla": 7001,
   "indice": 2,
-  "numero_oficio": "S-2025-9653484",
+  "numero_oficio": "S-2025-7845288",
   "campos": {
-    "radicado": "66001690200620259616301",
-    "autoridad_emisora": "Juzgado Cuarto de Familia de Pereira",
+    "radicado": "66001990501220257363201",
+    "autoridad_emisora": "Juzgado Sexto Laboral del Circuito de Pereira",
     "ciudad": "Pereira",
     "fecha_oficio": "2025-01-03",
     "tipo_medida": "Desembargo judicial",
-    "banco_destinatario": "Banca Horizonte de Prueba S.A.",
-    "monto_numeros": "157231000.00",
-    "monto_letras": "CIENTO CINCUENTA Y SIETE MILLONES SEISCIENTOS TREINTA Y UN MIL PESOS M/CTE",
+    "banco_destinatario": "Banco Cafetero Demo S.A.",
+    "monto_numeros": "114312000.00",
+    "monto_letras": "CIENTO CATORCE MILLONES CUATROCIENTOS DOCE MIL PESOS M/CTE",
     "limite_inembargabilidad": null,
-    "productos_o_cuentas": "cuentas de ahorro programado y cuentas corrientes",
-    "juzgado": "Juzgado Cuarto de Familia de Pereira",
+    "productos_o_cuentas": "CDT y depósitos a término, cuentas de ahorro programado y cuentas de ahorro",
+    "juzgado": "Juzgado Sexto Laboral del Circuito de Pereira",
     "clase_proceso": "Ejecución de sentencia",
-    "demandante": "Servicios Horizonte Ltda.",
-    "referencia_oficio_original": "Oficio 2024-178702 del 29 de agosto de 2024"
+    "demandante": "Jorlenia Arcanelo Rosalinda",
+    "referencia_oficio_original": "Oficio 2024-967946 del 26 de julio de 2024"
   },
   "campos_criticos": [
     "radicado",
@@ -31,41 +31,41 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Inmobiliaria Andina Ltda.",
+        "nombre": "Inmobiliaria Ficticia Andina Ltda.",
         "tipo_identificacion": "NIT",
-        "numero_identificacion": "839144488-2",
+        "numero_identificacion": "999144484-4",
         "monto": "22437000.00",
         "productos": "Cuenta de ahorros"
       },
       {
-        "nombre": "Camilo Salcedo Vargas",
+        "nombre": "Gundelo Ventureño Torcuato",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "16794660",
+        "numero_identificacion": "9957653186",
         "monto": "39606000.00",
-        "productos": "Ahorro programado"
+        "productos": "Cuenta de ahorros"
       },
       {
-        "nombre": "Servicios Solar Ltda.",
-        "tipo_identificacion": "NIT",
-        "numero_identificacion": "990020183-7",
-        "monto": "48175000.00",
-        "productos": "Cuenta corriente"
-      },
-      {
-        "nombre": "Diana Ibáñez Navarro",
+        "nombre": "Kandelo Pedregaza Rosalinda",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "23729728",
-        "monto": "47013000.00",
-        "productos": "Cuenta corriente"
+        "numero_identificacion": "9909995808",
+        "monto": "20348000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Gundelo Salmedora Fontemar",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9923843689",
+        "monto": "31921000.00",
+        "productos": "Ahorro programado"
       }
     ]
   },
-  "suma_filas_demandados": "157231000.00",
+  "suma_filas_demandados": "114312000.00",
   "defectos": [
     {
       "tipo": "MONTO_INCONSISTENTE",
       "campo": "monto_letras",
-      "detalle": "letras equivalen a 157631000 y numeros a 157231000"
+      "detalle": "letras equivalen a 114412000 y numeros a 114312000"
     }
   ],
   "inyeccion_prompt": {

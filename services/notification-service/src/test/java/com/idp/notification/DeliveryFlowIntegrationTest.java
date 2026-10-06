@@ -259,7 +259,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     @Test
     void ac06_destinoInalcanzableSeReintentaYAlAgotarseEmiteEndpointUnreachable() throws Exception {
         String tenant = newTenant();
-        allowHosts(tenant, 2, 10, 2.0, 60, HOST);
+        allowHosts(tenant, 2, 30, 2.0, 60, HOST);
         int closedPort;
         try (java.net.ServerSocket ss = new java.net.ServerSocket(0, 1, java.net.InetAddress.getLoopbackAddress())) {
             closedPort = ss.getLocalPort();
@@ -268,7 +268,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
         listener.onMessage(aprobada(tenant, UUID.randomUUID().toString()));
         runWorker(tenant);
         assertThat(status(tenant)).isEqualTo("PENDIENTE");
-        clock.advance(Duration.ofSeconds(10));
+        clock.advance(Duration.ofSeconds(30));
         runWorker(tenant);
         assertThat(status(tenant)).isEqualTo("FALLIDO");
         assertThat(outbox(tenant, "webhook.fallido").get(0).path("reasonCode").asText()).isEqualTo("ENDPOINT_UNREACHABLE");
@@ -278,7 +278,7 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     @Test
     void ac16_elBackoffYLosIntentosSonConfigurablesPorTenantYTienenTope() throws Exception {
         String a = newTenant();
-        allowHosts(a, 3, 10, 3.0, 25, HOST);
+        allowHosts(a, 3, 30, 3.0, 60, HOST);
         createWebhook(a, hookUrl(), "extraccion.aprobada");
         Setup def = setup();
         receiver.otherwise(r -> Reply.status(503));
@@ -288,16 +288,16 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
         runWorker(a);
         runWorker(def.tenant());
         assertThat(Duration.between(clock.instant(), instantOf(deliveries(a).get(0).get("next_attempt_at"))))
-            .isEqualTo(Duration.ofSeconds(10));
+            .isEqualTo(Duration.ofSeconds(30));
         assertThat(Duration.between(clock.instant(), instantOf(deliveries(def.tenant()).get(0).get("next_attempt_at"))))
             .isEqualTo(Duration.ofSeconds(30));
 
-        clock.advance(Duration.ofSeconds(10));
+        clock.advance(Duration.ofSeconds(30));
         runWorker(a);
-        // 10s x 3 = 30s, pero el tope maxBackoff del tenant es 25s.
+        // 30s x 3 = 90s, pero el tope maxBackoff del tenant es 60s.
         assertThat(Duration.between(clock.instant(), instantOf(deliveries(a).get(0).get("next_attempt_at"))))
-            .isEqualTo(Duration.ofSeconds(25));
-        clock.advance(Duration.ofSeconds(25));
+            .isEqualTo(Duration.ofSeconds(60));
+        clock.advance(Duration.ofSeconds(60));
         runWorker(a);
         // maxAttempts=3 del tenant A: tercer fallo es definitivo (el tenant por defecto sigue reintentando).
         assertThat(status(a)).isEqualTo("FALLIDO");
@@ -661,14 +661,19 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void siLaKekDelTenantFueDestruidaNoSeEnviaNadaYLaEntregaQuedaPendiente() throws Exception {
+    void siLaKekDelTenantFueDestruidaNoSeEnviaNadaYLaEntregaPasaAFallidoConSecretUnavailable() throws Exception {
         Setup s = setup();
         listener.onMessage(aprobada(s.tenant(), UUID.randomUUID().toString()));
         ((InMemoryKeyService) keys).disableKek(new TenantId(s.tenant()), "webhooks");
         assertThat(runWorker(s.tenant())).isEqualTo(1);
         assertThat(receiver.count()).isZero();
-        assertThat(status(s.tenant())).isEqualTo("PENDIENTE");
-        assertThat(outbox(s.tenant(), "webhook.fallido")).isEmpty();
+        assertThat(status(s.tenant())).isEqualTo("FALLIDO");
+        assertThat(deliveries(s.tenant()).get(0).get("error_code")).isEqualTo("SECRET_UNAVAILABLE");
+        assertThat(deliveries(s.tenant()).get(0).get("attempts")).isEqualTo(1);
+        assertThat(outbox(s.tenant(), "webhook.fallido")).hasSize(1);
+        // No reaparece en el ciclo siguiente.
+        clock.advance(Duration.ofMinutes(10));
+        assertThat(runWorker(s.tenant())).isZero();
     }
 
     @Test

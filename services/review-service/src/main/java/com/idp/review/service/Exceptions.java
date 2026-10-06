@@ -40,6 +40,27 @@ public final class Exceptions {
         }
     }
 
+    /** Limite de peticiones por usuario excedido (429). */
+    public static class TooManyRequestsException extends RuntimeException {
+        private final long retryAfterSeconds;
+
+        public TooManyRequestsException(long retryAfterSeconds) {
+            super("Demasiadas solicitudes de recorte");
+            this.retryAfterSeconds = retryAfterSeconds;
+        }
+
+        public long retryAfterSeconds() {
+            return retryAfterSeconds;
+        }
+    }
+
+    /** Capacidad de decodificacion agotada (503). */
+    public static class ServiceBusyException extends RuntimeException {
+        public ServiceBusyException() {
+            super("Servicio de recorte saturado, reintente");
+        }
+    }
+
     /** Violacion de la regla de cuatro ojos (SEC-009): 403. */
     public static class FourEyesViolationException extends RuntimeException {
         public FourEyesViolationException(String message) {

@@ -1,39 +1,40 @@
-OFICINA DE COBRO COACTIVO - OFICINA DE RENTAS DE MEDELLÍN
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+OFICINA DE COBRO COACTIVO - TESORERÍA GENERAL DE MEDELLÍN
 
 Medellín, 30 de diciembre de 2024
-Oficio No. S-2024-2069468
+Oficio No. S-2024-4061309
 
 Señores
-Banco Cafetero Demo S.A.
+Banca Horizonte de Prueba S.A.
 
 Referencia: Embargo coactivo
-Radicado: 05001750401420222399901
-Resolución No.: RES-2024-556063
+Radicado: 05001990100220232837001
+Resolución No.: RES-2024-878951
 
-La Oficina de Rentas de Medellín, en ejercicio de la facultad de cobro coactivo, ha decretado el
+La Tesorería General de Medellín, en ejercicio de la facultad de cobro coactivo, ha decretado el
 embargo y la retención de los dineros depositados o que se llegaren a depositar a cualquier título en
-esa entidad, en los siguientes productos: productos de depósito en general, cuentas corrientes y
-cuentas de ahorro programado, de propiedad de las personas relacionadas a continuación, hasta por
-las sumas indicadas.
+esa entidad, en los siguientes productos: cuentas de ahorro programado y CDT y depósitos a término,
+de propiedad de las personas relacionadas a continuación, hasta por las sumas indicadas.
 
 Relación de demandados:
 
 Nombre / Razón social Tipo ID Número ID Monto ($) Productos
 
-Comercializadora Solar S.A. NIT 956121932-7 32.247.000 CDT
+Comercializadora Ficticia Solar S.A. NIT 999121929-0 32.247.000 CDT
 
-Luis Duarte Salcedo CC 1163250384 59.365.000 Cuenta de ahorros
+Cantelo Ibarreta Ventureño CC 9919613069 59.365.000 Fondo de inversión
 
-Mauricio Cardona Rojas CC 85202137 16.826.000 Cuenta de ahorros
+Ovaldo Rosalinda Salmedora CC 9985976220 50.780.000 CDT
 
-Carlos Salcedo Zapata CC 83754361 12.985.000 Cuenta de ahorros
+Distribuciones Ficticia Solar Ltda. NIT 999859388-4 22.637.000 Cuenta corriente
 
-Andrea Rojas Arango CC 14549759 45.592.000 Fondo de inversión
+Agroindustrias Ficticia Pacífico S.A.S. NIT 999918401-6 18.321.000 Cuenta de ahorros
 
-Claudia Duarte Ibáñez CC 41528370 59.702.000 Cuenta corriente
+Tamarisca Arcanelo Torcuato CC 9994706873 40.193.000 CDT
 
-Valor total a embargar: $ 226.717.000 (DOSCIENTOS VEINTISÉIS MILLONES SETECIENTOS
-DIECISIETE MIL PESOS M/CTE).
+Valor total a embargar: $ 223.543.000 (DOSCIENTOS VEINTITRÉS MILLONES QUINIENTOS
+CUARENTA Y TRES MIL PESOS M/CTE).
 
 Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
 
@@ -41,6 +42,8 @@ Atentamente,
 
 ______________________________
 Jefe de la Oficina de Cobro Coactivo
+
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
 
 DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - ec-01 - pág. 1
 

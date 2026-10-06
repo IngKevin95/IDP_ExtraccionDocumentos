@@ -33,6 +33,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class WebhookAdminService {
 
     static final int MAX_ACTIVE_SUBSCRIPTIONS = 20;
+    /** Espera minima entre reintentos: ningun tenant puede configurar un martilleo rapido sobre un tercero. */
+    public static final Duration MIN_BACKOFF = Duration.ofSeconds(30);
     private static final Logger LOG = LoggerFactory.getLogger(WebhookAdminService.class);
 
     private final WebhookRepository repository;
@@ -42,10 +44,12 @@ public class WebhookAdminService {
     private final NotificationProperties props;
     private final TransactionTemplate tx;
     private final Clock clock;
+    private final HostAllowlistService hostAllowlist;
 
     public WebhookAdminService(WebhookRepository repository, WebhookSecrets secrets, WebhookUrlPolicy urlPolicy,
                                TenantPolicies policies, NotificationProperties props, TransactionTemplate tx,
-                               Clock clock) {
+                               Clock clock, HostAllowlistService hostAllowlist) {
+        this.hostAllowlist = hostAllowlist;
         this.repository = repository;
         this.secrets = secrets;
         this.urlPolicy = urlPolicy;
@@ -96,14 +100,18 @@ public class WebhookAdminService {
         UUID tenant = UUID.fromString(caller.tenantId());
         String fresh = secrets.generate();
         WebhookSubscription updated = tx.execute(status -> {
-            WebhookSubscription current = active(tenant, id);
+            WebhookSubscription current = repository.findSubscriptionForUpdate(tenant, id)
+                .filter(WebhookSubscription::active).orElseThrow(() -> new NotFoundException("Webhook no encontrado"));
             Instant now = clock.instant();
             if (current.previousSecretActive(now)) {
                 throw new ConflictException("WEBHOOK_ROTATION_IN_PROGRESS", "Ya hay una rotacion en curso");
             }
             Instant expires = now.plus(props.secretOverlap());
             String sealed = secrets.seal(tenant, id, fresh);
-            repository.saveRotation(tenant, id, sealed, current.secretCurrent(), expires, now);
+            if (!repository.saveRotationIfUnchanged(tenant, id, sealed, current.secretCurrent(), expires, now,
+                    current.secretCurrent(), current.rotatedAt())) {
+                throw new ConflictException("WEBHOOK_CONCURRENT_UPDATE", "El webhook cambio durante la operacion");
+            }
             return new WebhookSubscription(id, tenant, current.url(), current.events(), true, sealed,
                 current.secretCurrent(), expires, current.createdBy(), current.createdAt(), now);
         });
@@ -114,11 +122,17 @@ public class WebhookAdminService {
     /** Cierra la rotacion revocando el secreto anterior. */
     public void endRotation(Caller caller, UUID id) {
         UUID tenant = UUID.fromString(caller.tenantId());
-        WebhookSubscription current = active(tenant, id);
-        if (current.secretPrevious() == null) {
-            throw new ConflictException("WEBHOOK_NO_ROTATION", "No hay rotacion en curso");
-        }
-        repository.saveRotation(tenant, id, current.secretCurrent(), null, null, current.rotatedAt());
+        tx.executeWithoutResult(status -> {
+            WebhookSubscription current = repository.findSubscriptionForUpdate(tenant, id)
+                .filter(WebhookSubscription::active).orElseThrow(() -> new NotFoundException("Webhook no encontrado"));
+            if (current.secretPrevious() == null) {
+                throw new ConflictException("WEBHOOK_NO_ROTATION", "No hay rotacion en curso");
+            }
+            if (!repository.saveRotationIfUnchanged(tenant, id, current.secretCurrent(), null, null,
+                    current.rotatedAt(), current.secretCurrent(), current.rotatedAt())) {
+                throw new ConflictException("WEBHOOK_CONCURRENT_UPDATE", "El webhook cambio durante la operacion");
+            }
+        });
         LOG.info("Rotacion de secreto finalizada en el webhook {} del tenant {}", id, tenant);
     }
 
@@ -131,8 +145,8 @@ public class WebhookAdminService {
         if (maxAttempts < 1 || maxAttempts > 10) {
             throw new InvalidRequestException("WEBHOOK_POLICY_INVALID", "maxAttempts debe estar entre 1 y 10");
         }
-        if (initialBackoff.compareTo(Duration.ofSeconds(1)) < 0 || initialBackoff.compareTo(Duration.ofHours(1)) > 0) {
-            throw new InvalidRequestException("WEBHOOK_POLICY_INVALID", "initialBackoff debe estar entre 1s y 1h");
+        if (initialBackoff.compareTo(MIN_BACKOFF) < 0 || initialBackoff.compareTo(Duration.ofHours(1)) > 0) {
+            throw new InvalidRequestException("WEBHOOK_POLICY_INVALID", "initialBackoff debe estar entre 30s y 1h");
         }
         if (multiplier < 1.0 || multiplier > 10.0) {
             throw new InvalidRequestException("WEBHOOK_POLICY_INVALID", "backoffMultiplier debe estar entre 1 y 10");
@@ -143,11 +157,13 @@ public class WebhookAdminService {
         }
         List<String> hosts = allowedHosts == null ? List.of() : allowedHosts.stream()
             .map(h -> h.strip().toLowerCase(Locale.ROOT)).filter(h -> !h.isEmpty()).distinct().toList();
-        if (hosts.size() > 50 || hosts.stream().anyMatch(h -> !h.matches("(\\*\\.)?[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?"))) {
+        if (hosts.size() > 50) {
             throw new InvalidRequestException("WEBHOOK_POLICY_INVALID", "allowedHosts invalido");
         }
+        UUID tenant = UUID.fromString(caller.tenantId());
+        hostAllowlist.authorize(tenant, policies.effective(tenant).allowedHosts(), hosts);
         TenantPolicy p = new TenantPolicy(hosts, maxAttempts, initialBackoff, multiplier, maxBackoff);
-        repository.savePolicy(UUID.fromString(caller.tenantId()), p, clock.instant());
+        repository.savePolicy(tenant, p, clock.instant());
         return p;
     }
 
@@ -171,16 +187,17 @@ public class WebhookAdminService {
         WebhookDelivery d = repository.findDelivery(tenant, deliveryId)
             .filter(x -> x.webhookId().equals(webhookId))
             .orElseThrow(() -> new NotFoundException("Entrega no encontrada"));
-        if (!repository.requeueFailed(tenant, d.id(), clock.instant())) {
+        if (!repository.requeueFailed(tenant, d.id(), clock.instant(), props.maxManualRetries())) {
+            boolean failed = repository.findDelivery(tenant, d.id()).map(x -> x.status() == DeliveryStatus.FALLIDO)
+                .orElse(false);
+            if (failed) {
+                throw new ConflictException("WEBHOOK_RETRY_LIMIT_REACHED",
+                    "Limite de reintentos manuales alcanzado para la entrega");
+            }
             throw new ConflictException("WEBHOOK_DELIVERY_NOT_FAILED", "Solo se reintentan entregas FALLIDO");
         }
         LOG.info("Reintento manual de la entrega {} del webhook {}", deliveryId, webhookId);
         return repository.findDelivery(tenant, deliveryId).orElseThrow();
-    }
-
-    private WebhookSubscription active(UUID tenant, UUID id) {
-        return repository.findSubscription(tenant, id).filter(WebhookSubscription::active)
-            .orElseThrow(() -> new NotFoundException("Webhook no encontrado"));
     }
 
     private void validateUrl(String url, UUID tenant) {

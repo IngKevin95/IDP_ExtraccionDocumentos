@@ -126,16 +126,11 @@ public class QualityConfig {
         return EventErrorHandlers.deadLetter(template);
     }
 
-    /** La semilla del muestreo es secreta: obligatoria salvo dev-mode (impide predecir que oficio se revisa). */
+    /** Semilla secreta de al menos 32 bytes salvo dev-mode (SEC-051); la validacion vive en {@link BlindSampler}. */
     @Bean
     BlindSampler blindSampler(QualityProperties props, @Value("${idp.security.dev-mode:false}") boolean devMode) {
         QualityProperties.BlindSampling bs = props.blindSampling();
-        boolean sampling = bs.rate() > 0 || bs.rateByTypology().values().stream().anyMatch(r -> r > 0);
-        if (sampling && bs.seed().isBlank() && !devMode) {
-            throw new IllegalStateException(
-                "quality.blind-sampling.seed es obligatoria salvo idp.security.dev-mode=true");
-        }
-        return new BlindSampler(bs.seed(), bs.rate(), bs.rateByTypology());
+        return new BlindSampler(bs.seed(), bs.rate(), bs.rateByTypology(), devMode);
     }
 
     @Bean

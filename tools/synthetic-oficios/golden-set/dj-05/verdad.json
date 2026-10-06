@@ -5,22 +5,22 @@
   "codigo": "DJ",
   "semilla": 20260101,
   "indice": 5,
-  "numero_oficio": "S-2026-7309582",
+  "numero_oficio": "S-2026-9644830",
   "campos": {
-    "radicado": "11001410300620264385901",
-    "autoridad_emisora": "Juzgado Segundo Civil Municipal de Bogotá",
+    "radicado": "11001990101620236029200",
+    "autoridad_emisora": "Juzgado Primero de Familia de Bogotá",
     "ciudad": "Bogotá D.C.",
     "fecha_oficio": "2026-01-27",
     "tipo_medida": "Desembargo judicial",
-    "banco_destinatario": "Banca Horizonte de Prueba S.A.",
-    "monto_numeros": "194542000.00",
-    "monto_letras": "CIENTO NOVENTA Y CUATRO MILLONES QUINIENTOS CUARENTA Y DOS MIL PESOS M/CTE",
+    "banco_destinatario": "Banco Andino Sintético S.A.",
+    "monto_numeros": "193051000.00",
+    "monto_letras": "CIENTO NOVENTA Y TRES MILLONES CINCUENTA Y UN MIL PESOS M/CTE",
     "limite_inembargabilidad": null,
-    "productos_o_cuentas": "fondos de inversión colectiva",
-    "juzgado": "Juzgado Segundo Civil Municipal de Bogotá",
-    "clase_proceso": "Ejecutivo singular",
-    "demandante": "Inmobiliaria Altiplano Ltda.",
-    "referencia_oficio_original": "Oficio 2025-181788 del 9 de diciembre de 2025"
+    "productos_o_cuentas": "cuentas corrientes y CDT y depósitos a término",
+    "juzgado": "Juzgado Primero de Familia de Bogotá",
+    "clase_proceso": "Ejecutivo hipotecario",
+    "demandante": "Inmobiliaria Ficticia Andina S.A.S.",
+    "referencia_oficio_original": null
   },
   "campos_criticos": [
     "radicado",
@@ -31,54 +31,54 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Paula Lozano Rojas",
+        "nombre": "Fabrizela Tarquino Zandoval",
         "tipo_identificacion": "CE",
-        "numero_identificacion": "1159836936",
+        "numero_identificacion": "9915026318",
         "monto": "36198000.00",
-        "productos": "Ahorro programado"
-      },
-      {
-        "nombre": "Marcela Navarro Peña",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "1179206299",
-        "monto": "50512000.00",
-        "productos": "Fondo de inversión"
-      },
-      {
-        "nombre": "Constructora Andina S.A.S.",
-        "tipo_identificacion": "NIT",
-        "numero_identificacion": "826869998-1",
-        "monto": "24399000.00",
-        "productos": "Cuenta de ahorros"
-      },
-      {
-        "nombre": "Ricardo Beltrán Rojas",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "1139522907",
-        "monto": "21923000.00",
-        "productos": "Ahorro programado"
-      },
-      {
-        "nombre": "Julián Castaño Restrepo",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "49873110",
-        "monto": "34834000.00",
         "productos": "Cuenta corriente"
       },
       {
-        "nombre": "Felipe Cifuentes Vargas",
+        "nombre": "Heliodora Ibarreta Arcanelo",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "31460292",
-        "monto": "26676000.00",
-        "productos": "CDT"
+        "numero_identificacion": "9902191434",
+        "monto": "26773000.00",
+        "productos": "Ahorro programado"
+      },
+      {
+        "nombre": "Tamarisca Pedregaza Zandoval",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9916798134",
+        "monto": "26799000.00",
+        "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Dorvina Narvalle Cordellera",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9920552510",
+        "monto": "50495000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Sorvelo Narvalle Quintanaro",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9916945334",
+        "monto": "39508000.00",
+        "productos": "Ahorro programado"
+      },
+      {
+        "nombre": "Inversiones Ficticia Horizonte S.A.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999506407-1",
+        "monto": "13278000.00",
+        "productos": "Ahorro programado"
       }
     ]
   },
-  "suma_filas_demandados": "194542000.00",
+  "suma_filas_demandados": "193051000.00",
   "defectos": [
     {
       "tipo": "CAMPO_FALTANTE",
-      "campo": "limite_inembargabilidad",
+      "campo": "referencia_oficio_original",
       "detalle": "campo omitido del documento"
     }
   ],

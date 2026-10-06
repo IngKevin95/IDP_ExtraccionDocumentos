@@ -29,7 +29,9 @@ import org.junit.jupiter.api.io.TempDir;
 /**
  * Golden set versionado (20 oficios) y ejemplos few-shot. Si el generador cambia a proposito, regenerar con:
  * golden: --salida golden-set --semilla 20260101 --cantidad 5 --modo ambos;
- * ejemplos: --salida ejemplos --semilla 7001 --cantidad 2 --modo nativo --few-shot.
+ * ejemplos: --salida ejemplos --semilla 7001 --cantidad 2 --modo nativo --few-shot
+ * (desde tools/synthetic-oficios: java -jar target/synthetic-oficios-*-exec.jar ...). Identificaciones en rangos
+ * reservados: cedula 99NNNNNNNN, NIT base 999NNNNNN, radicado con especialidad 99 (ver Identificaciones).
  */
 class GoldenSetTest {
 

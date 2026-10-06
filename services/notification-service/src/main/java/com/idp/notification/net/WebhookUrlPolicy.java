@@ -25,10 +25,17 @@ public final class WebhookUrlPolicy {
 
     private final AddressPolicy addresses;
     private final boolean allowInsecureHttp;
+    private final PortPolicy ports;
 
+    /** Politica con solo el puerto 443 permitido. */
     public WebhookUrlPolicy(AddressPolicy addresses, boolean allowInsecureHttp) {
+        this(addresses, allowInsecureHttp, PortPolicy.httpsOnly());
+    }
+
+    public WebhookUrlPolicy(AddressPolicy addresses, boolean allowInsecureHttp, PortPolicy ports) {
         this.addresses = addresses;
         this.allowInsecureHttp = allowInsecureHttp;
+        this.ports = ports;
     }
 
     /** Valida la URL y devuelve el URI; lanza {@link SsrfViolationException} con un codigo estable si no cumple. */
@@ -46,12 +53,20 @@ public final class WebhookUrlPolicy {
         if (uri.getScheme() == null || host == null || uri.getUserInfo() != null || uri.getRawFragment() != null) {
             throw new SsrfViolationException("INVALID_URL", "URL sin esquema o host, con credenciales o fragmento");
         }
+        if (uri.getRawQuery() != null || url.indexOf('?') >= 0) {
+            // Los query strings suelen llevar tokens: la autenticacion es la firma HMAC, no la URL.
+            throw new SsrfViolationException("INVALID_URL", "URL con query string");
+        }
         String normalized = normalize(host);
         checkHostname(normalized);
         String scheme = uri.getScheme().toLowerCase(Locale.ROOT);
         boolean https = "https".equals(scheme);
         if (!https && !(allowInsecureHttp && "http".equals(scheme))) {
             throw new SsrfViolationException("INSECURE_SCHEME", "Solo se admite HTTPS");
+        }
+        int port = uri.getPort() >= 0 ? uri.getPort() : (https ? 443 : 80);
+        if (!ports.permits(port)) {
+            throw new SsrfViolationException("PORT_NOT_ALLOWED", "Puerto de destino no permitido");
         }
         if (!isAllowed(normalized, allowedHosts)) {
             throw new SsrfViolationException("HOST_NOT_ALLOWED", "Host fuera de la allowlist del tenant");
@@ -120,7 +135,9 @@ public final class WebhookUrlPolicy {
             }
             if (e.startsWith("*.")) {
                 String suffix = e.substring(1);
-                if (host.length() > suffix.length() && host.endsWith(suffix)) {
+                // Defensa en profundidad: un comodin sobre sufijo publico guardado antes de este control no cubre nada.
+                if (PublicSuffixes.wildcardBaseAllowed(e.substring(2)) && host.length() > suffix.length()
+                        && host.endsWith(suffix)) {
                     return true;
                 }
             } else if (e.equals(host)) {

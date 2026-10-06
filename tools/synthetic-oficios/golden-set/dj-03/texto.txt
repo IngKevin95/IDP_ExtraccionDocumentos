@@ -1,40 +1,43 @@
-JUZGADO CUARTO DE FAMILIA DE BARRANQUILLA
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+JUZGADO SEXTO DE FAMILIA DE BARRANQUILLA
 
 Barranquilla, 28 de febrero de 2026
-Oficio No. S-2026-3021799
+Oficio No. S-2026-2185461
 
 Señores
-Banco Cafetero Demo S.A.
+Banco Altiplano Sintético S.A.
 
 Referencia: Desembargo judicial
-Radicado: 08001460202020249053301
-Clase de proceso: Ejecución de sentencia
-Demandante: Andrea Vargas Beltrán
-Oficio de embargo original: Oficio 2026-236015 del 15 de enero de 2026
+Radicado: 08001990901220251814400
+Clase de proceso: Ejecutivo con garantía real
+Demandante: Cantelo Valdenavia Fontemar
+Oficio de embargo original: Oficio 2025-195568 del 12 de septiembre de 2025
 
-El Juzgado Cuarto de Familia de Barranquilla, dentro del proceso de la referencia, ha ordenado el
+El Juzgado Sexto de Familia de Barranquilla, dentro del proceso de la referencia, ha ordenado el
 levantamiento de la medida de embargo comunicada previamente. En consecuencia, sírvase
-desembargar los dineros retenidos, en los siguientes productos: cuentas de ahorro, de propiedad de las
-personas relacionadas a continuación, por las sumas indicadas.
+desembargar los dineros retenidos, en los siguientes productos: productos de depósito en general, de
+propiedad de las personas relacionadas a continuación, por las sumas indicadas.
 
 Relación de demandados:
 
 Nombre / Razón social Tipo ID Número ID Monto ($) Productos
 
-Marta Ospina Arango CC 51854609 58.068.000 Cuenta de ahorros
+Dorvina Orquillo Vistamar CC 9966917384 58.068.000 Fondo de inversión
 
-Agroindustrias Cafetera Ltda. NIT 985940004-6 12.847.000 Ahorro programado
+Brisenia Arcanelo Pedregaza CC 9945963149 50.480.000 Ahorro programado
 
-Camilo Salcedo Ibáñez CC 1048339135 29.222.000 CDT
+Rivalda Quintanaro Ventureño CC 9945594776 5.668.000 Fondo de inversión
 
-Camilo Vargas Restrepo CC 41270821 22.356.000 Fondo de inversión
+Quenelo Rosalinda Quintanaro CC 9975997282 39.635.000 Ahorro programado
 
-Felipe Navarro Arango CC 26492209 45.618.000 Cuenta de ahorros
+Transportes Ficticia Pacífico Ltda. NIT 999529048-1 48.376.000 Fondo de inversión
 
-Jorge Zapata Restrepo CE 81065871 31.289.000 Fondo de inversión
+Jorlenia Ibarreta Arcanelo CC 9925400679 36.413.000 Fondo de inversión
 
-Valor total a desembargar: $ 203.400.000 (DOSCIENTOS TRES MILLONES CUATROCIENTOS MIL
-PESOS M/CTE).
+Valor total a desembargar: $ 240.640.000 (DOSCIENTOS CUARENTA MILLONES SEISCIENTOS
+CUARENTA MIL PESOS M/CTE).
+Límite de inembargabilidad: $ 15.000.000.
 
 Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
 
@@ -42,6 +45,8 @@ Atentamente,
 
 ______________________________
 Secretaría del despacho
+
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
 
 DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - dj-03 - pág. 1
 

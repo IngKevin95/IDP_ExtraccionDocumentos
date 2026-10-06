@@ -5,22 +5,22 @@
   "codigo": "DJ",
   "semilla": 7001,
   "indice": 1,
-  "numero_oficio": "S-2025-3857742",
+  "numero_oficio": "S-2025-1881369",
   "campos": {
-    "radicado": "68001560800220256240700",
-    "autoridad_emisora": "Juzgado Primero Civil Municipal de Bucaramanga",
+    "radicado": "68001990600420224785901",
+    "autoridad_emisora": "Juzgado Segundo Laboral del Circuito de Bucaramanga",
     "ciudad": "Bucaramanga",
     "fecha_oficio": "2025-02-26",
     "tipo_medida": "Desembargo judicial",
     "banco_destinatario": "Banco Cafetero Demo S.A.",
-    "monto_numeros": "122343000.00",
-    "monto_letras": "CIENTO VEINTIDÓS MILLONES TRESCIENTOS CUARENTA Y TRES MIL PESOS M/CTE",
-    "limite_inembargabilidad": null,
-    "productos_o_cuentas": "cuentas de ahorro programado",
-    "juzgado": "Juzgado Primero Civil Municipal de Bucaramanga",
-    "clase_proceso": "Cobro de pagaré",
-    "demandante": "Inmobiliaria Andina Ltda.",
-    "referencia_oficio_original": "Oficio 2024-881369 del 12 de octubre de 2024"
+    "monto_numeros": "81299000.00",
+    "monto_letras": "OCHENTA Y UN MILLONES DOSCIENTOS NOVENTA Y NUEVE MIL PESOS M/CTE",
+    "limite_inembargabilidad": "15000000.00",
+    "productos_o_cuentas": "productos de depósito en general, cuentas de ahorro programado y fondos de inversión colectiva",
+    "juzgado": "Juzgado Segundo Laboral del Circuito de Bucaramanga",
+    "clase_proceso": "Ejecutivo hipotecario",
+    "demandante": "Lunaria Rosalinda Quintanaro",
+    "referencia_oficio_original": "Oficio 2024-476917 del 9 de noviembre de 2024"
   },
   "campos_criticos": [
     "radicado",
@@ -31,29 +31,29 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Hernán Guerrero Castaño",
+        "nombre": "Kandelo Gualdrapa Valdenavia",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "61239812",
+        "numero_identificacion": "9982468000",
         "monto": "24927000.00",
-        "productos": "Fondo de inversión"
-      },
-      {
-        "nombre": "Jorge Beltrán Restrepo",
-        "tipo_identificacion": "CE",
-        "numero_identificacion": "37062618",
-        "monto": "48386000.00",
         "productos": "CDT"
       },
       {
-        "nombre": "Sandra Duarte Cifuentes",
+        "nombre": "Tamarisca Orquillo Pedregaza",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "54083940",
-        "monto": "49030000.00",
-        "productos": "Ahorro programado"
+        "numero_identificacion": "9905628398",
+        "monto": "53254000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Kandelo Vistamar Vistamar",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9927083915",
+        "monto": "3118000.00",
+        "productos": "CDT"
       }
     ]
   },
-  "suma_filas_demandados": "122343000.00",
+  "suma_filas_demandados": "81299000.00",
   "defectos": [ ],
   "inyeccion_prompt": {
     "presente": false,

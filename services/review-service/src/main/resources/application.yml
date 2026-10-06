@@ -43,9 +43,13 @@ idp:
     pool-size: 5
   review:
     kek-id: documents
-    public-base-url: ${IDP_PUBLIC_BASE_URL:http://localhost:8080}
+    # Obligatorio y sin default: https salvo idp.security.dev-mode=true; el arranque falla si falta.
+    public-base-url: ${IDP_PUBLIC_BASE_URL}
     crop-secret: ${IDP_REVIEW_CROP_SECRET}
     crop-ttl: 60s
+    crop-max-concurrent: 4
+    crop-rate-per-minute: 30
+    crop-max-pixels: 40000000
     sla: 4h
     escalation-interval: 1h
     max-escalation-level: 3

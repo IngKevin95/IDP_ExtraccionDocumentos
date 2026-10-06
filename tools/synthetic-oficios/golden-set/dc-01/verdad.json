@@ -5,21 +5,21 @@
   "codigo": "DC",
   "semilla": 20260101,
   "indice": 1,
-  "numero_oficio": "S-2026-0386994",
+  "numero_oficio": "S-2026-9277500",
   "campos": {
-    "radicado": "13001740700220262536800",
-    "autoridad_emisora": "Oficina de Cobro Coactivo - Tesorería General de Cartagena",
+    "radicado": "13001990402020244215701",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Oficina de Rentas de Cartagena",
     "ciudad": "Cartagena",
     "fecha_oficio": "2026-05-15",
     "tipo_medida": "Desembargo coactivo",
-    "banco_destinatario": "Banco Andino Sintético S.A.",
-    "monto_numeros": "196448000.00",
-    "monto_letras": "CIENTO NOVENTA Y SEIS MILLONES CUATROCIENTOS CUARENTA Y OCHO MIL PESOS M/CTE",
-    "limite_inembargabilidad": "3000000.00",
-    "productos_o_cuentas": "cuentas de ahorro programado, productos de depósito en general y cuentas de ahorro",
-    "entidad_coactiva": "Tesorería General de Cartagena",
-    "numero_resolucion": "RES-2026-892216",
-    "referencia_oficio_original": "Oficio 2025-692825 del 16 de agosto de 2025"
+    "banco_destinatario": "Banco Altiplano Sintético S.A.",
+    "monto_numeros": "166573000.00",
+    "monto_letras": "CIENTO SESENTA Y SEIS MILLONES QUINIENTOS SETENTA Y TRES MIL PESOS M/CTE",
+    "limite_inembargabilidad": "5000000.00",
+    "productos_o_cuentas": "CDT y depósitos a término",
+    "entidad_coactiva": "Oficina de Rentas de Cartagena",
+    "numero_resolucion": "RES-2026-701885",
+    "referencia_oficio_original": "Oficio 2025-057829 del 13 de julio de 2025"
   },
   "campos_criticos": [
     "radicado",
@@ -30,50 +30,50 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Julián Cardona Castaño",
+        "nombre": "Ovaldo Salmedora Valdenavia",
         "tipo_identificacion": "CE",
-        "numero_identificacion": "1199803180",
+        "numero_identificacion": "9958982807",
         "monto": "31508000.00",
-        "productos": "CDT"
-      },
-      {
-        "nombre": "Luis Salcedo Restrepo",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "41693093",
-        "monto": "25247000.00",
-        "productos": "Ahorro programado"
-      },
-      {
-        "nombre": "Felipe Peña Quintero",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "86828283",
-        "monto": "56317000.00",
         "productos": "Cuenta de ahorros"
       },
       {
-        "nombre": "Natalia Zapata Zapata",
+        "nombre": "Mirtelo Torcuato Ventureño",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "82180609",
-        "monto": "11048000.00",
-        "productos": "CDT"
+        "numero_identificacion": "9981053618",
+        "monto": "27747000.00",
+        "productos": "Cuenta de ahorros"
       },
       {
-        "nombre": "Viviana Salcedo Navarro",
+        "nombre": "Rivalda Valdenavia Ventureño",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "43126837",
-        "monto": "54910000.00",
-        "productos": "Fondo de inversión"
+        "numero_identificacion": "9998101214",
+        "monto": "13593000.00",
+        "productos": "Cuenta de ahorros"
       },
       {
-        "nombre": "Comercializadora Solar Ltda.",
-        "tipo_identificacion": "NIT",
-        "numero_identificacion": "948243321-1",
-        "monto": "17418000.00",
-        "productos": "Fondo de inversión"
+        "nombre": "Alderan Ventureño Torcuato",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9956781029",
+        "monto": "21115000.00",
+        "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Jorlenia Arcanelo Salmedora",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9930614410",
+        "monto": "37531000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Jorlenia Fontemar Gualdrapa",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9920761974",
+        "monto": "35079000.00",
+        "productos": "Ahorro programado"
       }
     ]
   },
-  "suma_filas_demandados": "196448000.00",
+  "suma_filas_demandados": "166573000.00",
   "defectos": [ ],
   "inyeccion_prompt": {
     "presente": false,

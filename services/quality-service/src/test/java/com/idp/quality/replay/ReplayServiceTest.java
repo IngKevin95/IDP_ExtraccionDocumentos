@@ -20,6 +20,8 @@ import org.junit.jupiter.api.Test;
 /** Replay con modelo o prompt nuevo en paralelo con el vigente, sin escribir en produccion. */
 class ReplayServiceTest {
 
+    private static final UUID TENANT = UUID.randomUUID();
+
     private static List<GoldenDocument> docs(int n) {
         List<GoldenDocument> out = new ArrayList<>();
         for (int i = 0; i < n; i++) {
@@ -43,7 +45,7 @@ class ReplayServiceTest {
     @Test
     void ejecutaVigenteYCandidatoEnParaleloYComparaMetricas() throws Exception {
         CountDownLatch bothRunning = new CountDownLatch(2);
-        ExtractionRunner runner = (key, documents) -> {
+        ExtractionRunner runner = (tenant, key, documents) -> {
             bothRunning.countDown();
             try {
                 // Si no corrieran en paralelo, el primero esperaria en vano al segundo.
@@ -56,7 +58,7 @@ class ReplayServiceTest {
             return predict(documents, "viejo".equals(key) ? 5 : 0);
         };
         try (ExecutorService ex = Executors.newVirtualThreadPerTaskExecutor()) {
-            ReplayService.Report r = new ReplayService(runner, engine, ex).replay("viejo", "nuevo", docs(40));
+            ReplayService.Report r = new ReplayService(runner, engine, ex).replay(TENANT, "viejo", "nuevo", docs(40));
             assertThat(r.baseline().modelPromptKey()).isEqualTo("viejo");
             assertThat(r.candidate().modelPromptKey()).isEqualTo("nuevo");
             assertThat(r.candidate().f1()).isEqualTo(1.0);
@@ -67,9 +69,9 @@ class ReplayServiceTest {
 
     @Test
     void marcaRegresionSiElCandidatoEmpeora() {
-        ExtractionRunner runner = (key, documents) -> predict(documents, "viejo".equals(key) ? 0 : 3);
+        ExtractionRunner runner = (tenant, key, documents) -> predict(documents, "viejo".equals(key) ? 0 : 3);
         try (ExecutorService ex = Executors.newVirtualThreadPerTaskExecutor()) {
-            ReplayService.Report r = new ReplayService(runner, engine, ex).replay("viejo", "peor", docs(30));
+            ReplayService.Report r = new ReplayService(runner, engine, ex).replay(TENANT, "viejo", "peor", docs(30));
             assertThat(r.deltaF1()).isNegative();
             assertThat(r.regression()).isTrue();
         }
@@ -77,14 +79,14 @@ class ReplayServiceTest {
 
     @Test
     void propagaElFalloDeUnaDeLasCorridas() {
-        ExtractionRunner runner = (key, documents) -> {
+        ExtractionRunner runner = (tenant, key, documents) -> {
             if ("nuevo".equals(key)) {
                 throw new ExtractionRunner.RunnerException("sin resultados");
             }
             return predict(documents, 0);
         };
         try (ExecutorService ex = Executors.newVirtualThreadPerTaskExecutor()) {
-            assertThatThrownBy(() -> new ReplayService(runner, engine, ex).replay("viejo", "nuevo", docs(5)))
+            assertThatThrownBy(() -> new ReplayService(runner, engine, ex).replay(TENANT, "viejo", "nuevo", docs(5)))
                 .isInstanceOf(ExtractionRunner.RunnerException.class).hasMessage("sin resultados");
         }
     }

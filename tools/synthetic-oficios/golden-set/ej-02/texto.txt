@@ -1,34 +1,37 @@
-JUZGADO TERCERO DE FAMILIA DE BOGOTÁ
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+JUZGADO SEGUNDO PROMISCUO MUNICIPAL DE BOGOTÁ
 
 Bogotá D.C., 8 de mayo de 2026
-Oficio No. S-2026-2320353
+Oficio No. S-2026-8344548
 
 Señores
-Banco del Pacífico Ficticio S.A.
+Banco Cafetero Demo S.A.
 
 Referencia: Embargo judicial
-Radicado: 11001820901220260599500
-Clase de proceso: Ejecutivo con garantía real
-Demandante: Constructora del Caribe S.A.S.
+Radicado: 11001990400420235151500
+Clase de proceso: Ejecución de sentencia
+Demandante: Pelagrina Mirabeque Lumbrales
 
-El Juzgado Tercero de Familia de Bogotá, dentro del proceso de la referencia, ha decretado el
-embargo y la retención de los dineros depositados o que se llegaren a depositar a cualquier título en
-esa entidad, en los siguientes productos: cuentas corrientes y CDT y depósitos a término, de propiedad
-de las personas relacionadas a continuación, hasta por las sumas indicadas.
+El Juzgado Segundo Promiscuo Municipal de Bogotá, dentro del proceso de la referencia, ha decretado
+el embargo y la retención de los dineros depositados o que se llegaren a depositar a cualquier título en
+esa entidad, en los siguientes productos: productos de depósito en general, fondos de inversión
+colectiva y cuentas de ahorro programado, de propiedad de las personas relacionadas a continuación,
+hasta por las sumas indicadas.
 
 Relación de demandados:
 
 Nombre / Razón social Tipo ID Número ID Monto ($) Productos
 
-Luis Ospina Pardo CC 39506443 38.649.000 Ahorro programado
+Cantelo Orquillo Quintanaro CC 9975358791 38.649.000 Ahorro programado
 
-Óscar Duarte Ospina CE 80974271 21.412.000 Fondo de inversión
+Jorlenia Fontemar Ibarreta CC 9976078624 45.793.000 Fondo de inversión
 
-Natalia Cifuentes Lozano CC 68592144 11.461.000 Fondo de inversión
+Brisenia Salmedora Arcanelo CC 9915657232 54.771.000 Fondo de inversión
 
-Valor total a embargar: $ 71.522.000 (SETENTA Y UN MILLONES SEISCIENTOS VEINTIDÓS MIL
-PESOS M/CTE).
-Límite de inembargabilidad: $ 13.000.000.
+Valor total a embargar: $ 139.213.000 (CIENTO TREINTA Y NUEVE MILLONES CUATROCIENTOS
+TRECE MIL PESOS M/CTE).
+Límite de inembargabilidad: $ 15.000.000.
 
 Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
 
@@ -36,6 +39,8 @@ Atentamente,
 
 ______________________________
 Secretaría del despacho
+
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
 
 DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - ej-02 - pág. 1
 

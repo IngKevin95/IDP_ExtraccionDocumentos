@@ -40,7 +40,7 @@ paths:
         - bearerAuth: []
       responses:
         '200':
-          description: Lista de webhooks
+          description: "Lista de webhooks. Para el rol OPERADOR la ruta de `url` va enmascarada (`https://host/***`); TENANT_ADMIN ve la URL completa."
           content:
             application/json:
               schema:
@@ -142,6 +142,8 @@ paths:
                 $ref: '#/components/schemas/WebhookPolicy'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
 
   /v1/webhooks/{webhookId}/deliveries:
     get:
@@ -200,7 +202,7 @@ paths:
             format: uuid
       responses:
         '202':
-          description: Entrega reencolada (PENDIENTE, contador de intentos en cero)
+          description: "Entrega reencolada (PENDIENTE, contador de intentos en cero). Tope de 3 reintentos manuales por entrega: el siguiente responde 409 WEBHOOK_RETRY_LIMIT_REACHED."
           content:
             application/json:
               schema:
@@ -236,7 +238,7 @@ components:
         url:
           type: string
           format: uri
-          description: "URL destino: HTTPS, host en la allowlist del tenant (PUT /v1/webhooks/policy), sin credenciales ni IP literal. Se revalida (anti-SSRF, DNS fijado) en cada envío; un destino que resuelva a red privada falla con SSRF_BLOCKED."
+          description: "URL destino: HTTPS, puerto 443 (otros solo si la plataforma los habilita), host en la allowlist del tenant (PUT /v1/webhooks/policy), sin credenciales (userinfo), sin query string ni IP literal. Se revalida (anti-SSRF, DNS fijado) en cada envío; un destino que resuelva a red privada falla con SSRF_BLOCKED."
           example: "https://core.banco.com/api/webhooks/idp"
         events:
           type: array
@@ -313,7 +315,7 @@ components:
         allowedHosts:
           type: array
           maxItems: 50
-          description: "Hosts receptores permitidos: exacto o comodín `*.dominio` (subdominios, no el apex). Vacío = ningún destino."
+          description: "Hosts receptores permitidos: exacto o comodín `*.dominio` (subdominios, no el apex). Vacío = ningún destino. Se rechazan (400 WEBHOOK_HOST_PUBLIC_SUFFIX) etiquetas únicas, sufijos públicos y comodines sobre ellos (`*.com`, `*.co.uk`, `*.github.io`). Todo host nuevo exige prueba de propiedad del dominio (409 WEBHOOK_HOST_UNVERIFIED: publicar el TXT `_idp-verify.<dominio>` = `idp-verify=<token>` indicado en el mensaje y repetir el PUT; modo de plataforma idp.notification.host-verification=dns|platform; con platform, 409 WEBHOOK_HOST_PENDING_PLATFORM_APPROVAL hasta que la plataforma apruebe el host). Los hosts ya activos no se reverifican."
           items:
             type: string
         maxAttempts:
@@ -322,8 +324,9 @@ components:
           maximum: 10
         initialBackoffSeconds:
           type: integer
-          minimum: 1
+          minimum: 30
           maximum: 3600
+          description: "Mínimo 30 s: ningún tenant puede configurar un martilleo rápido sobre un tercero."
         backoffMultiplier:
           type: number
           minimum: 1

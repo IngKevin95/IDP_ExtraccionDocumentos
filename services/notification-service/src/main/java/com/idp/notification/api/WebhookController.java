@@ -60,7 +60,9 @@ public class WebhookController {
     @GetMapping
     public List<ListItem> list(@AuthenticationPrincipal Jwt jwt) {
         Caller caller = callers.require(jwt, READERS);
-        return service.list(caller).stream().map(s -> ListItem.of(s, clock.instant())).toList();
+        // OPERADOR ve el host pero no la ruta; solo TENANT_ADMIN ve la URL completa.
+        boolean maskPath = !caller.has(Roles.TENANT_ADMIN);
+        return service.list(caller).stream().map(s -> ListItem.of(s, clock.instant(), maskPath)).toList();
     }
 
     @DeleteMapping("/{webhookId}")

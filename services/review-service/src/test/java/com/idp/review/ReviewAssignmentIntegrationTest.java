@@ -115,6 +115,7 @@ class ReviewAssignmentIntegrationTest extends AbstractReviewIntegrationTest {
         reviewer("beto");
         admin("sup");
         UUID taskId = createTask();
+        post("ana", path(taskId, "/claim"));
         post("ana", path(taskId, "/reject"));
 
         assertThat(status(postJson("sup", path(taskId, "/reassign"), "{\"assigneeId\":\"beto\"}"))).isEqualTo(400);
@@ -174,6 +175,7 @@ class ReviewAssignmentIntegrationTest extends AbstractReviewIntegrationTest {
         reviewer("carla");
         UUID taskId = createTask();
         postJson("ana", path(taskId, "/corrections"), "[{\"fieldName\":\"monto\",\"correctedValue\":\"10\"}]");
+        post("ana", path(taskId, "/claim"));
         post("ana", path(taskId, "/approve"));
         CountDownLatch start = new CountDownLatch(1);
         ExecutorService pool = Executors.newFixedThreadPool(2);

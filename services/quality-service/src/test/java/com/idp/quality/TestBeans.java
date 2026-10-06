@@ -52,7 +52,8 @@ public class TestBeans {
         }
 
         @Override
-        public List<FieldPrediction> run(String modelPromptKey, List<GoldenDocument> documents) {
+        public List<FieldPrediction> run(java.util.UUID tenantId, String modelPromptKey,
+                                          List<GoldenDocument> documents) {
             Function<List<GoldenDocument>, List<FieldPrediction>> g = byKey.get(modelPromptKey);
             if (g == null) {
                 throw new RunnerException("Sin resultados registrados para el par modelo+prompt");

@@ -50,6 +50,11 @@
             <groupId>org.apache.httpcomponents.client5</groupId>
             <artifactId>httpclient5</artifactId>
         </dependency>
+        <!-- Circuit breaker por host receptor (frena el martilleo a terceros caidos). -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-circuitbreaker</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.idp</groupId>
             <artifactId>tenant-context</artifactId>

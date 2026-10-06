@@ -1,34 +1,38 @@
-JUZGADO PRIMERO CIVIL MUNICIPAL DE BUCARAMANGA
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+JUZGADO SEGUNDO LABORAL DEL CIRCUITO DE BUCARAMANGA
 
 Bucaramanga, 26 de febrero de 2025
-Oficio No. S-2025-3857742
+Oficio No. S-2025-1881369
 
 Señores
 Banco Cafetero Demo S.A.
 
 Referencia: Desembargo judicial
-Radicado: 68001560800220256240700
-Clase de proceso: Cobro de pagaré
-Demandante: Inmobiliaria Andina Ltda.
-Oficio de embargo original: Oficio 2024-881369 del 12 de octubre de 2024
+Radicado: 68001990600420224785901
+Clase de proceso: Ejecutivo hipotecario
+Demandante: Lunaria Rosalinda Quintanaro
+Oficio de embargo original: Oficio 2024-476917 del 9 de noviembre de 2024
 
-El Juzgado Primero Civil Municipal de Bucaramanga, dentro del proceso de la referencia, ha ordenado
-el levantamiento de la medida de embargo comunicada previamente. En consecuencia, sírvase
-desembargar los dineros retenidos, en los siguientes productos: cuentas de ahorro programado, de
-propiedad de las personas relacionadas a continuación, por las sumas indicadas.
+El Juzgado Segundo Laboral del Circuito de Bucaramanga, dentro del proceso de la referencia, ha
+ordenado el levantamiento de la medida de embargo comunicada previamente. En consecuencia,
+sírvase desembargar los dineros retenidos, en los siguientes productos: productos de depósito en
+general, cuentas de ahorro programado y fondos de inversión colectiva, de propiedad de las personas
+relacionadas a continuación, por las sumas indicadas.
 
 Relación de demandados:
 
 Nombre / Razón social Tipo ID Número ID Monto ($) Productos
 
-Hernán Guerrero Castaño CC 61239812 24.927.000 Fondo de inversión
+Kandelo Gualdrapa Valdenavia CC 9982468000 24.927.000 CDT
 
-Jorge Beltrán Restrepo CE 37062618 48.386.000 CDT
+Tamarisca Orquillo Pedregaza CC 9905628398 53.254.000 CDT
 
-Sandra Duarte Cifuentes CC 54083940 49.030.000 Ahorro programado
+Kandelo Vistamar Vistamar CC 9927083915 3.118.000 CDT
 
-Valor total a desembargar: $ 122.343.000 (CIENTO VEINTIDÓS MILLONES TRESCIENTOS
-CUARENTA Y TRES MIL PESOS M/CTE).
+Valor total a desembargar: $ 81.299.000 (OCHENTA Y UN MILLONES DOSCIENTOS NOVENTA Y
+NUEVE MIL PESOS M/CTE).
+Límite de inembargabilidad: $ 15.000.000.
 
 Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
 
@@ -36,6 +40,8 @@ Atentamente,
 
 ______________________________
 Secretaría del despacho
+
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
 
 DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - dj-01 - pág. 1
 

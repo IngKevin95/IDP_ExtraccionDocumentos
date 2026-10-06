@@ -9,7 +9,14 @@ import com.idp.review.infra.PageImageSource;
 import com.idp.review.infra.ReviewRepository;
 import com.idp.review.service.Exceptions.ConflictException;
 import com.idp.review.service.Exceptions.TaskNotFoundException;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
+import java.net.URI;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
+import javax.imageio.ImageReadParam;
+import org.springframework.beans.factory.annotation.Value;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -40,7 +47,8 @@ import org.springframework.stereotype.Service;
 public final class CropService {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final long MAX_PIXELS = 40_000_000L;
+    private static final long DEFAULT_MAX_PIXELS = 40_000_000L;
+    private static final int MAX_TRACKED_USERS = 10_000;
     /** Margen alrededor de la caja, como fraccion de la pagina, para dar contexto al revisor. */
     private static final double PADDING = 0.01;
 
@@ -52,17 +60,52 @@ public final class CropService {
     private final ReviewProperties props;
     private final Clock clock;
     private final BlindReviewPolicy blindPolicy;
+    private final Semaphore decodePermits;
+    private final long maxPixels;
+    private final int ratePerMinute;
+    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
+
+    /** Cubeta de fichas por usuario: se rellena a {@code ratePerMinute} por minuto. */
+    private static final class Bucket {
+        double tokens;
+        long lastNanos;
+    }
 
     public CropService(ReviewRepository repo, PageImageSource pages, ReviewProperties props, Clock clock,
-                       BlindReviewPolicy blindPolicy) {
+                       BlindReviewPolicy blindPolicy,
+                       @Value("${idp.security.dev-mode:false}") boolean devMode) {
         if (props.cropSecret() == null || props.cropSecret().getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalStateException("idp.review.crop-secret debe tener al menos 32 bytes");
         }
+        requirePublicBaseUrl(props.publicBaseUrl(), devMode);
+        this.decodePermits = new Semaphore(Math.max(1, props.cropMaxConcurrent()));
+        this.maxPixels = props.cropMaxPixels() > 0 ? props.cropMaxPixels() : DEFAULT_MAX_PIXELS;
+        this.ratePerMinute = Math.max(1, props.cropRatePerMinute());
         this.repo = repo;
         this.pages = pages;
         this.props = props;
         this.clock = clock;
         this.blindPolicy = blindPolicy;
+    }
+
+    /** idp.review.public-base-url es obligatorio y https, salvo idp.security.dev-mode. */
+    static void requirePublicBaseUrl(String url, boolean devMode) {
+        if (url == null || url.isBlank()) {
+            throw new IllegalStateException("idp.review.public-base-url es obligatorio");
+        }
+        URI uri;
+        try {
+            uri = URI.create(url.trim());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("idp.review.public-base-url no es una URL valida");
+        }
+        String scheme = uri.getScheme();
+        boolean ok = uri.getHost() != null && ("https".equalsIgnoreCase(scheme)
+                || (devMode && "http".equalsIgnoreCase(scheme)));
+        if (!ok) {
+            throw new IllegalStateException("idp.review.public-base-url debe ser https (http solo con "
+                    + "idp.security.dev-mode)");
+        }
     }
 
     public CropLink link(Caller caller, UUID taskId, UUID fieldId) {
@@ -84,10 +127,47 @@ public final class CropService {
             throw new AccessDeniedException("Enlace de recorte invalido o vencido");
         }
         requireEvidence(field);
+        double[] box = parseBox(field.boundingBox());
         ReviewTask task = repo.findTask(caller.tenantId(), taskId).orElseThrow(TaskNotFoundException::new);
-        byte[] png = pages.page(caller.tenantId(), task.documentId(), field.page())
-                .orElseThrow(() -> new ConflictException("REVIEW_PAGE_UNAVAILABLE", "Pagina no disponible"));
-        return cropPng(png, parseBox(field.boundingBox()));
+        consumeRateToken(caller.tenantId() + "|" + caller.userId());
+        if (!decodePermits.tryAcquire()) {
+            throw new Exceptions.ServiceBusyException();
+        }
+        try {
+            byte[] png = pages.page(caller.tenantId(), task.documentId(), field.page())
+                    .orElseThrow(() -> new ConflictException("REVIEW_PAGE_UNAVAILABLE", "Pagina no disponible"));
+            return cropPng(png, box, maxPixels);
+        } finally {
+            decodePermits.release();
+        }
+    }
+
+    /** Rate limit por usuario (cubeta de fichas); 429 al agotarse. */
+    private void consumeRateToken(String key) {
+        long now = System.nanoTime();
+        if (buckets.size() > MAX_TRACKED_USERS) {
+            buckets.entrySet().removeIf(e -> {
+                synchronized (e.getValue()) {
+                    return now - e.getValue().lastNanos > 120_000_000_000L;
+                }
+            });
+        }
+        Bucket b = buckets.computeIfAbsent(key, k -> {
+            Bucket nb = new Bucket();
+            nb.tokens = ratePerMinute;
+            nb.lastNanos = now;
+            return nb;
+        });
+        synchronized (b) {
+            double refill = (now - b.lastNanos) / 60_000_000_000.0 * ratePerMinute;
+            b.tokens = Math.min(ratePerMinute, b.tokens + refill);
+            b.lastNanos = now;
+            if (b.tokens < 1.0) {
+                long wait = (long) Math.ceil((1.0 - b.tokens) * 60.0 / ratePerMinute);
+                throw new Exceptions.TooManyRequestsException(wait);
+            }
+            b.tokens -= 1.0;
+        }
     }
 
     /** Solo el REVISOR ve el contenido, y solo de tareas abiertas que no tiene asignadas otro revisor. */
@@ -133,6 +213,11 @@ public final class CropService {
     }
 
     public static byte[] cropPng(byte[] pagePng, double[] box) {
+        return cropPng(pagePng, box, DEFAULT_MAX_PIXELS);
+    }
+
+    /** Decodifica solo la region de la caja (ImageReadParam.setSourceRegion), nunca la pagina completa. */
+    public static byte[] cropPng(byte[] pagePng, double[] box, long maxPixels) {
         try (ImageInputStream in = ImageIO.createImageInputStream(new ByteArrayInputStream(pagePng))) {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(in);
             if (!readers.hasNext()) {
@@ -143,15 +228,16 @@ public final class CropService {
                 reader.setInput(in);
                 int w = reader.getWidth(0);
                 int h = reader.getHeight(0);
-                if ((long) w * h > MAX_PIXELS) {
+                if ((long) w * h > maxPixels) {
                     throw new ConflictException("REVIEW_PAGE_UNAVAILABLE", "Pagina demasiado grande");
                 }
-                BufferedImage page = reader.read(0);
                 int x0 = clamp((int) Math.round((box[0] - PADDING) * w), 0, w - 1);
                 int y0 = clamp((int) Math.round((box[1] - PADDING) * h), 0, h - 1);
                 int x1 = clamp((int) Math.round((box[0] + box[2] + PADDING) * w), x0 + 1, w);
                 int y1 = clamp((int) Math.round((box[1] + box[3] + PADDING) * h), y0 + 1, h);
-                BufferedImage out = page.getSubimage(x0, y0, x1 - x0, y1 - y0);
+                ImageReadParam param = reader.getDefaultReadParam();
+                param.setSourceRegion(new Rectangle(x0, y0, x1 - x0, y1 - y0));
+                BufferedImage out = reader.read(0, param);
                 ByteArrayOutputStream bytes = new ByteArrayOutputStream();
                 if (!ImageIO.write(out, "png", bytes)) {
                     throw new IllegalStateException("No hay escritor PNG");

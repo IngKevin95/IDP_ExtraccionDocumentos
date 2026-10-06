@@ -137,15 +137,89 @@ class EvaluationEngineTest {
             .hasMessageContaining("sintetico");
     }
 
+    private static final java.util.UUID T1 = java.util.UUID.randomUUID();
+    private static final java.util.UUID T2 = java.util.UUID.randomUUID();
+    private static final String RUN = "{\"modelPromptKey\":\"modelo-a/prompt-v1\","
+        + "\"predicciones\":[{\"documentId\":\"d-0\",\"campo\":\"monto\",\"valor\":\"1\",\"confianza\":0.9}]}";
+
     @Test
-    void predictionRunnerLeePorClaveYBloqueaPathTraversal(@TempDir Path dir) throws IOException {
-        Files.writeString(dir.resolve("modelo-a_prompt-v1.json"), "{\"modelPromptKey\":\"modelo-a/prompt-v1\","
-            + "\"predicciones\":[{\"documentId\":\"d-0\",\"campo\":\"monto\",\"valor\":\"1\",\"confianza\":0.9}]}");
+    void predictionRunnerLeeDelSubdirectorioDelTenantYBloqueaPathTraversal(@TempDir Path dir) throws IOException {
+        Files.createDirectories(dir.resolve(T1.toString()));
+        Files.writeString(dir.resolve(T1.toString()).resolve("modelo-a_prompt-v1.json"), RUN);
         FilePredictionRunner runner = new FilePredictionRunner(dir, new ObjectMapper());
-        assertThat(runner.run("modelo-a/prompt-v1", List.of())).hasSize(1);
-        assertThatThrownBy(() -> runner.run("../../etc/passwd", List.of()))
+        assertThat(runner.run(T1, "modelo-a/prompt-v1", List.of())).hasSize(1);
+        assertThatThrownBy(() -> runner.run(T1, "../../etc/passwd", List.of()))
             .isInstanceOf(ExtractionRunner.RunnerException.class);
-        assertThatThrownBy(() -> new FilePredictionRunner(null, new ObjectMapper()).run("x", List.of()))
+        assertThatThrownBy(() -> runner.run(T1, "..", List.of()))
             .isInstanceOf(ExtractionRunner.RunnerException.class);
+        assertThatThrownBy(() -> runner.run(T1, "a\\b", List.of()))
+            .isInstanceOf(ExtractionRunner.RunnerException.class);
+        assertThatThrownBy(() -> new FilePredictionRunner(null, new ObjectMapper()).run(T1, "x", List.of()))
+            .isInstanceOf(ExtractionRunner.RunnerException.class);
+    }
+
+    @Test
+    void predictionRunnerAislaPorTenantYNoLeeArchivosDeLaRaiz(@TempDir Path dir) throws IOException {
+        Files.writeString(dir.resolve("modelo-a_prompt-v1.json"), RUN);
+        Files.createDirectories(dir.resolve(T1.toString()));
+        Files.writeString(dir.resolve(T1.toString()).resolve("modelo-a_prompt-v1.json"), RUN);
+        FilePredictionRunner runner = new FilePredictionRunner(dir, new ObjectMapper());
+        assertThat(runner.run(T1, "modelo-a/prompt-v1", List.of())).hasSize(1);
+        assertThatThrownBy(() -> runner.run(T2, "modelo-a/prompt-v1", List.of()))
+            .isInstanceOf(ExtractionRunner.RunnerException.class).hasMessageContaining("Sin resultados");
+    }
+
+    @Test
+    void predictionRunnerNoSigueEnlacesSimbolicos(@TempDir Path dir) throws IOException {
+        Path outside = Files.createTempDirectory("fuera");
+        Files.writeString(outside.resolve("modelo-a_prompt-v1.json"), RUN);
+        Path tenantDir = dir.resolve(T1.toString());
+        Files.createDirectories(tenantDir);
+        try {
+            Files.createSymbolicLink(tenantDir.resolve("modelo-a_prompt-v1.json"),
+                outside.resolve("modelo-a_prompt-v1.json"));
+            Files.createSymbolicLink(dir.resolve(T2.toString()), outside);
+        } catch (IOException | UnsupportedOperationException | SecurityException e) {
+            org.junit.jupiter.api.Assumptions.abort("sin soporte de enlaces simbolicos: " + e.getMessage());
+        }
+        FilePredictionRunner runner = new FilePredictionRunner(dir, new ObjectMapper());
+        assertThatThrownBy(() -> runner.run(T1, "modelo-a/prompt-v1", List.of()))
+            .isInstanceOf(ExtractionRunner.RunnerException.class);
+        assertThatThrownBy(() -> runner.run(T2, "modelo-a/prompt-v1", List.of()))
+            .isInstanceOf(ExtractionRunner.RunnerException.class);
+    }
+
+    @Test
+    void predictionRunnerRechazaJsonSobreElTopeDeTamano(@TempDir Path dir) throws IOException {
+        Path tenantDir = dir.resolve(T1.toString());
+        Files.createDirectories(tenantDir);
+        String pad = "x".repeat(FilePredictionRunner.MAX_BYTES);
+        Files.writeString(tenantDir.resolve("grande.json"), "{\"modelPromptKey\":\"" + pad + "\"}");
+        FilePredictionRunner runner = new FilePredictionRunner(dir, new ObjectMapper());
+        assertThatThrownBy(() -> runner.run(T1, "grande", List.of()))
+            .isInstanceOf(ExtractionRunner.RunnerException.class).hasMessageContaining("grande");
+    }
+
+    @Test
+    void loaderIgnoraEnlacesRechazaGigantesYExigeBooleanoSintetico(@TempDir Path dir) throws IOException {
+        GoldenSetLoader loader = new GoldenSetLoader(new ObjectMapper());
+        Files.writeString(dir.resolve("a.json"), "{\"id\":\"ec-1\",\"tipologia\":\"EC\",\"sintetico\":true,"
+            + "\"verdad\":{\"a\":\"b\"}}");
+        Path outside = Files.createTempFile("fuera", ".json");
+        Files.writeString(outside, "{\"id\":\"x\"}");
+        try {
+            Files.createSymbolicLink(dir.resolve("link.json"), outside);
+            assertThat(loader.loadDirectory(dir)).hasSize(1);
+        } catch (IOException | UnsupportedOperationException | SecurityException e) {
+            // Sin soporte de enlaces: el resto del test sigue valiendo.
+        }
+        Files.writeString(dir.resolve("b.json"), "{\"id\":\"ec-2\",\"tipologia\":\"EC\",\"sintetico\":\"true\","
+            + "\"verdad\":{\"a\":\"b\"}}");
+        assertThatThrownBy(() -> loader.loadDirectory(dir)).isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("sintetico");
+        Files.delete(dir.resolve("b.json"));
+        Files.writeString(dir.resolve("c.json"), "{\"id\":\"" + "x".repeat(GoldenSetLoader.MAX_FILE_BYTES) + "\"}");
+        assertThatThrownBy(() -> loader.loadDirectory(dir)).isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("grande");
     }
 }

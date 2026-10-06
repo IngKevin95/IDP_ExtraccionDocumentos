@@ -5,21 +5,21 @@
   "codigo": "EJ",
   "semilla": 20260101,
   "indice": 3,
-  "numero_oficio": "S-2024-4314165",
+  "numero_oficio": "S-2024-2281416",
   "campos": {
-    "radicado": "66001480500220220187501",
-    "autoridad_emisora": "Juzgado Tercero Civil Municipal de Pereira",
+    "radicado": "66001990501020216657701",
+    "autoridad_emisora": "Juzgado Sexto de Familia de Pereira",
     "ciudad": "Pereira",
     "fecha_oficio": "2024-09-18",
     "tipo_medida": "Embargo judicial",
-    "banco_destinatario": "Banco Cafetero Demo S.A.",
-    "monto_numeros": "101223000.00",
-    "monto_letras": "CIENTO UN MILLONES DOSCIENTOS VEINTITRÉS MIL PESOS M/CTE",
-    "limite_inembargabilidad": "5000000.00",
-    "productos_o_cuentas": "cuentas corrientes y CDT y depósitos a término",
-    "juzgado": "Juzgado Tercero Civil Municipal de Pereira",
-    "clase_proceso": "Ejecución de sentencia",
-    "demandante": "Constructora Solar S.A.S."
+    "banco_destinatario": "Banco Altiplano Sintético S.A.",
+    "monto_numeros": "126940000.00",
+    "monto_letras": "CIENTO VEINTISÉIS MILLONES NOVECIENTOS CUARENTA MIL PESOS M/CTE",
+    "limite_inembargabilidad": null,
+    "productos_o_cuentas": "cuentas de ahorro programado",
+    "juzgado": "Juzgado Sexto de Familia de Pereira",
+    "clase_proceso": "Ejecutivo singular",
+    "demandante": "Kandelo Mirabeque Orquillo"
   },
   "campos_criticos": [
     "radicado",
@@ -30,34 +30,34 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Julián Cifuentes Lozano",
+        "nombre": "Ovaldo Cordellera Tarquino",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "1110786469",
+        "numero_identificacion": "9950167507",
         "monto": "54126000.00",
-        "productos": "CDT"
+        "productos": "Fondo de inversión"
       },
       {
-        "nombre": "Servicios Altiplano Ltda.",
+        "nombre": "Transportes Ficticia Solar S.A.S.",
         "tipo_identificacion": "NIT",
-        "numero_identificacion": "800808733-1",
-        "monto": "20941000.00",
-        "productos": "CDT"
+        "numero_identificacion": "999280793-7",
+        "monto": "26947000.00",
+        "productos": "Cuenta de ahorros"
       },
       {
-        "nombre": "Paula Quintero Pardo",
-        "tipo_identificacion": "CE",
-        "numero_identificacion": "63600438",
-        "monto": "23156000.00",
+        "nombre": "Jorlenia Bellaterra Bellaterra",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9944484506",
+        "monto": "41867000.00",
         "productos": "Fondo de inversión"
       }
     ]
   },
-  "suma_filas_demandados": "98223000.00",
+  "suma_filas_demandados": "122940000.00",
   "defectos": [
     {
       "tipo": "TABLA_NO_SUMA",
       "campo": "monto_numeros",
-      "detalle": "total declarado 101223000 distinto de la suma de filas 98223000"
+      "detalle": "total declarado 126940000 distinto de la suma de filas 122940000"
     }
   ],
   "inyeccion_prompt": {

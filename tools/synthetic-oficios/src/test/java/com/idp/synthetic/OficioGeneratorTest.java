@@ -37,8 +37,23 @@ class OficioGeneratorTest {
                 assertThat(o.demandados().size()).isBetween(2, 6);
                 assertThat(o.campo("tipo_medida")).isEqualTo(t.medida());
                 assertThat(o.campo("radicado")).matches("\\d{23}");
+                // Especialidad reservada 99 (posiciones 6-7): no corresponde a ninguna jurisdiccion real.
+                assertThat(o.campo("radicado").substring(5, 7)).isEqualTo("99");
+                for (java.util.Map<String, String> d : o.demandados()) {
+                    String nombre = d.get("nombre");
+                    boolean empresa = nombre.endsWith("S.A.S.") || nombre.endsWith("S.A.") || nombre.endsWith("Ltda.");
+                    assertThat(empresa ? nombre.contains("Ficticia")
+                        : Datos.NOMBRES.contains(nombre.split(" ")[0])).as(nombre).isTrue();
+                }
             }
         }
+    }
+
+    @Test
+    void catalogosDeNombresSonInventados() {
+        assertThat(Datos.EMPRESA_APELLIDO).allMatch(e -> e.startsWith("Ficticia"));
+        assertThat(Datos.NOMBRES).doesNotContain("Carlos", "Andrea", "Luis", "Marta", "Jorge");
+        assertThat(Datos.APELLIDOS).doesNotContain("Rojas", "Vargas", "Restrepo", "Ospina");
     }
 
     @Test

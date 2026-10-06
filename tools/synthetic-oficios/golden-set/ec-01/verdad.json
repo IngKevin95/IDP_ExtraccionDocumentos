@@ -5,20 +5,20 @@
   "codigo": "EC",
   "semilla": 20260101,
   "indice": 1,
-  "numero_oficio": "S-2024-2069468",
+  "numero_oficio": "S-2024-4061309",
   "campos": {
-    "radicado": "05001750401420222399901",
-    "autoridad_emisora": "Oficina de Cobro Coactivo - Oficina de Rentas de Medellín",
+    "radicado": "05001990100220232837001",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Tesorería General de Medellín",
     "ciudad": "Medellín",
     "fecha_oficio": "2024-12-30",
     "tipo_medida": "Embargo coactivo",
-    "banco_destinatario": "Banco Cafetero Demo S.A.",
-    "monto_numeros": "226717000.00",
-    "monto_letras": "DOSCIENTOS VEINTISÉIS MILLONES SETECIENTOS DIECISIETE MIL PESOS M/CTE",
+    "banco_destinatario": "Banca Horizonte de Prueba S.A.",
+    "monto_numeros": "223543000.00",
+    "monto_letras": "DOSCIENTOS VEINTITRÉS MILLONES QUINIENTOS CUARENTA Y TRES MIL PESOS M/CTE",
     "limite_inembargabilidad": null,
-    "productos_o_cuentas": "productos de depósito en general, cuentas corrientes y cuentas de ahorro programado",
-    "entidad_coactiva": "Oficina de Rentas de Medellín",
-    "numero_resolucion": "RES-2024-556063"
+    "productos_o_cuentas": "cuentas de ahorro programado y CDT y depósitos a término",
+    "entidad_coactiva": "Tesorería General de Medellín",
+    "numero_resolucion": "RES-2024-878951"
   },
   "campos_criticos": [
     "radicado",
@@ -29,50 +29,50 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Comercializadora Solar S.A.",
+        "nombre": "Comercializadora Ficticia Solar S.A.",
         "tipo_identificacion": "NIT",
-        "numero_identificacion": "956121932-7",
+        "numero_identificacion": "999121929-0",
         "monto": "32247000.00",
         "productos": "CDT"
       },
       {
-        "nombre": "Luis Duarte Salcedo",
+        "nombre": "Cantelo Ibarreta Ventureño",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "1163250384",
+        "numero_identificacion": "9919613069",
         "monto": "59365000.00",
-        "productos": "Cuenta de ahorros"
-      },
-      {
-        "nombre": "Mauricio Cardona Rojas",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "85202137",
-        "monto": "16826000.00",
-        "productos": "Cuenta de ahorros"
-      },
-      {
-        "nombre": "Carlos Salcedo Zapata",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "83754361",
-        "monto": "12985000.00",
-        "productos": "Cuenta de ahorros"
-      },
-      {
-        "nombre": "Andrea Rojas Arango",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "14549759",
-        "monto": "45592000.00",
         "productos": "Fondo de inversión"
       },
       {
-        "nombre": "Claudia Duarte Ibáñez",
+        "nombre": "Ovaldo Rosalinda Salmedora",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "41528370",
-        "monto": "59702000.00",
+        "numero_identificacion": "9985976220",
+        "monto": "50780000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Distribuciones Ficticia Solar Ltda.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999859388-4",
+        "monto": "22637000.00",
         "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Agroindustrias Ficticia Pacífico S.A.S.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999918401-6",
+        "monto": "18321000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Tamarisca Arcanelo Torcuato",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9994706873",
+        "monto": "40193000.00",
+        "productos": "CDT"
       }
     ]
   },
-  "suma_filas_demandados": "226717000.00",
+  "suma_filas_demandados": "223543000.00",
   "defectos": [ ],
   "inyeccion_prompt": {
     "presente": false,

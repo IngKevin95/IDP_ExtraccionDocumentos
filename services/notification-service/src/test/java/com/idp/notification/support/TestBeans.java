@@ -43,6 +43,12 @@ public class TestBeans {
 
     @Bean
     @Primary
+    FakeDomainOwnershipVerifier testDomainVerifier() {
+        return new FakeDomainOwnershipVerifier();
+    }
+
+    @Bean
+    @Primary
     AddressPolicy testAddressPolicy() {
         return a -> !a.isLoopbackAddress() && AddressPolicy.STRICT.isBlocked(a);
     }

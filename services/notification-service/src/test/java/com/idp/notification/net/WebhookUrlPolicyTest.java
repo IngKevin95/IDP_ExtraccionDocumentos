@@ -26,7 +26,7 @@ class WebhookUrlPolicyTest {
     @Test
     void ac10_aceptaHttpsConHostEnLaAllowlist() {
         assertThat(policy.validate("https://api.banco.com/hooks/idp", ALLOW).getHost()).isEqualTo("api.banco.com");
-        assertThat(codeOf("https://API.BANCO.COM:8443/x", ALLOW)).isEqualTo("OK");
+        assertThat(codeOf("https://API.BANCO.COM:443/x", ALLOW)).isEqualTo("OK");
         assertThat(codeOf("https://api.banco.com./x", ALLOW)).isEqualTo("OK");
     }
 
@@ -54,7 +54,8 @@ class WebhookUrlPolicyTest {
     @Test
     void ac10_httpPlanoSeRechazaSalvoDesarrollo() {
         assertThat(codeOf("http://api.banco.com/x", ALLOW)).isEqualTo("INSECURE_SCHEME");
-        assertThat(new WebhookUrlPolicy(AddressPolicy.STRICT, true).validate("http://api.banco.com/x", ALLOW)).isNotNull();
+        assertThat(new WebhookUrlPolicy(AddressPolicy.STRICT, true, new PortPolicy(List.of(80), false))
+            .validate("http://api.banco.com/x", ALLOW)).isNotNull();
         // Incluso en desarrollo solo se admite http y https.
         assertThat(codeOf("ftp://api.banco.com/x", ALLOW)).isEqualTo("INSECURE_SCHEME");
     }
@@ -124,5 +125,58 @@ class WebhookUrlPolicyTest {
         assertThat(codeOf("  ", ALLOW)).isEqualTo("INVALID_URL");
         assertThat(codeOf("https://api.banco.com/" + "a".repeat(2100), ALLOW)).isEqualTo("INVALID_URL");
         assertThatThrownBy(() -> policy.validate("https://[::1]/x", ALLOW)).isInstanceOf(SsrfViolationException.class);
+    }
+
+    // ---- hallazgo 2: puertos ----
+
+    @Test
+    void soloElPuerto443PorDefectoYRechazaServiciosInternosComoRedis() {
+        assertThat(codeOf("https://api.banco.com:6379/", ALLOW)).isEqualTo("PORT_NOT_ALLOWED");
+        assertThat(codeOf("https://api.banco.com:8443/x", ALLOW)).isEqualTo("PORT_NOT_ALLOWED");
+        assertThat(codeOf("https://api.banco.com:5432/x", ALLOW)).isEqualTo("PORT_NOT_ALLOWED");
+        assertThat(codeOf("https://api.banco.com:443/x", ALLOW)).isEqualTo("OK");
+        assertThat(codeOf("https://api.banco.com/x", ALLOW)).isEqualTo("OK");
+    }
+
+    @Test
+    void otrosPuertosSoloPorListaExplicitaDePlataforma() {
+        WebhookUrlPolicy platform = new WebhookUrlPolicy(AddressPolicy.STRICT, false,
+            new PortPolicy(List.of(8443), false));
+        assertThat(platform.validate("https://api.banco.com:8443/x", ALLOW)).isNotNull();
+        assertThatThrownBy(() -> platform.validate("https://api.banco.com:6379/x", ALLOW))
+            .isInstanceOfSatisfying(SsrfViolationException.class, e -> assertThat(e.code()).isEqualTo("PORT_NOT_ALLOWED"));
+    }
+
+    @Test
+    void enDevModeSeAdmitenPuertosSinPrivilegioParaLosReceptoresDePrueba() {
+        WebhookUrlPolicy dev = new WebhookUrlPolicy(AddressPolicy.STRICT, false, new PortPolicy(List.of(), true));
+        assertThat(dev.validate("https://api.banco.com:54321/x", ALLOW)).isNotNull();
+        assertThatThrownBy(() -> dev.validate("https://api.banco.com:80/x", ALLOW))
+            .isInstanceOfSatisfying(SsrfViolationException.class, e -> assertThat(e.code()).isEqualTo("PORT_NOT_ALLOWED"));
+    }
+
+    @Test
+    void puertoFueraDeRangoEnLaListaDePlataformaEsInvalido() {
+        assertThatThrownBy(() -> new PortPolicy(List.of(70000), false)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    // ---- hallazgo 6: query y credenciales ----
+
+    @Test
+    void rechazaQueryStringYCredencialesEmbebidas() {
+        assertThat(codeOf("https://api.banco.com/hook?token=abc", ALLOW)).isEqualTo("INVALID_URL");
+        assertThat(codeOf("https://api.banco.com/hook?", ALLOW)).isEqualTo("INVALID_URL");
+        assertThat(codeOf("https://user:pass@api.banco.com/hook", ALLOW)).isEqualTo("INVALID_URL");
+        assertThat(codeOf("https://user@api.banco.com/hook", ALLOW)).isEqualTo("INVALID_URL");
+        assertThat(codeOf("https://api.banco.com/hook", ALLOW)).isEqualTo("OK");
+    }
+
+    // ---- hallazgo 1: comodines sobre sufijos publicos ya guardados no cubren nada ----
+
+    @Test
+    void unComodinSobreSufijoPublicoNuncaCoincide() {
+        assertThat(codeOf("https://api.banco.com/x", List.of("*.com"))).isEqualTo("HOST_NOT_ALLOWED");
+        assertThat(codeOf("https://banco.co.uk/x", List.of("*.co.uk"))).isEqualTo("HOST_NOT_ALLOWED");
+        assertThat(codeOf("https://api.banco.com/x", List.of("*.banco.com"))).isEqualTo("OK");
     }
 }

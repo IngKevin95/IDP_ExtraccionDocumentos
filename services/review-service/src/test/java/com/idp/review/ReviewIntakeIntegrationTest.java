@@ -58,6 +58,7 @@ class ReviewIntakeIntegrationTest extends AbstractReviewIntegrationTest {
         validator.validateFlat(n);
         listener.onMessage(n.toString());
 
+        post("ana", "/v1/review/tasks/" + taskId + "/claim");
         assertThat(status(post("ana", "/v1/review/tasks/" + taskId + "/approve"))).isEqualTo(200);
 
         var e = outbox("revision.completada").get(0);

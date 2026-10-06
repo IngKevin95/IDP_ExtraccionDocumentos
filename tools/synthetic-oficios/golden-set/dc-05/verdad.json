@@ -5,21 +5,21 @@
   "codigo": "DC",
   "semilla": 20260101,
   "indice": 5,
-  "numero_oficio": "S-2025-0588811",
+  "numero_oficio": "S-2025-3954639",
   "campos": {
-    "radicado": "05001710500220228337600",
+    "radicado": "05001990800120254263400",
     "autoridad_emisora": "Oficina de Cobro Coactivo - Oficina de Rentas de Medellín",
     "ciudad": "Medellín",
     "fecha_oficio": "2025-05-18",
     "tipo_medida": "Desembargo coactivo",
-    "banco_destinatario": null,
-    "monto_numeros": "92103000.00",
-    "monto_letras": "NOVENTA Y DOS MILLONES CIENTO TRES MIL PESOS M/CTE",
-    "limite_inembargabilidad": "5000000.00",
-    "productos_o_cuentas": "CDT y depósitos a término",
+    "banco_destinatario": "Banca Horizonte de Prueba S.A.",
+    "monto_numeros": "138935000.00",
+    "monto_letras": "CIENTO TREINTA Y OCHO MILLONES NOVECIENTOS TREINTA Y CINCO MIL PESOS M/CTE",
+    "limite_inembargabilidad": null,
+    "productos_o_cuentas": "cuentas de ahorro programado",
     "entidad_coactiva": "Oficina de Rentas de Medellín",
-    "numero_resolucion": "RES-2025-077428",
-    "referencia_oficio_original": "Oficio 2024-808298 del 14 de septiembre de 2024"
+    "numero_resolucion": null,
+    "referencia_oficio_original": "Oficio 2024-336450 del 15 de septiembre de 2024"
   },
   "campos_criticos": [
     "radicado",
@@ -30,40 +30,40 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Sandra Restrepo Guerrero",
+        "nombre": "Norvina Rosalinda Gualdrapa",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "26304909",
+        "numero_identificacion": "9964255536",
         "monto": "15296000.00",
         "productos": "CDT"
       },
       {
-        "nombre": "Andrea Rojas Guerrero",
-        "tipo_identificacion": "CE",
-        "numero_identificacion": "1007348281",
-        "monto": "1271000.00",
-        "productos": "Fondo de inversión"
-      },
-      {
-        "nombre": "Ricardo Vargas Peña",
+        "nombre": "Lunaria Arcanelo Mirabeque",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "1132814834",
-        "monto": "28246000.00",
-        "productos": "Fondo de inversión"
+        "numero_identificacion": "9958195140",
+        "monto": "45409000.00",
+        "productos": "CDT"
       },
       {
-        "nombre": "Servicios Los Álamos S.A.",
-        "tipo_identificacion": "NIT",
-        "numero_identificacion": "905018276-8",
-        "monto": "47290000.00",
-        "productos": "Cuenta corriente"
+        "nombre": "Brisenia Tarquino Quintanaro",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9972137853",
+        "monto": "48888000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Sorvelo Fontemar Narvalle",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9961591349",
+        "monto": "29342000.00",
+        "productos": "Cuenta de ahorros"
       }
     ]
   },
-  "suma_filas_demandados": "92103000.00",
+  "suma_filas_demandados": "138935000.00",
   "defectos": [
     {
       "tipo": "CAMPO_FALTANTE",
-      "campo": "banco_destinatario",
+      "campo": "numero_resolucion",
       "detalle": "campo omitido del documento"
     }
   ],

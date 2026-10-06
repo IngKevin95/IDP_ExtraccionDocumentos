@@ -5,20 +5,20 @@
   "codigo": "EC",
   "semilla": 20260101,
   "indice": 5,
-  "numero_oficio": "S-2025-9561546",
+  "numero_oficio": "S-2025-9978752",
   "campos": {
-    "radicado": null,
-    "autoridad_emisora": "Oficina de Cobro Coactivo - Tesorería General de Medellín",
+    "radicado": "05001990300420237932801",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Secretaría de Hacienda de Medellín",
     "ciudad": "Medellín",
     "fecha_oficio": "2025-02-08",
     "tipo_medida": "Embargo coactivo",
     "banco_destinatario": "Banco Andino Sintético S.A.",
-    "monto_numeros": "116916000.00",
-    "monto_letras": "CIENTO DIECISÉIS MILLONES NOVECIENTOS DIECISÉIS MIL PESOS M/CTE",
-    "limite_inembargabilidad": "18000000.00",
-    "productos_o_cuentas": "fondos de inversión colectiva y CDT y depósitos a término",
-    "entidad_coactiva": "Tesorería General de Medellín",
-    "numero_resolucion": "RES-2025-724765"
+    "monto_numeros": "177047000.00",
+    "monto_letras": "CIENTO SETENTA Y SIETE MILLONES CUARENTA Y SIETE MIL PESOS M/CTE",
+    "limite_inembargabilidad": null,
+    "productos_o_cuentas": "CDT y depósitos a término",
+    "entidad_coactiva": "Secretaría de Hacienda de Medellín",
+    "numero_resolucion": "RES-2025-471510"
   },
   "campos_criticos": [
     "radicado",
@@ -29,47 +29,47 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Marta Arango Arango",
+        "nombre": "Dorvina Vistamar Vistamar",
         "tipo_identificacion": "CE",
-        "numero_identificacion": "34592385",
+        "numero_identificacion": "9964141810",
         "monto": "9388000.00",
-        "productos": "CDT"
+        "productos": "Cuenta de ahorros"
       },
       {
-        "nombre": "Camilo Ibáñez Duarte",
+        "nombre": "Quenelo Quintanaro Fontemar",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "1116667485",
-        "monto": "34424000.00",
-        "productos": "Cuenta corriente"
-      },
-      {
-        "nombre": "Constructora Los Álamos S.A.S.",
-        "tipo_identificacion": "NIT",
-        "numero_identificacion": "857340503-0",
-        "monto": "7123000.00",
+        "numero_identificacion": "9947997315",
+        "monto": "51077000.00",
         "productos": "Ahorro programado"
       },
       {
-        "nombre": "Camilo Cifuentes Salcedo",
-        "tipo_identificacion": "CE",
-        "numero_identificacion": "1175766972",
-        "monto": "22134000.00",
-        "productos": "Ahorro programado"
-      },
-      {
-        "nombre": "Claudia Duarte Guerrero",
+        "nombre": "Dorvina Lumbrales Salmedora",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "1030679503",
-        "monto": "43847000.00",
+        "numero_identificacion": "9919234591",
+        "monto": "47985000.00",
+        "productos": "Fondo de inversión"
+      },
+      {
+        "nombre": "Ovaldo Arcanelo Quintanaro",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9901839172",
+        "monto": "41000000.00",
         "productos": "Ahorro programado"
+      },
+      {
+        "nombre": "Norvina Salmedora Ibarreta",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9977138337",
+        "monto": "27597000.00",
+        "productos": "Cuenta de ahorros"
       }
     ]
   },
-  "suma_filas_demandados": "116916000.00",
+  "suma_filas_demandados": "177047000.00",
   "defectos": [
     {
       "tipo": "CAMPO_FALTANTE",
-      "campo": "radicado",
+      "campo": "limite_inembargabilidad",
       "detalle": "campo omitido del documento"
     }
   ],
@@ -78,7 +78,7 @@
     "regla_esperada": null
   },
   "validadores_esperados": {
-    "radicado_23_digitos": "FAIL",
+    "radicado_23_digitos": "PASS",
     "fechas_coherentes": "PASS",
     "monto_numeros_letras": "PASS",
     "tipo_doc_valido": "PASS",

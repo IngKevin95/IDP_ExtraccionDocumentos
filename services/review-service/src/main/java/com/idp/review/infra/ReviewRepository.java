@@ -153,6 +153,15 @@ public class ReviewRepository {
                 UUID.fromString(tenantId), id).stream().findFirst();
     }
 
+    /**
+     * Lee la tarea bloqueando su fila ({@code for update}) hasta el fin de la transaccion. Toda operacion que lee
+     * correcciones para decidir una transicion debe tomar este bloqueo antes (serializa approve vs addCorrections).
+     */
+    public Optional<ReviewTask> findTaskForUpdate(String tenantId, UUID id) {
+        return jdbc.query("select " + TASK_SELECT + " from review_task where tenant_id = ? and id = ? for update",
+                TASK, UUID.fromString(tenantId), id).stream().findFirst();
+    }
+
     public List<ReviewTask> listTasks(String tenantId, TaskStatus status, String assignee, boolean escalatedOnly,
                                       int limit, int offset) {
         List<Object> args = new ArrayList<>();
@@ -218,6 +227,11 @@ public class ReviewRepository {
         return count("select count(*) from correction where task_id = ? and is_critical = true", taskId) > 0;
     }
 
+    /** true si el usuario es autor (created_by) de alguna correccion de la tarea. */
+    public boolean hasCorrectionBy(UUID taskId, String userId) {
+        return count("select count(*) from correction where task_id = ? and created_by = ?", taskId, userId) > 0;
+    }
+
     /** Cola por campo: campos pendientes de tareas abiertas, escaladas y mas vencidas primero. */
     public List<QueueItem> queue(String tenantId, Scope scope, String userId, int limit, int offset) {
         List<Object> args = new ArrayList<>();
@@ -279,16 +293,26 @@ public class ReviewRepository {
     /** Primera aprobacion: PENDING a APPROVED o PENDING_SECOND_APPROVAL. */
     public boolean firstApprove(String tenantId, UUID id, String reviewer, boolean critical, OffsetDateTime now,
                                 long cycleSeconds) {
+        return firstApprove(tenantId, id, reviewer, critical, now, cycleSeconds, false);
+    }
+
+    /**
+     * Primera aprobacion; solo la aprueba quien tiene asignada la tarea. Con {@code revalidate} (tareas normales) la
+     * rama sin segunda aprobacion exige ademas que no exista ninguna correccion critica en el momento del UPDATE.
+     */
+    public boolean firstApprove(String tenantId, UUID id, String reviewer, boolean critical, OffsetDateTime now,
+                                long cycleSeconds, boolean revalidate) {
         if (critical) {
             return jdbc.update("update review_task set status = 'PENDING_SECOND_APPROVAL', first_reviewer_id = ?, "
                     + "critical_correction = true, assignee_id = null, assigned_at = null, updated_at = ? "
-                    + "where tenant_id = ? and id = ? and status = 'PENDING' and (assignee_id is null or "
-                    + "assignee_id = ?)", reviewer, now, UUID.fromString(tenantId), id, reviewer) == 1;
+                    + "where tenant_id = ? and id = ? and status = 'PENDING' and assignee_id = ?", reviewer, now,
+                    UUID.fromString(tenantId), id, reviewer) == 1;
         }
         return jdbc.update("update review_task set status = 'APPROVED', first_reviewer_id = ?, "
                 + "critical_correction = false, assignee_id = ?, completed_at = ?, cycle_seconds = ?, "
-                + "updated_at = ? where tenant_id = ? and id = ? and status = 'PENDING' and "
-                + "(assignee_id is null or assignee_id = ?)", reviewer, reviewer, now, cycleSeconds, now,
+                + "updated_at = ? where tenant_id = ? and id = ? and status = 'PENDING' and assignee_id = ?"
+                + (revalidate ? " and not exists (select 1 from correction c where c.task_id = review_task.id "
+                + "and c.is_critical = true)" : ""), reviewer, reviewer, now, cycleSeconds, now,
                 UUID.fromString(tenantId), id, reviewer) == 1;
     }
 
@@ -304,9 +328,9 @@ public class ReviewRepository {
     public boolean reject(String tenantId, UUID id, String reviewer, OffsetDateTime now, long cycleSeconds) {
         return jdbc.update("update review_task set status = 'REJECTED', first_reviewer_id = coalesce("
                 + "first_reviewer_id, ?), assignee_id = ?, completed_at = ?, cycle_seconds = ?, updated_at = ? "
-                + "where tenant_id = ? and id = ? and status in " + OPEN + " and (assignee_id is null or "
-                + "assignee_id = ?)", reviewer, reviewer, now, cycleSeconds, now, UUID.fromString(tenantId), id,
-                reviewer) == 1;
+                + "where tenant_id = ? and id = ? and ((status = 'PENDING' and assignee_id = ?) or "
+                + "(status = 'PENDING_SECOND_APPROVAL' and (assignee_id is null or assignee_id = ?)))", reviewer,
+                reviewer, now, cycleSeconds, now, UUID.fromString(tenantId), id, reviewer, reviewer) == 1;
     }
 
     public void markFieldCorrected(UUID taskId, String fieldName) {

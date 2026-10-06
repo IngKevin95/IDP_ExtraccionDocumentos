@@ -5,21 +5,21 @@
   "codigo": "EJ",
   "semilla": 20260101,
   "indice": 2,
-  "numero_oficio": "S-2026-2320353",
+  "numero_oficio": "S-2026-8344548",
   "campos": {
-    "radicado": "11001820901220260599500",
-    "autoridad_emisora": "Juzgado Tercero de Familia de Bogotá",
+    "radicado": "11001990400420235151500",
+    "autoridad_emisora": "Juzgado Segundo Promiscuo Municipal de Bogotá",
     "ciudad": "Bogotá D.C.",
     "fecha_oficio": "2026-05-08",
     "tipo_medida": "Embargo judicial",
-    "banco_destinatario": "Banco del Pacífico Ficticio S.A.",
-    "monto_numeros": "71522000.00",
-    "monto_letras": "SETENTA Y UN MILLONES SEISCIENTOS VEINTIDÓS MIL PESOS M/CTE",
-    "limite_inembargabilidad": "13000000.00",
-    "productos_o_cuentas": "cuentas corrientes y CDT y depósitos a término",
-    "juzgado": "Juzgado Tercero de Familia de Bogotá",
-    "clase_proceso": "Ejecutivo con garantía real",
-    "demandante": "Constructora del Caribe S.A.S."
+    "banco_destinatario": "Banco Cafetero Demo S.A.",
+    "monto_numeros": "139213000.00",
+    "monto_letras": "CIENTO TREINTA Y NUEVE MILLONES CUATROCIENTOS TRECE MIL PESOS M/CTE",
+    "limite_inembargabilidad": "15000000.00",
+    "productos_o_cuentas": "productos de depósito en general, fondos de inversión colectiva y cuentas de ahorro programado",
+    "juzgado": "Juzgado Segundo Promiscuo Municipal de Bogotá",
+    "clase_proceso": "Ejecución de sentencia",
+    "demandante": "Pelagrina Mirabeque Lumbrales"
   },
   "campos_criticos": [
     "radicado",
@@ -30,34 +30,34 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Luis Ospina Pardo",
+        "nombre": "Cantelo Orquillo Quintanaro",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "39506443",
+        "numero_identificacion": "9975358791",
         "monto": "38649000.00",
         "productos": "Ahorro programado"
       },
       {
-        "nombre": "Óscar Duarte Ospina",
-        "tipo_identificacion": "CE",
-        "numero_identificacion": "80974271",
-        "monto": "21412000.00",
+        "nombre": "Jorlenia Fontemar Ibarreta",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9976078624",
+        "monto": "45793000.00",
         "productos": "Fondo de inversión"
       },
       {
-        "nombre": "Natalia Cifuentes Lozano",
+        "nombre": "Brisenia Salmedora Arcanelo",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "68592144",
-        "monto": "11461000.00",
+        "numero_identificacion": "9915657232",
+        "monto": "54771000.00",
         "productos": "Fondo de inversión"
       }
     ]
   },
-  "suma_filas_demandados": "71522000.00",
+  "suma_filas_demandados": "139213000.00",
   "defectos": [
     {
       "tipo": "MONTO_INCONSISTENTE",
       "campo": "monto_letras",
-      "detalle": "letras equivalen a 71622000 y numeros a 71522000"
+      "detalle": "letras equivalen a 139413000 y numeros a 139213000"
     }
   ],
   "inyeccion_prompt": {

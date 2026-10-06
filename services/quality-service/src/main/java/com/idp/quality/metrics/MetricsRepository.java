@@ -72,10 +72,25 @@ public class MetricsRepository {
             + "and status = 'PENDING'", tenant, documentId) > 0;
     }
 
-    public List<UUID> pendingBlind(UUID tenant, int limit) {
-        return jdbc.query("select document_id from qa_blind_sample where tenant_id = ? and status = 'PENDING' "
-            + "order by selected_at limit " + Math.max(1, Math.min(limit, 500)),
-            (rs, i) -> rs.getObject(1, UUID.class), tenant);
+    /** Conteos agregados de la cola ciega: sin identificadores (SEC-051). */
+    public record BlindSummary(int pending, int reviewed, int pendingUnderDay, int pendingUnderWeek,
+                               int pendingOverWeek) {
+    }
+
+    public BlindSummary blindSummary(UUID tenant, java.time.Instant now) {
+        java.sql.Timestamp day = java.sql.Timestamp.from(now.minus(java.time.Duration.ofDays(1)));
+        java.sql.Timestamp week = java.sql.Timestamp.from(now.minus(java.time.Duration.ofDays(7)));
+        String base = "select count(*) from qa_blind_sample where tenant_id = ? and status = ?";
+        int pending = count(base, tenant, "PENDING");
+        int reviewed = count(base, tenant, "REVIEWED");
+        int underDay = count(base + " and selected_at >= ?", tenant, "PENDING", day);
+        int underWeek = count(base + " and selected_at >= ? and selected_at < ?", tenant, "PENDING", week, day);
+        return new BlindSummary(pending, reviewed, underDay, underWeek, pending - underDay - underWeek);
+    }
+
+    private int count(String sql, Object... args) {
+        Integer n = jdbc.queryForObject(sql, Integer.class, args);
+        return n == null ? 0 : n;
     }
 
     /** Totales por dia (todas las tipologias o solo la indicada), ordenados por fecha. */

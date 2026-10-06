@@ -5,10 +5,10 @@
   "codigo": "EJ",
   "semilla": 20260101,
   "indice": 5,
-  "numero_oficio": "S-2026-4690261",
+  "numero_oficio": "S-2026-1856805",
   "campos": {
-    "radicado": "17001570801920237477601",
-    "autoridad_emisora": null,
+    "radicado": "17001990500720245008100",
+    "autoridad_emisora": "Juzgado Segundo Promiscuo Municipal de Manizales",
     "ciudad": "Manizales",
     "fecha_oficio": "2026-03-20",
     "tipo_medida": "Embargo judicial",
@@ -16,10 +16,10 @@
     "monto_numeros": "79538000.00",
     "monto_letras": "SETENTA Y NUEVE MILLONES QUINIENTOS TREINTA Y OCHO MIL PESOS M/CTE",
     "limite_inembargabilidad": null,
-    "productos_o_cuentas": "CDT y depósitos a término, productos de depósito en general y fondos de inversión colectiva",
-    "juzgado": "Juzgado Séptimo Promiscuo Municipal de Manizales",
-    "clase_proceso": "Ejecutivo con garantía real",
-    "demandante": "Felipe Mendoza Cifuentes"
+    "productos_o_cuentas": "fondos de inversión colectiva y CDT y depósitos a término",
+    "juzgado": "Juzgado Segundo Promiscuo Municipal de Manizales",
+    "clase_proceso": null,
+    "demandante": "Agroindustrias Ficticia Horizonte S.A."
   },
   "campos_criticos": [
     "radicado",
@@ -30,25 +30,25 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Constructora Altiplano S.A.",
+        "nombre": "Constructora Ficticia Altiplano S.A.",
         "tipo_identificacion": "NIT",
-        "numero_identificacion": "835175678-3",
+        "numero_identificacion": "999175673-2",
         "monto": "41743000.00",
         "productos": "Cuenta corriente"
       },
       {
-        "nombre": "Constructora Solar S.A.",
+        "nombre": "Constructora Ficticia Solar S.A.",
         "tipo_identificacion": "NIT",
-        "numero_identificacion": "902329582-0",
+        "numero_identificacion": "999329575-1",
         "monto": "2813000.00",
         "productos": "Fondo de inversión"
       },
       {
-        "nombre": "Óscar Beltrán Guerrero",
+        "nombre": "Quenelo Pedregaza Gualdrapa",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "21323564",
+        "numero_identificacion": "9970831221",
         "monto": "34982000.00",
-        "productos": "Cuenta corriente"
+        "productos": "Fondo de inversión"
       }
     ]
   },
@@ -56,7 +56,7 @@
   "defectos": [
     {
       "tipo": "CAMPO_FALTANTE",
-      "campo": "autoridad_emisora",
+      "campo": "clase_proceso",
       "detalle": "campo omitido del documento"
     }
   ],

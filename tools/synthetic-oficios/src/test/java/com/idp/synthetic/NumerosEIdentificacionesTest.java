@@ -48,7 +48,7 @@ class NumerosEIdentificacionesTest {
         NitValidator nit = new NitValidator();
         for (int i = 0; i < 2000; i++) {
             String valor = Identificaciones.nit(rng);
-            assertThat(valor).matches("[89]\\d{8}-\\d");
+            assertThat(valor).matches("999\\d{6}-\\d");
             assertThat(nit.validate(valor, CTX).passed()).as(valor).isTrue();
         }
     }
@@ -60,6 +60,8 @@ class NumerosEIdentificacionesTest {
         for (int i = 0; i < 2000; i++) {
             String valor = Identificaciones.cedula(rng);
             assertThat(cedula.validate(valor, CTX).passed()).as(valor).isTrue();
+            // Rango reservado: 10 digitos que empiezan por 99, nunca asignado a una persona.
+            assertThat(valor).matches("99\\d{8}");
         }
     }
 }

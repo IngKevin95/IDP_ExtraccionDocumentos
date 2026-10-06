@@ -35,6 +35,7 @@ class ReviewFlowIntegrationTest extends AbstractReviewIntegrationTest {
         UUID taskId = createTask(field("direccion", 1, "[0.1,0.1,0.4,0.05]"));
         assertThat(status(postJson("ana", path(taskId, "/corrections"), NON_CRITICAL))).isEqualTo(200);
 
+        post("ana", path(taskId, "/claim"));
         MvcResult r = post("ana", path(taskId, "/approve"));
 
         assertThat(status(r)).isEqualTo(200);
@@ -65,6 +66,7 @@ class ReviewFlowIntegrationTest extends AbstractReviewIntegrationTest {
         reviewer("ana");
         UUID taskId = createTask(field("ciudad", 1, "[0.1,0.1,0.4,0.05]"));
 
+        post("ana", path(taskId, "/claim"));
         MvcResult r = post("ana", path(taskId, "/approve"));
 
         assertThat(status(r)).isEqualTo(200);
@@ -79,6 +81,7 @@ class ReviewFlowIntegrationTest extends AbstractReviewIntegrationTest {
         UUID taskId = createTask(field("monto", 1, "[0.1,0.1,0.4,0.05]"));
         postJson("ana", path(taskId, "/corrections"), CRITICAL);
 
+        post("ana", path(taskId, "/claim"));
         MvcResult r = post("ana", path(taskId, "/approve"));
 
         assertThat(status(r)).isEqualTo(200);
@@ -95,6 +98,7 @@ class ReviewFlowIntegrationTest extends AbstractReviewIntegrationTest {
         reviewer("beto");
         UUID taskId = createTask();
         postJson("ana", path(taskId, "/corrections"), CRITICAL);
+        post("ana", path(taskId, "/claim"));
         post("ana", path(taskId, "/approve"));
 
         MvcResult r = post("beto", path(taskId, "/approve-secondary"));
@@ -117,6 +121,7 @@ class ReviewFlowIntegrationTest extends AbstractReviewIntegrationTest {
         reviewer("ana");
         UUID taskId = createTask();
         postJson("ana", path(taskId, "/corrections"), CRITICAL);
+        post("ana", path(taskId, "/claim"));
         post("ana", path(taskId, "/approve"));
 
         MvcResult r = post("ana", path(taskId, "/approve-secondary"));
@@ -134,6 +139,7 @@ class ReviewFlowIntegrationTest extends AbstractReviewIntegrationTest {
         admin("sup");
         UUID taskId = createTask();
         postJson("ana", path(taskId, "/corrections"), CRITICAL);
+        post("ana", path(taskId, "/claim"));
         post("ana", path(taskId, "/approve"));
 
         assertThat(status(post("ana", path(taskId, "/claim")))).isEqualTo(403);
@@ -148,6 +154,7 @@ class ReviewFlowIntegrationTest extends AbstractReviewIntegrationTest {
         reviewer("beto");
         UUID taskId = createTask();
         postJson("ana", path(taskId, "/corrections"), CRITICAL);
+        post("ana", path(taskId, "/claim"));
         post("ana", path(taskId, "/approve"));
         roles.revoke(tenant, "ana", "REVISOR");
         verifier.invalidateUser(tenant, "ana"); // lo que hace acceso.revocado sobre la cache de roles
@@ -164,6 +171,7 @@ class ReviewFlowIntegrationTest extends AbstractReviewIntegrationTest {
         reviewer("ana");
         UUID taskId = createTask();
         postJson("ana", path(taskId, "/corrections"), CRITICAL);
+        post("ana", path(taskId, "/claim"));
         post("ana", path(taskId, "/approve"));
 
         assertThat(status(post("intruso", path(taskId, "/approve-secondary")))).isEqualTo(403);
@@ -175,6 +183,7 @@ class ReviewFlowIntegrationTest extends AbstractReviewIntegrationTest {
         reviewer("ana");
         UUID taskId = createTask();
 
+        post("ana", path(taskId, "/claim"));
         MvcResult r = post("ana", path(taskId, "/reject"));
 
         assertThat(status(r)).isEqualTo(200);
@@ -192,6 +201,7 @@ class ReviewFlowIntegrationTest extends AbstractReviewIntegrationTest {
         reviewer("beto");
         UUID taskId = createTask();
         postJson("ana", path(taskId, "/corrections"), CRITICAL);
+        post("ana", path(taskId, "/claim"));
         post("ana", path(taskId, "/approve"));
 
         MvcResult r = post("beto", path(taskId, "/reject"));
@@ -210,6 +220,7 @@ class ReviewFlowIntegrationTest extends AbstractReviewIntegrationTest {
     void ac07_unaTareaCerradaNoSeApruebaNiSeRechazaDeNuevo() throws Exception {
         reviewer("ana");
         UUID taskId = createTask();
+        post("ana", path(taskId, "/claim"));
         post("ana", path(taskId, "/reject"));
 
         assertThat(status(post("ana", path(taskId, "/approve")))).isEqualTo(400);
@@ -285,6 +296,7 @@ class ReviewFlowIntegrationTest extends AbstractReviewIntegrationTest {
         postJson("ana", path(taskId, "/corrections"),
                 "[{\"fieldName\":\"monto\",\"correctedValue\":\"valor-secreto-123\"}]");
         reviewer("beto");
+        post("ana", path(taskId, "/claim"));
         post("ana", path(taskId, "/approve"));
         post("beto", path(taskId, "/approve-secondary"));
 

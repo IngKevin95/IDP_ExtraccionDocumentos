@@ -1,40 +1,43 @@
 ### Ejemplo ej-01 (oficio sintético, sin datos personales reales)
 --- TEXTO DEL OFICIO ---
-JUZGADO OCTAVO CIVIL MUNICIPAL DE BARRANQUILLA
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+JUZGADO OCTAVO CIVIL MUNICIPAL DE EJECUCIÓN DE SENTENCIAS DE
+BARRANQUILLA
 
 Barranquilla, 11 de agosto de 2024
-Oficio No. S-2024-1599302
+Oficio No. S-2024-6505172
 
 Señores
-Banco del Pacífico Ficticio S.A.
+Banco Cafetero Demo S.A.
 
 Referencia: Embargo judicial
-Radicado: 08001670901820233603400
-Clase de proceso: Ejecución de sentencia
-Demandante: Agroindustrias del Caribe Ltda.
+Radicado: 08001990901220236883801
+Clase de proceso: Ejecutivo singular
+Demandante: Tamarisca Valdenavia Arcanelo
 
-El Juzgado Octavo Civil Municipal de Barranquilla, dentro del proceso de la referencia, ha decretado el
-embargo y la retención de los dineros depositados o que se llegaren a depositar a cualquier título en
-esa entidad, en los siguientes productos: CDT y depósitos a término, productos de depósito en general
-y fondos de inversión colectiva, de propiedad de las personas relacionadas a continuación, hasta por
-las sumas indicadas.
+El Juzgado Octavo Civil Municipal de Ejecución de Sentencias de Barranquilla, dentro del proceso de la
+referencia, ha decretado el embargo y la retención de los dineros depositados o que se llegaren a
+depositar a cualquier título en esa entidad, en los siguientes productos: fondos de inversión colectiva,
+de propiedad de las personas relacionadas a continuación, hasta por las sumas indicadas.
 
 Relación de demandados:
 
 Nombre / Razón social Tipo ID Número ID Monto ($) Productos
 
-Óscar Ibáñez Lozano CE 62239758 59.255.000 CDT
+Quenelo Fontemar Tarquino CE 9947387374 59.255.000 Ahorro programado
 
-Jorge Restrepo Cardona CC 89821439 45.086.000 Ahorro programado
+Dorvina Orquillo Rosalinda CC 9913455767 56.712.000 Ahorro programado
 
-Claudia Mendoza Cifuentes CC 95661901 10.238.000 CDT
+Sorvelo Ventureño Gualdrapa CC 9910596061 21.939.000 CDT
 
-Constructora Horizonte S.A. NIT 830297318-2 54.651.000 Cuenta corriente
+Servicios Ficticia Andina S.A.S. NIT 999829050-2 37.063.000 Cuenta de ahorros
 
-Inmobiliaria Andina Ltda. NIT 981578025-4 16.192.000 Cuenta corriente
+Brisenia Cordellera Zandoval CC 9909510713 5.400.000 Cuenta corriente
 
-Valor total a embargar: $ 185.422.000 (CIENTO OCHENTA Y CINCO MILLONES
-CUATROCIENTOS VEINTIDÓS MIL PESOS M/CTE).
+Valor total a embargar: $ 180.369.000 (CIENTO OCHENTA MILLONES TRESCIENTOS SESENTA Y
+NUEVE MIL PESOS M/CTE).
+Límite de inembargabilidad: $ 8.000.000.
 
 Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
 
@@ -43,60 +46,62 @@ Atentamente,
 ______________________________
 Secretaría del despacho
 
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
 DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - ej-01 - pág. 1
 
 --- SALIDA ESPERADA (JSON) ---
 {
   "campos": {
-    "radicado": "08001670901820233603400",
-    "autoridad_emisora": "Juzgado Octavo Civil Municipal de Barranquilla",
+    "radicado": "08001990901220236883801",
+    "autoridad_emisora": "Juzgado Octavo Civil Municipal de Ejecución de Sentencias de Barranquilla",
     "ciudad": "Barranquilla",
     "fecha_oficio": "2024-08-11",
     "tipo_medida": "Embargo judicial",
-    "banco_destinatario": "Banco del Pacífico Ficticio S.A.",
-    "monto_numeros": "185422000.00",
-    "monto_letras": "CIENTO OCHENTA Y CINCO MILLONES CUATROCIENTOS VEINTIDÓS MIL PESOS M/CTE",
-    "limite_inembargabilidad": null,
-    "productos_o_cuentas": "CDT y depósitos a término, productos de depósito en general y fondos de inversión colectiva",
-    "juzgado": "Juzgado Octavo Civil Municipal de Barranquilla",
-    "clase_proceso": "Ejecución de sentencia",
-    "demandante": "Agroindustrias del Caribe Ltda."
+    "banco_destinatario": "Banco Cafetero Demo S.A.",
+    "monto_numeros": "180369000.00",
+    "monto_letras": "CIENTO OCHENTA MILLONES TRESCIENTOS SESENTA Y NUEVE MIL PESOS M/CTE",
+    "limite_inembargabilidad": "8000000.00",
+    "productos_o_cuentas": "fondos de inversión colectiva",
+    "juzgado": "Juzgado Octavo Civil Municipal de Ejecución de Sentencias de Barranquilla",
+    "clase_proceso": "Ejecutivo singular",
+    "demandante": "Tamarisca Valdenavia Arcanelo"
   },
   "tablas": {
     "demandados": [
       {
-        "nombre": "Óscar Ibáñez Lozano",
+        "nombre": "Quenelo Fontemar Tarquino",
         "tipo_identificacion": "CE",
-        "numero_identificacion": "62239758",
+        "numero_identificacion": "9947387374",
         "monto": "59255000.00",
-        "productos": "CDT"
-      },
-      {
-        "nombre": "Jorge Restrepo Cardona",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "89821439",
-        "monto": "45086000.00",
         "productos": "Ahorro programado"
       },
       {
-        "nombre": "Claudia Mendoza Cifuentes",
+        "nombre": "Dorvina Orquillo Rosalinda",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "95661901",
-        "monto": "10238000.00",
+        "numero_identificacion": "9913455767",
+        "monto": "56712000.00",
+        "productos": "Ahorro programado"
+      },
+      {
+        "nombre": "Sorvelo Ventureño Gualdrapa",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9910596061",
+        "monto": "21939000.00",
         "productos": "CDT"
       },
       {
-        "nombre": "Constructora Horizonte S.A.",
+        "nombre": "Servicios Ficticia Andina S.A.S.",
         "tipo_identificacion": "NIT",
-        "numero_identificacion": "830297318-2",
-        "monto": "54651000.00",
-        "productos": "Cuenta corriente"
+        "numero_identificacion": "999829050-2",
+        "monto": "37063000.00",
+        "productos": "Cuenta de ahorros"
       },
       {
-        "nombre": "Inmobiliaria Andina Ltda.",
-        "tipo_identificacion": "NIT",
-        "numero_identificacion": "981578025-4",
-        "monto": "16192000.00",
+        "nombre": "Brisenia Cordellera Zandoval",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9909510713",
+        "monto": "5400000.00",
         "productos": "Cuenta corriente"
       }
     ]

@@ -1,40 +1,43 @@
 ### Ejemplo ej-02 (oficio sintético, sin datos personales reales)
 --- TEXTO DEL OFICIO ---
-JUZGADO CUARTO PROMISCUO MUNICIPAL DE PEREIRA
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+JUZGADO SÉPTIMO CIVIL MUNICIPAL DE PEREIRA
 
 Pereira, 20 de agosto de 2024
-Oficio No. S-2024-2948728
+Oficio No. S-2024-2994118
 
 Señores
-Banco Andino Sintético S.A.
+Banco Cafetero Demo S.A.
 
 Referencia: Embargo judicial
-Radicado: 66001770400220246547200
-Clase de proceso: Ejecutivo con garantía real
-Demandante: Comercializadora Los Álamos S.A.S.
+Radicado: 66001990201020235472000
+Clase de proceso: Ejecutivo hipotecario
+Demandante: Jorlenia Quintanaro Mirabeque
 
-El Juzgado Cuarto Promiscuo Municipal de Pereira, dentro del proceso de la referencia, ha decretado
-el embargo y la retención de los dineros depositados o que se llegaren a depositar a cualquier título en
-esa entidad, en los siguientes productos: cuentas de ahorro, de propiedad de las personas
-relacionadas a continuación, hasta por las sumas indicadas.
+El Juzgado Séptimo Civil Municipal de Pereira, dentro del proceso de la referencia, ha decretado el
+embargo y la retención de los dineros depositados o que se llegaren a depositar a cualquier título en
+esa entidad, en los siguientes productos: productos de depósito en general, CDT y depósitos a término
+y cuentas de ahorro programado, de propiedad de las personas relacionadas a continuación, hasta por
+las sumas indicadas.
 
 Relación de demandados:
 
 Nombre / Razón social Tipo ID Número ID Monto ($) Productos
 
-Inversiones del Caribe S.A. NIT 999766458-1 8.958.000 Cuenta corriente
+Inversiones Ficticia del Caribe S.A. NIT 999129506-5 8.958.000 Cuenta de ahorros
 
-Mauricio Salcedo Salcedo CC 1148530408 39.223.000 Fondo de inversión
+Eldemar Rosalinda Ventureño CC 9934372908 23.176.000 CDT
 
-Luis Cardona Quintero CC 1103087865 36.817.000 Fondo de inversión
+Rivalda Gualdrapa Torcuato CE 9986274727 50.908.000 Cuenta de ahorros
 
-Jorge Castaño Vargas CC 90461722 44.404.000 Cuenta de ahorros
+Fabrizela Tarquino Orquillo CC 9915061865 44.599.000 Fondo de inversión
 
-Transportes Cafetera S.A. NIT 890463233-5 41.531.000 Cuenta de ahorros
+Pelagrina Torcuato Ibarreta CC 9900901031 17.403.000 Cuenta corriente
 
-Valor total a embargar: $ 170.933.000 (CIENTO SETENTA Y UN MILLONES SEISCIENTOS
-TREINTA Y TRES MIL PESOS M/CTE).
-Límite de inembargabilidad: $ 4.000.000.
+Valor total a embargar: $ 145.044.000 (CIENTO CUARENTA Y CINCO MILLONES QUINIENTOS
+CUARENTA Y CUATRO MIL PESOS M/CTE).
+Límite de inembargabilidad: $ 12.000.000.
 
 Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
 
@@ -43,61 +46,63 @@ Atentamente,
 ______________________________
 Secretaría del despacho
 
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
 DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - ej-02 - pág. 1
 
 --- SALIDA ESPERADA (JSON) ---
 {
   "campos": {
-    "radicado": "66001770400220246547200",
-    "autoridad_emisora": "Juzgado Cuarto Promiscuo Municipal de Pereira",
+    "radicado": "66001990201020235472000",
+    "autoridad_emisora": "Juzgado Séptimo Civil Municipal de Pereira",
     "ciudad": "Pereira",
     "fecha_oficio": "2024-08-20",
     "tipo_medida": "Embargo judicial",
-    "banco_destinatario": "Banco Andino Sintético S.A.",
-    "monto_numeros": "170933000.00",
-    "monto_letras": "CIENTO SETENTA Y UN MILLONES SEISCIENTOS TREINTA Y TRES MIL PESOS M/CTE",
-    "limite_inembargabilidad": "4000000.00",
-    "productos_o_cuentas": "cuentas de ahorro",
-    "juzgado": "Juzgado Cuarto Promiscuo Municipal de Pereira",
-    "clase_proceso": "Ejecutivo con garantía real",
-    "demandante": "Comercializadora Los Álamos S.A.S."
+    "banco_destinatario": "Banco Cafetero Demo S.A.",
+    "monto_numeros": "145044000.00",
+    "monto_letras": "CIENTO CUARENTA Y CINCO MILLONES QUINIENTOS CUARENTA Y CUATRO MIL PESOS M/CTE",
+    "limite_inembargabilidad": "12000000.00",
+    "productos_o_cuentas": "productos de depósito en general, CDT y depósitos a término y cuentas de ahorro programado",
+    "juzgado": "Juzgado Séptimo Civil Municipal de Pereira",
+    "clase_proceso": "Ejecutivo hipotecario",
+    "demandante": "Jorlenia Quintanaro Mirabeque"
   },
   "tablas": {
     "demandados": [
       {
-        "nombre": "Inversiones del Caribe S.A.",
+        "nombre": "Inversiones Ficticia del Caribe S.A.",
         "tipo_identificacion": "NIT",
-        "numero_identificacion": "999766458-1",
+        "numero_identificacion": "999129506-5",
         "monto": "8958000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Eldemar Rosalinda Ventureño",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9934372908",
+        "monto": "23176000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Rivalda Gualdrapa Torcuato",
+        "tipo_identificacion": "CE",
+        "numero_identificacion": "9986274727",
+        "monto": "50908000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Fabrizela Tarquino Orquillo",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9915061865",
+        "monto": "44599000.00",
+        "productos": "Fondo de inversión"
+      },
+      {
+        "nombre": "Pelagrina Torcuato Ibarreta",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9900901031",
+        "monto": "17403000.00",
         "productos": "Cuenta corriente"
-      },
-      {
-        "nombre": "Mauricio Salcedo Salcedo",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "1148530408",
-        "monto": "39223000.00",
-        "productos": "Fondo de inversión"
-      },
-      {
-        "nombre": "Luis Cardona Quintero",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "1103087865",
-        "monto": "36817000.00",
-        "productos": "Fondo de inversión"
-      },
-      {
-        "nombre": "Jorge Castaño Vargas",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "90461722",
-        "monto": "44404000.00",
-        "productos": "Cuenta de ahorros"
-      },
-      {
-        "nombre": "Transportes Cafetera S.A.",
-        "tipo_identificacion": "NIT",
-        "numero_identificacion": "890463233-5",
-        "monto": "41531000.00",
-        "productos": "Cuenta de ahorros"
       }
     ]
   }

@@ -10,9 +10,9 @@
       "defectos": [ ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "959e299d102932e44799c4f6679a6e5ccd459f943c4eeab6488109d4e8e7cfec",
-        "oficio.pdf": "a405d1981fdc986ef850fdbd6fe8bf35522e15475cfe80d0a5777d8f61d22410",
-        "texto.txt": "534ee1e288d89096bc2b02ea6c6a5d51f0dee634b06a5770a440c1d9b0f384db"
+        "verdad.json": "d96a36074cf007617752c9a9ad3ad579220c41b9caf8be3e3b7be84016b7bdca",
+        "oficio.pdf": "de920c7a70d028dcf48f35ae60bf22ec8a4eaf92d32276da23c0e01530272c74",
+        "texto.txt": "5fd6d428cac6d2bc17425e3e2013c2255e606c77375ce2a79055fec32628800e"
       }
     },
     {
@@ -23,9 +23,9 @@
       ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "8ef26000bc7d0a849c48464667642e55ddcb3d5c505d406bc42c283c10ab5ebc",
-        "oficio.pdf": "f6f8b76d0e0e203558c8463c1853ebe0b1fa5c960147a25d40e4fcae96d32800",
-        "texto.txt": "d1e7e83157d3f26a3daa41255d3c40cdd0e4ab6581bdf5fc067825050fbd616b"
+        "verdad.json": "d49daac790239def7f16d5ecf96b3cd8e3554442979bd5b9348e53cfc146ce5d",
+        "oficio.pdf": "589d4e3b97cf2695c3688f1caff9538d14ceb93ea6a2be6a13721eb17a966079",
+        "texto.txt": "a834039c919d5b93e106afc1b1308d277b62e29916a746ceaf351c7c0d37181b"
       }
     },
     {
@@ -36,9 +36,9 @@
       ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "530babdaeb857c4524ea05b5f24ae41c09fd8af998b7696ed8f1866e34950761",
-        "oficio.pdf": "d2bd70accccd70690f281a8dac816bfbadb21828964071117fd2f57268fd1d02",
-        "texto.txt": "2672c55f92f1667a5ba04baa33396dee918402c6b1dad08f2bff1f20cd76ef15"
+        "verdad.json": "e5d0de07fa5140fd4f5494b01818fcabc7a205ae3b263d38e4a9eebe8fc9a026",
+        "oficio.pdf": "6da825ea3078a6db0011f2c232625ba7dbef9c81f9a3c46f19a0bb0e2c04e732",
+        "texto.txt": "c8e9c2e1f29bcc19c3df21a7b4cc78577ebe10a2e55120efe80ce18bff60c4fb"
       }
     },
     {
@@ -49,9 +49,9 @@
       ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "07243dededabc8df49d46263f63b4e0907be458d09c2167cbf83310862f602d1",
-        "oficio.pdf": "c1de5d1ec286358c23ebed17be171dd0d03f385bce80735fed2af3907ad8f71c",
-        "texto.txt": "7e08fa93101ef15f7e421827a5e0e8a6e6d4bbea2638e2301aee6e4b8b6294b4"
+        "verdad.json": "de305b1af97d2cea37882ccbbde798e568542a9ea5b6b1696757893121cf556e",
+        "oficio.pdf": "35cb13fa7983eff0ccee1df8308fc8db2b7fbf1237b8639e2ddd1ee104f08094",
+        "texto.txt": "48236a2e87c624ac3fe0eb1ab5e89504cc2bde9453178c253f785d509899e620"
       }
     },
     {
@@ -62,9 +62,9 @@
       ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "ea9622a2b06048a234cbf0f6be5928e60e6001160f2e262953ba10e6d7fb86ab",
-        "oficio.pdf": "66683b007b0f9dd74d37debd0b661a94daacbc35ce7cedb7bffeb3e99eba9444",
-        "texto.txt": "b1c4ca3992a67d6edda42dc306a719a8a9c51aa7350c3f24783e4ba34051db83"
+        "verdad.json": "cc5a09b5793841c226b401f5245ff2fc4fa53121a090c7efc41570a01adffe8a",
+        "oficio.pdf": "92cd09a877f1e171d0ac6b0ea6cf54438c04ffd3625ae8dc86a55cbe631641a5",
+        "texto.txt": "3b22c422bf2b5191c4174f3a056a760bcb389b7816972f98212240571cb3d426"
       }
     },
     {
@@ -73,9 +73,9 @@
       "defectos": [ ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "0d27847c57082d10e272118efb0f18bcb3c17d4c5ba7e35f2e9dbc21d49b7bdc",
-        "oficio.pdf": "053097267a07e31b52522da3564219d6145bf629a1aa6635ab3641c14c274bcb",
-        "texto.txt": "34b4bedcbdd52621378ee71f345e42420c0c16db083f234c7b5de2c5e1f7e632"
+        "verdad.json": "da22826e30d84a46705a0e905e4888246a8c831b0421b84fbf96e32c3b0cfaac",
+        "oficio.pdf": "25454ad4ed131d217aa96227584a2efd2bc79feb05f77f0de1a054a777def0c0",
+        "texto.txt": "4d6112ce248d003d3400426b4ec0abf4540a95dac65c46c49402ad37a0db7d6a"
       }
     },
     {
@@ -86,9 +86,9 @@
       ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "c8de90038b077bf8365312dd4140da379409f8d46243e272e99c95b0acd19f3d",
-        "oficio.pdf": "6809dbe2ad96c701fe94339e575907fdc1db7185ed98b04d62b46e85643c3752",
-        "texto.txt": "0f4001b88b9ca841f3b4560d1d2c791012d69507aa0c8a0c2587c1a90c8ab98c"
+        "verdad.json": "3e6d01d330b4440eb44033a6892bfe6dcd1be5b431298847513a940d5ba04c03",
+        "oficio.pdf": "cc3c8c103a1cc3b4db82339d42a5fe881a854255aafcedf8011f8e39066a1fd2",
+        "texto.txt": "2e170763ce9316d415568062a48451b6a186b6f661b413fe78126a44a49556fa"
       }
     },
     {
@@ -99,9 +99,9 @@
       ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "ad8c029bb6cd983502692c1e17ee019d5e7e94df84ef57e3a488e353f158edd9",
-        "oficio.pdf": "0d61f43e273876ef295bb5a87cc0fe5c48a91ca935f3017cce851fa174298cfa",
-        "texto.txt": "adc29dbfd9cd56260a71f44098ae6e52cc565c9bf3afafeebe6538b9d9cc9fa3"
+        "verdad.json": "06a30b3b744290298f6c22ceac566381aaf3887b663c280c9846c7e1742b6402",
+        "oficio.pdf": "279b670602ad158ff7769223d71c2bd57f3b6530b1df2035aeec5df6661592cf",
+        "texto.txt": "25f080e891b13d54c8fd6c139d6c9bd3eb4d5f74c76d27fbbcc0a10673dc4e75"
       }
     },
     {
@@ -112,9 +112,9 @@
       ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "a7cea3f44b6c1190e821147a6c585ce9a584275a621aabd8f3d294efdf73dd1f",
-        "oficio.pdf": "ba9215af1fb12419c4364353848fa2ba3aa6d6b54e480d417fb5e2207ae01521",
-        "texto.txt": "21ac69a8232c9101dd9ab0f2f998cb53194c3395f2ab2f90554a08163fde6e7a"
+        "verdad.json": "672712decd963a68bab5ffce41989dcc90a5ce838bbaf810f4675bb264c80e7e",
+        "oficio.pdf": "5481c0f9e088e56d2241ad9ed8a6b9a7eaf81d4273d30f9e881b39825d35eaa8",
+        "texto.txt": "24a65dbd4b230afe2b4c2a88df06f9278aedd99a3ccc2a5d94597334268d60b1"
       }
     },
     {
@@ -125,9 +125,9 @@
       ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "268f1537d5e836cee5b4f73e4eeb4708492441bbf9f310e08ee318fe8f13af49",
-        "oficio.pdf": "b06efb9db7ac0cec6421c206ee0ffcc91063f2caa587b2a6bab62a53a58bb7d3",
-        "texto.txt": "5532e6b586c6c775bcf92b5a1388cd9c697d671b1568c7f404ae28d0a2df3b3f"
+        "verdad.json": "1b13e36341a65e2cabb87c43a315a63bb3596716d110c35c4efc25249d0a012d",
+        "oficio.pdf": "b0b17e9d85bfbef058d5484d6f9eed67435cb88f59454a0512a1f2455c82e345",
+        "texto.txt": "b4e4dc848a600aab22081e1a577ec67021a5d97ad858c41a87bac34564e2a149"
       }
     },
     {
@@ -136,9 +136,9 @@
       "defectos": [ ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "441c9815f74891981fcef5f5c99b0287a7d45902b5904d94cdcb54191263e92a",
-        "oficio.pdf": "30d7731df5bb65829c5c3e76007789d433be67a162b4fc40677fdcba223ebce3",
-        "texto.txt": "32534d53496938036ce1cb70c8d2d25acdcc2c3d4518ae0af3e5bc0fb29b3621"
+        "verdad.json": "64aeac88f06e985535aedae6857eb46b5812f1fdefbed0f91baca7a97f2c725a",
+        "oficio.pdf": "c2b439d01968a7818ceaa15194547b44d4a287f4a3abb4afddb9af977774fff0",
+        "texto.txt": "0b853dac543423d71ced70b89cd46b2a8a136ced27c3a0b37b8399e7b3bfd838"
       }
     },
     {
@@ -149,9 +149,9 @@
       ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "57395efc8a04d560b27c485ad6166d7166a742ed6e3d5ad0ea2aa831af7f41a0",
-        "oficio.pdf": "0ed2795e54f960c906c428d79552ebcac50de487e5ea817def5915958d990af7",
-        "texto.txt": "54b3d10d4249293cca03682d2591be738c6db9986f4cf6e2181f377442a406e8"
+        "verdad.json": "d41b9920d5e495313b42fb83c480c5f3863d54fc53bfae7334a09d12352a459c",
+        "oficio.pdf": "f715c434b50ebe53d3f6ef27493713cd224101cd7b0a26750c7b0d79967a1caa",
+        "texto.txt": "b7580524e8ab106c7bac852e7b42dbb8045abef6a8eefe0b655159db21397b6d"
       }
     },
     {
@@ -162,9 +162,9 @@
       ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "90ee5e8589d1f4b2d36f60553c92b3f0a45a1f960b1b9064c0ead3d34954568e",
-        "oficio.pdf": "878fb6ab05a5fca57382f08749a6dcedbee866a29939a4801e83c0b9b2ecdf55",
-        "texto.txt": "6c13179b17863e183384e3e717c5d749ede9a3d56a1244c0b7b5ddf28083bf27"
+        "verdad.json": "8e57ea7e87b1b05aac2ef0c158bc5c175afb4ab49d5e875971bf866b8530363f",
+        "oficio.pdf": "836e22a46be50d0ac7b04aaf57813fba0da9597a7ee6b42553e96238a8018391",
+        "texto.txt": "7eb30dd15eecb2a406c77daf69f24a3baee6bde0d70cf92c03b70b62bdb49b29"
       }
     },
     {
@@ -175,9 +175,9 @@
       ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "384fd36d317b90638d06fb5062aabd059bcdf680059a21fa1b4fc4b6ddebd8f3",
-        "oficio.pdf": "1a3e2c8392706ed149d8d62140277a5b0f0ff2c28f202176989ab6ecd454b0b5",
-        "texto.txt": "674371cc229a37ca6f0a936166c1496e6ad5fcaa223e2033f7608e0dab1c1718"
+        "verdad.json": "38a02cf2bc1598fb2d8309e5d5c7372e8a95a4ab498186d81d254aae08cdad28",
+        "oficio.pdf": "55ac154faedc793f0622af07604830d3b242994d89fbba249d99a49aa7608ad6",
+        "texto.txt": "0ccebef0e744799a9467ab2cd3cee066b662dbd0f32a7d8075e2e95faa6b6e4f"
       }
     },
     {
@@ -188,9 +188,9 @@
       ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "61f3352b7c7ccfbab630d7718380027362697e32ec4a79af0c83e7fe18296d3e",
-        "oficio.pdf": "de75888f8896645911f093ccf1f128792e57000ff8cbc0d33e877648806f55a3",
-        "texto.txt": "b73d375b0458b6e3b865caaac80b8f25c3d1eeacf79fa2d9bfe010154e701f3c"
+        "verdad.json": "1be498661f72bda15d7b73f6717733d8394f4b449239524d2655088036316640",
+        "oficio.pdf": "3857b1dc2280b353e3dfa15f57bf5f3641650568c4dd4651e0272f057f16083f",
+        "texto.txt": "b4525031ceb28e4baa79f05802cea6e10cd22ad7554d35e65fe9bbb9117f2ed2"
       }
     },
     {
@@ -199,9 +199,9 @@
       "defectos": [ ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "ccd3e957ab916ee5ac215fe4ed50e9394384da0685bb4e2092061cf531855ce4",
-        "oficio.pdf": "b9b17960068aec6d41d4d2f5cc0d4657772c96b91dc7e1832181f3548c9ea940",
-        "texto.txt": "318273d4c10e86998939b70bf70bddd4104983219cc72ea60d846d8597e190c3"
+        "verdad.json": "e2afea655d84eea9ad984f2585625ada446c51e7598859596a2f60a7507d6580",
+        "oficio.pdf": "35be4b362c8eecef434cb8de9559b59c3b4607388485e236495950b0501c04e1",
+        "texto.txt": "89cf5e4c1c1ae67194bdb41588380121ec6527a5276e3489d8d0bdd41fcaa45c"
       }
     },
     {
@@ -212,9 +212,9 @@
       ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "a73ef078a7d32a6da47350291ad7f8c23121695ba501ea4bd1550d9f48f01617",
-        "oficio.pdf": "4fd29476cfc98bf1e5789ed602dbcd10b68f919726eb2dd5c0260755feef2643",
-        "texto.txt": "8a52380eef60ccf2715f13c59dcb65fd1ad9a73cefe4829623153e5cded39eb0"
+        "verdad.json": "6ee9702e4bb6ca20a906b7dfb773a01e7322b6f54ce97314ce99443185de7ec4",
+        "oficio.pdf": "368e54ab66fe3ec32b0bce820897cbc1cb935a43489307a07f330f40c8061287",
+        "texto.txt": "a87302174a68a56aa42eba66af9fcc4372e98057a5456a8430a5dfc116f1faf6"
       }
     },
     {
@@ -225,9 +225,9 @@
       ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "bae9fbc90be38d8110a307f26906a867b226adbb71a0adb3fd99429b1972fe2f",
-        "oficio.pdf": "f784a90b3e209b009d045767ecdbdb77df4c8602bcf659b72c72648baba2559e",
-        "texto.txt": "60d078a6934f74c2e7e8223bb5d6043bf6de86a7b5268c75f3b80f6510b92105"
+        "verdad.json": "e9524c8d4f85fd14783552c507a507c557fbea2d6f3b1c843832a1cc4ae4b524",
+        "oficio.pdf": "29ba8c21aab02ef1b3a2e5c2689511e8b23b79cea90c7613896fddc68ccb5f3b",
+        "texto.txt": "ce08eff4c41185a8d13f052c08eb787151d498557ce6f32b028dfd9d4b9575a7"
       }
     },
     {
@@ -238,9 +238,9 @@
       ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "c151d4ad2bc9bb330059f72cc6e1b8fd256a05ea308f88f80bd43d8311da648c",
-        "oficio.pdf": "d06d05269952f9daf8a2c8db7a436b1b89d097e9900a4be488002b2ddb2deeda",
-        "texto.txt": "713037df5ef0baa4b4d144132c8d24068880de773620057b192f4ecb0fbb8c86"
+        "verdad.json": "bd0d66b2e4fc3f7e471dd29607c658ce8d03ccd154f7cc382f5d54db4489a8ba",
+        "oficio.pdf": "4523870f0226ee283b2ecdf9834809a4be470c47c3797ec8c5d01b801193c1b2",
+        "texto.txt": "ac34afeea5fad8e990b912a1f9fa4b7a197a5d03ef1dc273dbed67cca1215eda"
       }
     },
     {
@@ -251,9 +251,9 @@
       ],
       "escaneado": true,
       "sha256": {
-        "verdad.json": "3ed14ca048aef2792230aee426c6559bbaee37904aff1375a39bcaa14e81abc2",
-        "oficio.pdf": "9e1d22f4e42b0e4454acdb8b487598d6b4ea3492d3a40ee59cefb7d209371510",
-        "texto.txt": "02ed244a7a9c9aa71515403cb73794a10e16e8a1a2ed497cd8042bcdddf8892e"
+        "verdad.json": "267b200633a06d9a8dd7bd8933e108f0d9f16f39aef50ca7bfb4bb9b1fda0ea0",
+        "oficio.pdf": "9857b66fb6e8c20d7df22d7b943da182b76969a29537bd9b00baf11815e97c45",
+        "texto.txt": "4e8c724c80e67aa6a63c64c0c1880e5f33fdfe793dd482d77824dee4545942fa"
       }
     }
   ]

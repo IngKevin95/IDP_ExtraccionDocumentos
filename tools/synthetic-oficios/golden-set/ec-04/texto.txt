@@ -1,27 +1,31 @@
-OFICINA DE COBRO COACTIVO - SECRETARÍA DE HACIENDA DE BUCARAMANGA
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+OFICINA DE COBRO COACTIVO - DIRECCIÓN DE IMPUESTOS MUNICIPALES DE
+BUCARAMANGA
 
 Bucaramanga, 9 de mayo de 2026
 Oficio No. S-2026-8451632
 
 Señores
-Banco Andino Sintético S.A.
+Banco Cafetero Demo S.A.
 
 Referencia: Embargo coactivo
-Radicado: 68001360701720238629901
+Radicado: 68001990300620260233201
 Resolución No.: RES-2026-286203
 
-La Secretaría de Hacienda de Bucaramanga, en ejercicio de la facultad de cobro coactivo, ha
-decretado el embargo y la retención de los dineros depositados o que se llegaren a depositar a
-cualquier título en esa entidad, en los siguientes productos: cuentas corrientes, de propiedad de las
-personas relacionadas a continuación, hasta por las sumas indicadas.
+La Dirección de Impuestos Municipales de Bucaramanga, en ejercicio de la facultad de cobro coactivo,
+ha decretado el embargo y la retención de los dineros depositados o que se llegaren a depositar a
+cualquier título en esa entidad, en los siguientes productos: cuentas de ahorro, fondos de inversión
+colectiva y CDT y depósitos a término, de propiedad de las personas relacionadas a continuación,
+hasta por las sumas indicadas.
 
 Relación de demandados:
 
 Nombre / Razón social Tipo ID Número ID Monto ($) Productos
 
-Transportes Pacífico Ltda. NIT 913264313-5 5.290.000 Fondo de inversión
+Transportes Ficticia Pacífico Ltda. NIT 999264310-6 5.290.000 Fondo de inversión
 
-Marcela Arango Ibáñez CC 66817983 52.832.000 Cuenta corriente
+Pelagrina Vistamar Fontemar CC 9980708855 52.832.000 Ahorro programado
 
 Valor total a embargar: $ 58.122.000 (CINCUENTA Y OCHO MILLONES CIENTO VEINTIDÓS MIL
 PESOS M/CTE).
@@ -34,6 +38,8 @@ Atentamente,
 
 ______________________________
 Jefe de la Oficina de Cobro Coactivo
+
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
 
 DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - ec-04 - pág. 1
 

@@ -69,11 +69,58 @@ public class WebhookRepository {
             + "and active = true", tenantId, id) == 1;
     }
 
-    public void saveRotation(UUID tenantId, UUID id, String current, String previous, Instant previousExpiresAt,
-                             Instant rotatedAt) {
-        jdbc.update("update webhook_subscription set secret_current = ?, secret_previous = ?, "
-            + "secret_previous_expires_at = ?, rotated_at = ? where tenant_id = ? and id = ?",
-            current, previous, ts(previousExpiresAt), ts(rotatedAt), tenantId, id);
+    /** Lectura con bloqueo de fila ({@code for update}); debe ejecutarse dentro de una transaccion. */
+    public Optional<WebhookSubscription> findSubscriptionForUpdate(UUID tenantId, UUID id) {
+        return jdbc.query("select " + SUB_COLS + " from webhook_subscription where tenant_id = ? and id = ? "
+            + "for update", SUBSCRIPTION, tenantId, id).stream().findFirst();
+    }
+
+    /**
+     * Actualiza el estado de rotacion solo si la fila sigue con {@code secret_current} y {@code rotated_at}
+     * esperados (lo leido bajo bloqueo): un endRotation concurrente nunca restaura un secreto viejo.
+     *
+     * @return true si se actualizo la fila
+     */
+    public boolean saveRotationIfUnchanged(UUID tenantId, UUID id, String current, String previous,
+                                           Instant previousExpiresAt, Instant rotatedAt, String expectedCurrent,
+                                           Instant expectedRotatedAt) {
+        String guard = expectedRotatedAt == null ? "rotated_at is null" : "rotated_at = ?";
+        List<Object> args = new ArrayList<>(Arrays.asList(current, previous, ts(previousExpiresAt), ts(rotatedAt),
+            tenantId, id, expectedCurrent));
+        if (expectedRotatedAt != null) {
+            args.add(ts(expectedRotatedAt));
+        }
+        return jdbc.update("update webhook_subscription set secret_current = ?, secret_previous = ?, "
+            + "secret_previous_expires_at = ?, rotated_at = ? where tenant_id = ? and id = ? and secret_current = ? "
+            + "and " + guard, args.toArray()) == 1;
+    }
+
+    // ---- verificacion de hosts ----
+
+    /** Desafio de propiedad de un dominio. */
+    public record HostChallenge(String domain, String token, boolean verified) {
+    }
+
+    public Optional<HostChallenge> findHostChallenge(UUID tenantId, String domain) {
+        return jdbc.query("select domain, token, status from webhook_host_verification where tenant_id = ? "
+            + "and domain = ?", (rs, i) -> new HostChallenge(rs.getString("domain"), rs.getString("token"),
+                "VERIFIED".equals(rs.getString("status"))), tenantId, domain).stream().findFirst();
+    }
+
+    /** Crea el desafio PENDING; false si ya existia (carrera benigna). */
+    public boolean insertHostChallenge(UUID tenantId, String domain, String token, Instant now) {
+        try {
+            jdbc.update("insert into webhook_host_verification (tenant_id, domain, token, status, created_at) "
+                + "values (?, ?, ?, 'PENDING', ?)", tenantId, domain, token, ts(now));
+            return true;
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            return false;
+        }
+    }
+
+    public void markHostVerified(UUID tenantId, String domain, Instant now) {
+        jdbc.update("update webhook_host_verification set status = 'VERIFIED', verified_at = ? where tenant_id = ? "
+            + "and domain = ?", ts(now), tenantId, domain);
     }
 
     // ---- politica del tenant ----
@@ -144,11 +191,21 @@ public class WebhookRepository {
             truncate(errorMsg, 200), id);
     }
 
-    /** Reintento manual: solo desde FALLIDO (DLT); vuelve a PENDIENTE con el contador a cero. */
-    public boolean requeueFailed(UUID tenantId, UUID id, Instant now) {
+    /**
+     * Reintento manual: solo desde FALLIDO (DLT) y mientras la entrega tenga menos de {@code maxManualRetries}
+     * reintentos manuales; vuelve a PENDIENTE con el contador de intentos a cero y suma un reintento manual.
+     */
+    public boolean requeueFailed(UUID tenantId, UUID id, Instant now, int maxManualRetries) {
         return jdbc.update("update webhook_delivery set status = 'PENDIENTE', attempts = 0, next_attempt_at = ?, "
-            + "error_code = null, error_msg = null where tenant_id = ? and id = ? and status = 'FALLIDO'",
-            ts(now), tenantId, id) == 1;
+            + "error_code = null, error_msg = null, manual_retries = manual_retries + 1 where tenant_id = ? "
+            + "and id = ? and status = 'FALLIDO' and manual_retries < ?", ts(now), tenantId, id,
+            maxManualRetries) == 1;
+    }
+
+    /** Pospone una entrega PENDIENTE sin contar intento (breaker abierto, sin cupo de concurrencia). */
+    public void defer(UUID id, Instant nextAttemptAt) {
+        jdbc.update("update webhook_delivery set next_attempt_at = ? where id = ? and status = 'PENDIENTE'",
+            ts(nextAttemptAt), id);
     }
 
     public List<WebhookDelivery> listDeliveries(UUID tenantId, UUID webhookId, DeliveryStatus status, int limit,

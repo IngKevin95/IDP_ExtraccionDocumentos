@@ -3,7 +3,9 @@ package com.idp.quality.golden;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -24,6 +26,9 @@ public final class GoldenSetLoader {
                          Map<String, String> verdad) {
     }
 
+    /** Tope de tamano por archivo de verdad terreno. */
+    public static final int MAX_FILE_BYTES = 1024 * 1024;
+
     private final ObjectMapper mapper;
 
     public GoldenSetLoader(ObjectMapper mapper) {
@@ -33,20 +38,32 @@ public final class GoldenSetLoader {
     public List<Loaded> loadDirectory(Path dir) throws IOException {
         List<Path> files;
         try (Stream<Path> s = Files.list(dir)) {
-            files = s.filter(p -> p.toString().endsWith(".json")).sorted().toList();
+            // Sin enlaces simbolicos: solo archivos regulares dentro del directorio configurado.
+            files = s.filter(p -> p.toString().endsWith(".json"))
+                .filter(p -> Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)).sorted().toList();
         }
         List<Loaded> out = new ArrayList<>();
         for (Path f : files) {
-            out.add(parse(mapper.readTree(f.toFile()), String.valueOf(f.getFileName())));
+            out.add(parse(readBounded(f), String.valueOf(f.getFileName())));
         }
         return out;
+    }
+
+    private JsonNode readBounded(Path f) throws IOException {
+        try (InputStream in = Files.newInputStream(f, LinkOption.NOFOLLOW_LINKS)) {
+            byte[] bytes = in.readNBytes(MAX_FILE_BYTES + 1);
+            if (bytes.length > MAX_FILE_BYTES) {
+                throw new IllegalArgumentException(f.getFileName() + ": archivo demasiado grande");
+            }
+            return mapper.readTree(bytes);
+        }
     }
 
     public Loaded parse(JsonNode n, String origin) {
         if (n == null || !n.isObject()) {
             throw new IllegalArgumentException(origin + ": se esperaba un objeto JSON");
         }
-        if (!n.path("sintetico").asBoolean(false)) {
+        if (!n.path("sintetico").isBoolean() || !n.get("sintetico").booleanValue()) {
             throw new IllegalArgumentException(origin + ": el oficio no esta marcado como sintetico");
         }
         String id = text(n, "id");

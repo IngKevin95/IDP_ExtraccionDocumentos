@@ -64,6 +64,7 @@ class ReviewQueueSlaIntegrationTest extends AbstractReviewIntegrationTest {
         postJson("ana", path(taskId, "/corrections"), "[{\"fieldName\":\"direccion\",\"correctedValue\":\"x\"}]");
 
         assertThat(body(getAs("ana", "/v1/review/queue")).path("totalElements").asInt()).isEqualTo(1);
+        post("ana", path(taskId, "/claim"));
         post("ana", path(taskId, "/approve"));
         assertThat(body(getAs("ana", "/v1/review/queue")).path("totalElements").asInt()).isZero();
     }
@@ -147,6 +148,7 @@ class ReviewQueueSlaIntegrationTest extends AbstractReviewIntegrationTest {
         reviewer("ana");
         UUID open = createTask();
         UUID closed = createTask();
+        post("ana", path(closed, "/claim"));
         post("ana", path(closed, "/reject"));
         setDue(open, now().minusMinutes(3));
         setDue(closed, now().minusMinutes(3));
@@ -180,6 +182,7 @@ class ReviewQueueSlaIntegrationTest extends AbstractReviewIntegrationTest {
         UUID done = createTask();
         UUID overdue = createTask();
         createTask();
+        post("ana", path(done, "/claim"));
         post("ana", path(done, "/approve"));
         setDue(overdue, now().minusMinutes(1));
         escalation.escalateTenant(tenant);
@@ -216,6 +219,7 @@ class ReviewQueueSlaIntegrationTest extends AbstractReviewIntegrationTest {
             createTask();
         }
         UUID rejected = createTask();
+        post("ana", path(rejected, "/claim"));
         post("ana", path(rejected, "/reject"));
 
         JsonNode pending = body(getAs("ana", "/v1/review/tasks?status=PENDING&size=2"));

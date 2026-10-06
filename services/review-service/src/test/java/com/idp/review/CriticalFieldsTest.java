@@ -15,7 +15,7 @@ class CriticalFieldsTest {
 
     static ReviewProperties props(List<String> critical) {
         return new ReviewProperties("documents", "http://x", "s".repeat(32), Duration.ofSeconds(60),
-                Duration.ofHours(4), Duration.ofHours(1), 3, critical, "none", false, 1024,
+                Duration.ofHours(4), Duration.ofHours(1), 3, critical, "none", false, 1024, 2, 30, 40_000_000L,
                 new ReviewProperties.Relay(false, Duration.ofSeconds(1)),
                 new ReviewProperties.Escalation(false, Duration.ofMinutes(1)));
     }

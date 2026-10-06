@@ -128,7 +128,7 @@ public class ReviewTaskService {
     public List<Correction> addCorrections(Caller caller, UUID taskId, List<CorrectionInput> inputs) {
         validate(inputs);
         return inTx(() -> {
-            ReviewTask task = load(caller, taskId);
+            ReviewTask task = loadForUpdate(caller, taskId);
             if (task.status() != TaskStatus.PENDING) {
                 throw new InvalidStateException("Solo se corrige una tarea en estado PENDING");
             }
@@ -145,10 +145,9 @@ public class ReviewTaskService {
                 if (task.blindSample() && field == null) {
                     throw new InvalidRequestException("Campo desconocido en una revision ciega");
                 }
-                // Ciega: el original es siempre el del modelo (guardado), nunca el que envie el cliente.
-                String original = task.blindSample() ? field.originalValue()
-                        : in.originalValue() != null ? in.originalValue()
-                        : field == null ? null : field.originalValue();
+                // El original es siempre el valor guardado del campo (el del modelo), nunca el que envie el cliente;
+                // solo un campo inexistente (tarea normal) admite el original informado.
+                String original = field != null ? field.originalValue() : in.originalValue();
                 repo.upsertCorrection(new Correction(UUID.randomUUID(), taskId, name, original,
                         in.correctedValue(), critical.isCritical(name), now, caller.userId()));
                 repo.markFieldCorrected(taskId, name);
@@ -167,17 +166,20 @@ public class ReviewTaskService {
      */
     public ReviewTask approve(Caller caller, UUID taskId) {
         return inTx(() -> {
-            ReviewTask task = load(caller, taskId);
+            // Bloqueo de fila antes de leer correcciones: serializa con addCorrections concurrente (cuatro ojos).
+            ReviewTask task = loadForUpdate(caller, taskId);
             if (task.status() != TaskStatus.PENDING) {
                 throw new InvalidStateException("Solo se aprueba una tarea en estado PENDING");
             }
+            blindPolicy.requireIndependent(task, caller.userId());
+            requireAssignee(task, caller);
             if (task.blindSample()) {
                 return completeBlind(caller, task);
             }
             boolean needsSecond = repo.hasCriticalCorrection(taskId);
             OffsetDateTime now = now();
             if (!repo.firstApprove(caller.tenantId(), taskId, caller.userId(), needsSecond, now,
-                    cycleSeconds(task, now))) {
+                    cycleSeconds(task, now), true)) {
                 throw failure(load(caller, taskId), caller, Expected.PENDING_ONLY);
             }
             repo.confirmPendingFields(taskId);
@@ -216,7 +218,7 @@ public class ReviewTaskService {
     /** Segunda aprobacion (cuatro ojos): otro revisor, distinto del primero, ambos con rol vigente. */
     public ReviewTask approveSecondary(Caller caller, UUID taskId) {
         return inTx(() -> {
-            ReviewTask task = load(caller, taskId);
+            ReviewTask task = loadForUpdate(caller, taskId);
             if (task.status() != TaskStatus.PENDING_SECOND_APPROVAL) {
                 throw new InvalidStateException("La tarea no esta pendiente de segunda aprobacion");
             }
@@ -224,6 +226,10 @@ public class ReviewTaskService {
             if (first == null || first.equals(caller.userId())) {
                 meters.counter("idp_review_four_eyes_denied_total").increment();
                 throw new FourEyesViolationException("El segundo aprobador debe ser distinto del primer revisor");
+            }
+            if (repo.hasCorrectionBy(taskId, caller.userId())) {
+                meters.counter("idp_review_four_eyes_denied_total").increment();
+                throw new FourEyesViolationException("El segundo aprobador no puede ser autor de una correccion");
             }
             if (!roles.hasRole(caller.tenantId(), first, Roles.REVISOR)) {
                 throw new ConflictException("REVIEW_FIRST_REVIEWER_INVALID",
@@ -246,10 +252,13 @@ public class ReviewTaskService {
      */
     public ReviewTask reject(Caller caller, UUID taskId) {
         return inTx(() -> {
-            ReviewTask task = load(caller, taskId);
+            ReviewTask task = loadForUpdate(caller, taskId);
             requireOpen(task);
             if (task.blindSample()) {
                 throw new InvalidStateException("Una revision ciega no se rechaza: el documento ya esta aprobado");
+            }
+            if (task.status() == TaskStatus.PENDING) {
+                requireAssignee(task, caller);
             }
             OffsetDateTime now = now();
             if (!repo.reject(caller.tenantId(), taskId, caller.userId(), now, cycleSeconds(task, now))) {
@@ -281,6 +290,21 @@ public class ReviewTaskService {
 
     private ReviewTask load(Caller caller, UUID taskId) {
         return repo.findTask(caller.tenantId(), taskId).orElseThrow(TaskNotFoundException::new);
+    }
+
+    /** Lee la tarea con bloqueo de fila (for update) dentro de la transaccion en curso. */
+    private ReviewTask loadForUpdate(Caller caller, UUID taskId) {
+        return repo.findTaskForUpdate(caller.tenantId(), taskId).orElseThrow(TaskNotFoundException::new);
+    }
+
+    /** Aprobar o rechazar en primera instancia exige haber tomado la tarea (ser el asignado). */
+    private static void requireAssignee(ReviewTask task, Caller caller) {
+        if (task.assigneeId() == null) {
+            throw new ConflictException("REVIEW_NOT_ASSIGNEE", "Debe tomar la tarea antes de aprobar o rechazar");
+        }
+        if (!task.assigneeId().equals(caller.userId())) {
+            throw new ConflictException("REVIEW_TASK_ASSIGNED", "La tarea esta asignada a otro revisor");
+        }
     }
 
     private static void requireOpen(ReviewTask task) {

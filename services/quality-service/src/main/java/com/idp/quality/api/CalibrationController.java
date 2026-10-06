@@ -8,7 +8,7 @@ import com.idp.quality.golden.GoldenRepository;
 import com.idp.quality.metrics.MetricsRepository;
 import com.idp.security.Roles;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,7 +33,9 @@ public class CalibrationController {
     public record Thresholds(@JsonProperty("model_prompt_key") String modelPromptKey, List<ThresholdView> data) {
     }
 
-    public record PendingBlind(@JsonProperty("document_ids") List<UUID> documentIds) {
+    /** Solo agregados (SEC-051): ningun identificador de documento ni de muestra sale hacia el Data Steward. */
+    public record PendingBlind(int pending, int reviewed,
+                               @JsonProperty("pending_by_age") Map<String, Integer> pendingByAge) {
     }
 
     private final GoldenRepository golden;
@@ -63,12 +65,13 @@ public class CalibrationController {
         return new Thresholds(k, rows);
     }
 
-    /** Oficios auto-aprobados elegidos para revision ciega, aun sin revisar (identificadores opacos). */
+    /** Cola de muestreo ciego: conteos y antiguedad, nunca los oficios elegidos (SEC-051). */
     @GetMapping("/blind-samples/pending")
-    public PendingBlind pendingBlind(@AuthenticationPrincipal Jwt jwt,
-                                     @RequestParam(value = "limit", defaultValue = "100") int limit) {
+    public PendingBlind pendingBlind(@AuthenticationPrincipal Jwt jwt) {
         Caller c = callers.require(jwt, Roles.DATA_STEWARD);
-        return new PendingBlind(metrics.pendingBlind(c.tenantId(), limit));
+        MetricsRepository.BlindSummary s = metrics.blindSummary(c.tenantId(), java.time.Instant.now());
+        return new PendingBlind(s.pending(), s.reviewed(), Map.of("lt_1d", s.pendingUnderDay(),
+            "1d_7d", s.pendingUnderWeek(), "gt_7d", s.pendingOverWeek()));
     }
 
     private static ThresholdView view(ThresholdRow r) {

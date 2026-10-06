@@ -171,7 +171,8 @@ class ReviewBlindSampleIntegrationTest extends AbstractReviewIntegrationTest {
         assertThat(status(approve)).isEqualTo(200);
         // un campo critico distinto NO pide segunda aprobacion: es medicion, no correccion
         assertThat(body(approve).path("status").asText()).isEqualTo("APPROVED");
-        assertThat(body(approve).path("blindSample").asBoolean()).isTrue();
+        // el REVISOR no recibe el flag blindSample (ceguera); solo los roles de gestion
+        assertThat(body(approve).path("blindSample").asBoolean()).isFalse();
         List<JsonNode> events = outbox("revision.completada");
         assertThat(events).hasSize(1);
         JsonNode e = events.get(0);

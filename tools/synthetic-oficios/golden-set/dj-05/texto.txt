@@ -1,40 +1,41 @@
-JUZGADO SEGUNDO CIVIL MUNICIPAL DE BOGOTÁ
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+JUZGADO PRIMERO DE FAMILIA DE BOGOTÁ
 
 Bogotá D.C., 27 de enero de 2026
-Oficio No. S-2026-7309582
+Oficio No. S-2026-9644830
 
 Señores
-Banca Horizonte de Prueba S.A.
+Banco Andino Sintético S.A.
 
 Referencia: Desembargo judicial
-Radicado: 11001410300620264385901
-Clase de proceso: Ejecutivo singular
-Demandante: Inmobiliaria Altiplano Ltda.
-Oficio de embargo original: Oficio 2025-181788 del 9 de diciembre de 2025
+Radicado: 11001990101620236029200
+Clase de proceso: Ejecutivo hipotecario
+Demandante: Inmobiliaria Ficticia Andina S.A.S.
 
-El Juzgado Segundo Civil Municipal de Bogotá, dentro del proceso de la referencia, ha ordenado el
+El Juzgado Primero de Familia de Bogotá, dentro del proceso de la referencia, ha ordenado el
 levantamiento de la medida de embargo comunicada previamente. En consecuencia, sírvase
-desembargar los dineros retenidos, en los siguientes productos: fondos de inversión colectiva, de
-propiedad de las personas relacionadas a continuación, por las sumas indicadas.
+desembargar los dineros retenidos, en los siguientes productos: cuentas corrientes y CDT y depósitos
+a término, de propiedad de las personas relacionadas a continuación, por las sumas indicadas.
 
 Relación de demandados:
 
 Nombre / Razón social Tipo ID Número ID Monto ($) Productos
 
-Paula Lozano Rojas CE 1159836936 36.198.000 Ahorro programado
+Fabrizela Tarquino Zandoval CE 9915026318 36.198.000 Cuenta corriente
 
-Marcela Navarro Peña CC 1179206299 50.512.000 Fondo de inversión
+Heliodora Ibarreta Arcanelo CC 9902191434 26.773.000 Ahorro programado
 
-Constructora Andina S.A.S. NIT 826869998-1 24.399.000 Cuenta de ahorros
+Tamarisca Pedregaza Zandoval CC 9916798134 26.799.000 Cuenta corriente
 
-Ricardo Beltrán Rojas CC 1139522907 21.923.000 Ahorro programado
+Dorvina Narvalle Cordellera CC 9920552510 50.495.000 Cuenta de ahorros
 
-Julián Castaño Restrepo CC 49873110 34.834.000 Cuenta corriente
+Sorvelo Narvalle Quintanaro CC 9916945334 39.508.000 Ahorro programado
 
-Felipe Cifuentes Vargas CC 31460292 26.676.000 CDT
+Inversiones Ficticia Horizonte S.A. NIT 999506407-1 13.278.000 Ahorro programado
 
-Valor total a desembargar: $ 194.542.000 (CIENTO NOVENTA Y CUATRO MILLONES
-QUINIENTOS CUARENTA Y DOS MIL PESOS M/CTE).
+Valor total a desembargar: $ 193.051.000 (CIENTO NOVENTA Y TRES MILLONES CINCUENTA Y
+UN MIL PESOS M/CTE).
 
 Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
 
@@ -42,6 +43,8 @@ Atentamente,
 
 ______________________________
 Secretaría del despacho
+
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
 
 DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - dj-05 - pág. 1
 

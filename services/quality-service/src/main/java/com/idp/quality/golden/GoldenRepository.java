@@ -36,15 +36,15 @@ public class GoldenRepository {
 
     /** Inserta o reemplaza (por external_id) un oficio sintetico; devuelve su id. */
     public UUID save(UUID tenant, String externalId, String nombre, String tipologia, List<String> tags,
-                     Map<String, String> verdad) {
+                     Map<String, String> verdad, String origen) {
         if (externalId != null) {
             jdbc.update("delete from golden_set_document where tenant_id = ? and external_id = ?", tenant,
                 externalId);
         }
         UUID id = UUID.randomUUID();
         jdbc.update("insert into golden_set_document (id, tenant_id, external_id, nombre, tipologia, tags, "
-            + "payload_sintetico_json) values (?, ?, ?, ?, ?, ?, ?)", id, tenant, externalId, nombre, tipologia,
-            String.join(",", tags), json(verdad));
+            + "payload_sintetico_json, origen) values (?, ?, ?, ?, ?, ?, ?, ?)", id, tenant, externalId, nombre,
+            tipologia, String.join(",", tags), json(verdad), origen);
         return id;
     }
 

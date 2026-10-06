@@ -25,6 +25,7 @@ public class NotificationEventHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(NotificationEventHandler.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final java.util.regex.Pattern REASON_CODE = java.util.regex.Pattern.compile("^[A-Z_]{1,40}$");
 
     private final WebhookRepository repository;
     private final Clock clock;
@@ -61,6 +62,11 @@ public class NotificationEventHandler {
         LOG.debug("Evento {} genero {} entregas", type.wireName(), created);
     }
 
+    /** El motivo de rechazo viene de otro servicio: solo se copia al webhook si es un codigo cerrado. */
+    static String safeReasonCode(String reasonCode) {
+        return reasonCode != null && REASON_CODE.matcher(reasonCode).matches() ? reasonCode : "UNSPECIFIED";
+    }
+
     /** Cuerpo saliente: id estable de la entrega (clave de idempotencia del receptor), tipo, documento y estado. */
     static String body(UUID deliveryId, WebhookEvent type, EventEnvelope event, UUID documentId) {
         ObjectNode n = MAPPER.createObjectNode();
@@ -72,7 +78,7 @@ public class NotificationEventHandler {
             case EXTRACCION_APROBADA -> n.put("status", "APROBADA");
             case DOCUMENTO_RECHAZADO -> {
                 n.put("status", "RECHAZADO");
-                n.put("reasonCode", event.payload().path("reasonCode").asText());
+                n.put("reasonCode", safeReasonCode(event.payload().path("reasonCode").asText()));
             }
             case REVISION_COMPLETADA -> n.put("status", "REVISION_" + event.payload().path("action").asText());
             default -> throw new IllegalStateException("Evento no notificable");

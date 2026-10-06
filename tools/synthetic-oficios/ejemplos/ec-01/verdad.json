@@ -5,20 +5,20 @@
   "codigo": "EC",
   "semilla": 7001,
   "indice": 1,
-  "numero_oficio": "S-2025-7131029",
+  "numero_oficio": "S-2025-6697906",
   "campos": {
-    "radicado": "68001340200920258547501",
-    "autoridad_emisora": "Oficina de Cobro Coactivo - Secretaría de Hacienda de Bucaramanga",
+    "radicado": "68001990101520233472601",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Oficina de Rentas de Bucaramanga",
     "ciudad": "Bucaramanga",
     "fecha_oficio": "2025-01-16",
     "tipo_medida": "Embargo coactivo",
-    "banco_destinatario": "Banco del Pacífico Ficticio S.A.",
-    "monto_numeros": "63934000.00",
-    "monto_letras": "SESENTA Y TRES MILLONES NOVECIENTOS TREINTA Y CUATRO MIL PESOS M/CTE",
-    "limite_inembargabilidad": "13000000.00",
-    "productos_o_cuentas": "CDT y depósitos a término, fondos de inversión colectiva y cuentas corrientes",
-    "entidad_coactiva": "Secretaría de Hacienda de Bucaramanga",
-    "numero_resolucion": "RES-2025-372794"
+    "banco_destinatario": "Banco Andino Sintético S.A.",
+    "monto_numeros": "73377000.00",
+    "monto_letras": "SETENTA Y TRES MILLONES TRESCIENTOS SETENTA Y SIETE MIL PESOS M/CTE",
+    "limite_inembargabilidad": "14000000.00",
+    "productos_o_cuentas": "cuentas corrientes",
+    "entidad_coactiva": "Oficina de Rentas de Bucaramanga",
+    "numero_resolucion": "RES-2025-587986"
   },
   "campos_criticos": [
     "radicado",
@@ -29,36 +29,36 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Felipe Zapata Beltrán",
+        "nombre": "Ixtaro Lumbrales Pedregaza",
         "tipo_identificacion": "CE",
-        "numero_identificacion": "1136511758",
+        "numero_identificacion": "9994071158",
         "monto": "19114000.00",
         "productos": "Ahorro programado"
       },
       {
-        "nombre": "Paula Ibáñez Restrepo",
+        "nombre": "Pelagrina Bellaterra Fontemar",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "18733804",
-        "monto": "24263000.00",
-        "productos": "Cuenta corriente"
-      },
-      {
-        "nombre": "Inmobiliaria del Caribe Ltda.",
-        "tipo_identificacion": "NIT",
-        "numero_identificacion": "868550281-1",
-        "monto": "12625000.00",
+        "numero_identificacion": "9918802738",
+        "monto": "9183000.00",
         "productos": "Cuenta de ahorros"
       },
       {
-        "nombre": "Claudia Guerrero Castaño",
+        "nombre": "Fabrizela Pedregaza Valdenavia",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "71944669",
-        "monto": "7932000.00",
-        "productos": "Fondo de inversión"
+        "numero_identificacion": "9920351289",
+        "monto": "34304000.00",
+        "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Inversiones Ficticia Los Álamos S.A.S.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999883577-0",
+        "monto": "10776000.00",
+        "productos": "Ahorro programado"
       }
     ]
   },
-  "suma_filas_demandados": "63934000.00",
+  "suma_filas_demandados": "73377000.00",
   "defectos": [ ],
   "inyeccion_prompt": {
     "presente": false,

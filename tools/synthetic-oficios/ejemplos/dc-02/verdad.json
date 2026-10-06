@@ -5,21 +5,21 @@
   "codigo": "DC",
   "semilla": 7001,
   "indice": 2,
-  "numero_oficio": "S-2025-4027741",
+  "numero_oficio": "S-2025-3615603",
   "campos": {
-    "radicado": "13001710701420226239400",
-    "autoridad_emisora": "Oficina de Cobro Coactivo - Tesorería General de Cartagena",
+    "radicado": "13001990601120249312701",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Oficina de Rentas de Cartagena",
     "ciudad": "Cartagena",
     "fecha_oficio": "2025-06-01",
     "tipo_medida": "Desembargo coactivo",
-    "banco_destinatario": "Banco Andino Sintético S.A.",
-    "monto_numeros": "158065000.00",
-    "monto_letras": "CIENTO CINCUENTA Y OCHO MILLONES TRESCIENTOS SESENTA Y CINCO MIL PESOS M/CTE",
-    "limite_inembargabilidad": null,
-    "productos_o_cuentas": "cuentas de ahorro programado, CDT y depósitos a término y cuentas de ahorro",
-    "entidad_coactiva": "Tesorería General de Cartagena",
-    "numero_resolucion": "RES-2025-930986",
-    "referencia_oficio_original": "Oficio 2025-293804 del 14 de marzo de 2025"
+    "banco_destinatario": "Banca Horizonte de Prueba S.A.",
+    "monto_numeros": "254412000.00",
+    "monto_letras": "DOSCIENTOS CINCUENTA Y CINCO MILLONES DOSCIENTOS DOCE MIL PESOS M/CTE",
+    "limite_inembargabilidad": "6000000.00",
+    "productos_o_cuentas": "cuentas de ahorro",
+    "entidad_coactiva": "Oficina de Rentas de Cartagena",
+    "numero_resolucion": "RES-2025-352019",
+    "referencia_oficio_original": "Oficio 2025-930986 del 1 de abril de 2025"
   },
   "campos_criticos": [
     "radicado",
@@ -30,48 +30,48 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Natalia Navarro Navarro",
+        "nombre": "Jorlenia Arcanelo Arcanelo",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "69027925",
+        "numero_identificacion": "9914060992",
         "monto": "52505000.00",
         "productos": "Cuenta de ahorros"
       },
       {
-        "nombre": "Andrea Zapata Ibáñez",
+        "nombre": "Eldemar Mirabeque Lumbrales",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "38679772",
-        "monto": "12547000.00",
+        "numero_identificacion": "9923315976",
+        "monto": "59425000.00",
+        "productos": "Ahorro programado"
+      },
+      {
+        "nombre": "Transportes Ficticia Andina S.A.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999313713-1",
+        "monto": "60272000.00",
         "productos": "Cuenta corriente"
       },
       {
-        "nombre": "Lucía Arango Pardo",
+        "nombre": "Mirtelo Lumbrales Ventureño",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "1187556507",
-        "monto": "49861000.00",
-        "productos": "CDT"
+        "numero_identificacion": "9906468811",
+        "monto": "27927000.00",
+        "productos": "Cuenta corriente"
       },
       {
-        "nombre": "Lucía Ibáñez Castaño",
+        "nombre": "Lunaria Arcanelo Mirabeque",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "96792691",
-        "monto": "18551000.00",
-        "productos": "Fondo de inversión"
-      },
-      {
-        "nombre": "Óscar Salcedo Cifuentes",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "16636670",
-        "monto": "24601000.00",
-        "productos": "CDT"
+        "numero_identificacion": "9942651945",
+        "monto": "54283000.00",
+        "productos": "Cuenta corriente"
       }
     ]
   },
-  "suma_filas_demandados": "158065000.00",
+  "suma_filas_demandados": "254412000.00",
   "defectos": [
     {
       "tipo": "MONTO_INCONSISTENTE",
       "campo": "monto_letras",
-      "detalle": "letras equivalen a 158365000 y numeros a 158065000"
+      "detalle": "letras equivalen a 255212000 y numeros a 254412000"
     }
   ],
   "inyeccion_prompt": {

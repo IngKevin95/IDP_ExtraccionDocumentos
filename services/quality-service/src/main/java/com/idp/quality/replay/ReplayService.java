@@ -5,6 +5,7 @@ import com.idp.quality.golden.EvaluationResult;
 import com.idp.quality.golden.ExtractionRunner;
 import com.idp.quality.golden.GoldenDocument;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
@@ -32,11 +33,11 @@ public final class ReplayService {
         this.executor = executor;
     }
 
-    public Report replay(String baselineKey, String candidateKey, List<GoldenDocument> docs) {
+    public Report replay(UUID tenantId, String baselineKey, String candidateKey, List<GoldenDocument> docs) {
         CompletableFuture<EvaluationResult> baseline = CompletableFuture.supplyAsync(
-            () -> engine.evaluate(baselineKey, docs, runner.run(baselineKey, docs)), executor);
+            () -> engine.evaluate(baselineKey, docs, runner.run(tenantId, baselineKey, docs)), executor);
         CompletableFuture<EvaluationResult> candidate = CompletableFuture.supplyAsync(
-            () -> engine.evaluate(candidateKey, docs, runner.run(candidateKey, docs)), executor);
+            () -> engine.evaluate(candidateKey, docs, runner.run(tenantId, candidateKey, docs)), executor);
         try {
             EvaluationResult b = baseline.join();
             EvaluationResult c = candidate.join();

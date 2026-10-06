@@ -12,7 +12,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 @ConfigurationProperties("idp.review")
 public record ReviewProperties(
         @DefaultValue("documents") String kekId,
-        @DefaultValue("http://localhost:8080") String publicBaseUrl,
+        String publicBaseUrl,
         String cropSecret,
         @DefaultValue("60s") Duration cropTtl,
         @DefaultValue("4h") Duration sla,
@@ -23,6 +23,9 @@ public record ReviewProperties(
         @DefaultValue("extraction-db") String fieldSource,
         @DefaultValue("false") boolean migrateOnStartup,
         @DefaultValue("20971520") int maxPageBytes,
+        @DefaultValue("4") int cropMaxConcurrent,
+        @DefaultValue("30") int cropRatePerMinute,
+        @DefaultValue("40000000") long cropMaxPixels,
         @DefaultValue Relay relay,
         @DefaultValue Escalation escalation) {
 

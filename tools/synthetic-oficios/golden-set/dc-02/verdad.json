@@ -5,21 +5,21 @@
   "codigo": "DC",
   "semilla": 20260101,
   "indice": 2,
-  "numero_oficio": "S-2025-1055240",
+  "numero_oficio": "S-2025-6859484",
   "campos": {
-    "radicado": "13001400201220242436100",
+    "radicado": "13001990801220237525700",
     "autoridad_emisora": "Oficina de Cobro Coactivo - Tesorería General de Cartagena",
     "ciudad": "Cartagena",
     "fecha_oficio": "2025-05-02",
     "tipo_medida": "Desembargo coactivo",
-    "banco_destinatario": "Banca Horizonte de Prueba S.A.",
-    "monto_numeros": "120767000.00",
-    "monto_letras": "CIENTO VEINTIÚN MILLONES CIENTO SESENTA Y SIETE MIL PESOS M/CTE",
-    "limite_inembargabilidad": "10000000.00",
-    "productos_o_cuentas": "cuentas de ahorro y CDT y depósitos a término",
+    "banco_destinatario": "Banco Cafetero Demo S.A.",
+    "monto_numeros": "119852000.00",
+    "monto_letras": "CIENTO VEINTE MILLONES CIENTO CINCUENTA Y DOS MIL PESOS M/CTE",
+    "limite_inembargabilidad": null,
+    "productos_o_cuentas": "cuentas corrientes y productos de depósito en general",
     "entidad_coactiva": "Tesorería General de Cartagena",
-    "numero_resolucion": "RES-2025-132826",
-    "referencia_oficio_original": "Oficio 2024-338114 del 30 de julio de 2024"
+    "numero_resolucion": "RES-2025-162043",
+    "referencia_oficio_original": "Oficio 2024-530687 del 7 de diciembre de 2024"
   },
   "campos_criticos": [
     "radicado",
@@ -30,41 +30,41 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Distribuciones Los Álamos Ltda.",
+        "nombre": "Distribuciones Ficticia Los Álamos Ltda.",
         "tipo_identificacion": "NIT",
-        "numero_identificacion": "887138338-6",
+        "numero_identificacion": "999939273-1",
         "monto": "34000000.00",
-        "productos": "Fondo de inversión"
+        "productos": "CDT"
       },
       {
-        "nombre": "Marcela Vargas Arango",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "97141932",
-        "monto": "40369000.00",
+        "nombre": "Norvina Ibarreta Torcuato",
+        "tipo_identificacion": "CE",
+        "numero_identificacion": "9970712493",
+        "monto": "26874000.00",
         "productos": "Cuenta de ahorros"
       },
       {
-        "nombre": "Paula Lozano Restrepo",
-        "tipo_identificacion": "CE",
-        "numero_identificacion": "19711596",
-        "monto": "12478000.00",
+        "nombre": "Sorvelo Arcanelo Bellaterra",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9957802939",
+        "monto": "22432000.00",
         "productos": "Ahorro programado"
       },
       {
-        "nombre": "Óscar Rojas Vargas",
+        "nombre": "Ixtaro Zandoval Fontemar",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "44219735",
-        "monto": "33920000.00",
-        "productos": "Cuenta corriente"
+        "numero_identificacion": "9953231616",
+        "monto": "36546000.00",
+        "productos": "Cuenta de ahorros"
       }
     ]
   },
-  "suma_filas_demandados": "120767000.00",
+  "suma_filas_demandados": "119852000.00",
   "defectos": [
     {
       "tipo": "MONTO_INCONSISTENTE",
       "campo": "monto_letras",
-      "detalle": "letras equivalen a 121167000 y numeros a 120767000"
+      "detalle": "letras equivalen a 120152000 y numeros a 119852000"
     }
   ],
   "inyeccion_prompt": {

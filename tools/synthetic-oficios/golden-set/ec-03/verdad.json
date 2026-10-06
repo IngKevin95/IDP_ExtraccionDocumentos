@@ -5,20 +5,20 @@
   "codigo": "EC",
   "semilla": 20260101,
   "indice": 3,
-  "numero_oficio": "S-2025-9640859",
+  "numero_oficio": "S-2025-2299910",
   "campos": {
-    "radicado": "05001750901920235568900",
-    "autoridad_emisora": "Oficina de Cobro Coactivo - Secretaría de Hacienda de Medellín",
+    "radicado": "05001990701520253374400",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Dirección de Impuestos Municipales de Medellín",
     "ciudad": "Medellín",
     "fecha_oficio": "2025-03-27",
     "tipo_medida": "Embargo coactivo",
-    "banco_destinatario": "Banca Horizonte de Prueba S.A.",
-    "monto_numeros": "37211000.00",
-    "monto_letras": "TREINTA Y SIETE MILLONES DOSCIENTOS ONCE MIL PESOS M/CTE",
-    "limite_inembargabilidad": "10000000.00",
-    "productos_o_cuentas": "cuentas de ahorro programado y CDT y depósitos a término",
-    "entidad_coactiva": "Secretaría de Hacienda de Medellín",
-    "numero_resolucion": "RES-2025-237770"
+    "banco_destinatario": "Banco del Pacífico Ficticio S.A.",
+    "monto_numeros": "72961000.00",
+    "monto_letras": "SETENTA Y DOS MILLONES NOVECIENTOS SESENTA Y UN MIL PESOS M/CTE",
+    "limite_inembargabilidad": "13000000.00",
+    "productos_o_cuentas": "fondos de inversión colectiva, cuentas de ahorro programado y productos de depósito en general",
+    "entidad_coactiva": "Dirección de Impuestos Municipales de Medellín",
+    "numero_resolucion": "RES-2025-083476"
   },
   "campos_criticos": [
     "radicado",
@@ -29,34 +29,34 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Transportes Cafetera S.A.S.",
+        "nombre": "Transportes Ficticia Cafetera S.A.S.",
         "tipo_identificacion": "NIT",
-        "numero_identificacion": "894798140-1",
+        "numero_identificacion": "999798139-4",
         "monto": "4805000.00",
         "productos": "Fondo de inversión"
       },
       {
-        "nombre": "Mauricio Vargas Beltrán",
+        "nombre": "Sorvelo Torcuato Pedregaza",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "53303547",
+        "numero_identificacion": "9973977786",
         "monto": "14711000.00",
-        "productos": "Cuenta de ahorros"
+        "productos": "CDT"
       },
       {
-        "nombre": "Viviana Cardona Zapata",
+        "nombre": "Ixtaro Tarquino Salmedora",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "75696594",
-        "monto": "12695000.00",
-        "productos": "Cuenta de ahorros"
+        "numero_identificacion": "9952425811",
+        "monto": "48445000.00",
+        "productos": "Ahorro programado"
       }
     ]
   },
-  "suma_filas_demandados": "32211000.00",
+  "suma_filas_demandados": "67961000.00",
   "defectos": [
     {
       "tipo": "TABLA_NO_SUMA",
       "campo": "monto_numeros",
-      "detalle": "total declarado 37211000 distinto de la suma de filas 32211000"
+      "detalle": "total declarado 72961000 distinto de la suma de filas 67961000"
     }
   ],
   "inyeccion_prompt": {

@@ -5,20 +5,20 @@
   "codigo": "EC",
   "semilla": 20260101,
   "indice": 2,
-  "numero_oficio": "S-2024-5644727",
+  "numero_oficio": "S-2024-9163071",
   "campos": {
-    "radicado": "13001710900720232949000",
-    "autoridad_emisora": "Oficina de Cobro Coactivo - Dirección de Impuestos Municipales de Cartagena",
+    "radicado": "13001990601220221714200",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Secretaría de Hacienda de Cartagena",
     "ciudad": "Cartagena",
     "fecha_oficio": "2024-12-15",
     "tipo_medida": "Embargo coactivo",
-    "banco_destinatario": "Banco Cafetero Demo S.A.",
-    "monto_numeros": "247163000.00",
-    "monto_letras": "DOSCIENTOS CUARENTA Y SIETE MILLONES NOVECIENTOS SESENTA Y TRES MIL PESOS M/CTE",
-    "limite_inembargabilidad": "9000000.00",
-    "productos_o_cuentas": "cuentas corrientes",
-    "entidad_coactiva": "Dirección de Impuestos Municipales de Cartagena",
-    "numero_resolucion": "RES-2024-071593"
+    "banco_destinatario": "Banco Andino Sintético S.A.",
+    "monto_numeros": "176060000.00",
+    "monto_letras": "CIENTO SETENTA Y SEIS MILLONES SETECIENTOS SESENTA MIL PESOS M/CTE",
+    "limite_inembargabilidad": null,
+    "productos_o_cuentas": "fondos de inversión colectiva",
+    "entidad_coactiva": "Secretaría de Hacienda de Cartagena",
+    "numero_resolucion": "RES-2024-268333"
   },
   "campos_criticos": [
     "radicado",
@@ -29,55 +29,55 @@
   "tablas": {
     "demandados": [
       {
-        "nombre": "Transportes Cafetera S.A.S.",
+        "nombre": "Transportes Ficticia Cafetera S.A.S.",
         "tipo_identificacion": "NIT",
-        "numero_identificacion": "977451548-3",
+        "numero_identificacion": "999451544-4",
         "monto": "17449000.00",
         "productos": "Cuenta corriente"
       },
       {
-        "nombre": "Hernán Quintero Peña",
+        "nombre": "Kandelo Bellaterra Narvalle",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "1192204761",
+        "numero_identificacion": "9978614638",
         "monto": "27589000.00",
+        "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Inversiones Ficticia Solar S.A.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999456519-2",
+        "monto": "9332000.00",
         "productos": "CDT"
       },
       {
-        "nombre": "Servicios Horizonte S.A.",
-        "tipo_identificacion": "NIT",
-        "numero_identificacion": "859558447-0",
-        "monto": "58290000.00",
-        "productos": "Cuenta corriente"
-      },
-      {
-        "nombre": "Hernán Rojas Cifuentes",
+        "nombre": "Quenelo Pedregaza Zandoval",
         "tipo_identificacion": "CC",
-        "numero_identificacion": "32251340",
-        "monto": "55584000.00",
-        "productos": "Ahorro programado"
+        "numero_identificacion": "9919382912",
+        "monto": "37096000.00",
+        "productos": "CDT"
       },
       {
-        "nombre": "Viviana Castaño Vargas",
-        "tipo_identificacion": "CE",
-        "numero_identificacion": "87465687",
-        "monto": "34964000.00",
+        "nombre": "Eldemar Tarquino Tarquino",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9969698843",
+        "monto": "51840000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Eldemar Salmedora Salmedora",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9935139803",
+        "monto": "32754000.00",
         "productos": "Fondo de inversión"
-      },
-      {
-        "nombre": "Marta Navarro Arango",
-        "tipo_identificacion": "CC",
-        "numero_identificacion": "1159604845",
-        "monto": "53287000.00",
-        "productos": "Cuenta corriente"
       }
     ]
   },
-  "suma_filas_demandados": "247163000.00",
+  "suma_filas_demandados": "176060000.00",
   "defectos": [
     {
       "tipo": "MONTO_INCONSISTENTE",
       "campo": "monto_letras",
-      "detalle": "letras equivalen a 247963000 y numeros a 247163000"
+      "detalle": "letras equivalen a 176760000 y numeros a 176060000"
     }
   ],
   "inyeccion_prompt": {

@@ -155,10 +155,15 @@ public final class OficioGenerator {
         return d;
     }
 
+    /** Codigo de especialidad reservado (inexistente) usado en los radicados ficticios. */
+    static final String ESPECIALIDAD_RESERVADA = "99";
+
     private static String radicado(Random rng, Datos.Ciudad ciudad, LocalDate fecha) {
         int anio = fecha.getYear() - rng.nextInt(4);
-        return ciudad.dane() + String.format(Locale.ROOT, "%02d%02d%03d%04d%05d%02d",
-            31 + rng.nextInt(60), 1 + rng.nextInt(9), 1 + rng.nextInt(20), anio, rng.nextInt(100_000),
+        // Posiciones 6-7 (corporacion/especialidad) fijas en 99: codigo que ninguna jurisdiccion usa, de modo que
+        // el radicado no corresponde a un proceso real.
+        return ciudad.dane() + String.format(Locale.ROOT, "%s%02d%03d%04d%05d%02d",
+            ESPECIALIDAD_RESERVADA, 1 + rng.nextInt(9), 1 + rng.nextInt(20), anio, rng.nextInt(100_000),
             rng.nextInt(2));
     }
 

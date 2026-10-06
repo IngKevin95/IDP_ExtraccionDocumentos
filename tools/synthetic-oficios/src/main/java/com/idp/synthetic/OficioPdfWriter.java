@@ -31,6 +31,9 @@ import org.apache.pdfbox.util.Matrix;
 /** Escribe el oficio como PDF nativo (con capa de texto) y le agrega sellos para la variante escaneada. */
 final class OficioPdfWriter {
 
+    /** Marca visible en el cuerpo (inicio y fin del texto nativo), ademas del pie de cada pagina. */
+    static final String MARCA_CUERPO = "*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***";
+
     private static final float MARGEN = 56f;
     private static final PDRectangle PAGINA = PDRectangle.A4;
 
@@ -50,9 +53,17 @@ final class OficioPdfWriter {
         numeroPagina = 0;
         PDDocumentInformation info = new PDDocumentInformation();
         info.setTitle("Oficio sintético " + oficio.id());
+        info.setSubject("DOCUMENTO SINTÉTICO, SIN VALOR LEGAL");
+        info.setKeywords("sintetico; ficticio; sin-valor-legal; datos-no-reales");
+        info.setCreator("synthetic-oficios (generador de datos ficticios)");
+        info.setProducer("synthetic-oficios");
+        info.setCustomMetadataValue("Sintetico", "true");
+        info.setCustomMetadataValue("ValorLegal", "NINGUNO");
         doc.setDocumentInformation(info);
         try {
             nuevaPagina();
+            parrafo(new Parrafo(MARCA_CUERPO, true, 9, true));
+            y -= 6;
             for (Bloque b : OficioComposer.componer(oficio)) {
                 switch (b) {
                     case Parrafo p -> parrafo(p);
@@ -60,6 +71,8 @@ final class OficioPdfWriter {
                     case Espacio e -> y -= e.alto();
                 }
             }
+            y -= 8;
+            parrafo(new Parrafo(MARCA_CUERPO, true, 9, true));
             cs.close();
             cs = null;
             fijarIdentificador(doc, oficio.id() + "/" + oficio.semilla());

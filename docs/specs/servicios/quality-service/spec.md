@@ -57,6 +57,9 @@ Las tablas residen en el esquema de la **Base de Control (Compartida)** dado que
 
 * **SEC-035 (Ambiente Seguro de Calibración):** El Golden Set está estrictamente desvinculado de bases de datos de tenants con datos reales.
 * **SEC-005 (Mínimo Privilegio):** La API de métricas avanzadas y modificación del Golden Set está restringida mediante RBAC al rol `Data Steward`.
+* **SEC-051 (Muestreo ciego impredecible):** `GET /v1/quality/blind-samples/pending` devuelve solo conteos (`pending`, `reviewed`) y antigüedad (`pending_by_age`: `lt_1d`, `1d_7d`, `gt_7d`); nunca `documentId` ni `sampleId` de los oficios seleccionados, para que ningún operador (ni el Data Steward) pueda predecir o anticipar la selección. La semilla del HMAC es obligatoria y de al menos 32 bytes con muestreo activo fuera de `idp.security.dev-mode`; en dev-mode con semilla vacía se genera una clave aleatoria por arranque (nunca una clave fija). **Rotar la semilla cambia la selección**: oficios antes elegidos pueden dejar de serlo y viceversa; las selecciones ya registradas en `qa_blind_sample` se conservan.
+* **RN-07 en la API (marca sintética):** `POST /v1/quality/golden-set` exige `"sintetico": true` (booleano) igual que el import por archivo (misma validación, `GoldenSetLoader.parse`); sin la marca responde 400 y no persiste nada. El origen se registra en `golden_set_document.origen` (`API` o `IMPORT`).
+* **Predicciones por archivo (adaptador `FilePredictionRunner`):** `<predictions-dir>/<tenantId>/<clave>.json`, un subdirectorio por tenant; no se siguen enlaces simbólicos (`NOFOLLOW_LINKS`), el JSON tiene tope de 10 MiB (verdad terreno importada: 1 MiB por archivo) y la clave se valida (`[A-Za-z0-9._:/-]{1,120}`, sin `..`).
 * **SEC-050 (Claim-Check en Kafka):** El servicio consume los eventos, pero ignora cualquier enlace de descarga del documento real, leyendo únicamente los metadatos de las correcciones de extracción.
 
 ## Escenarios de Aceptación
@@ -77,6 +80,10 @@ Las tablas residen en el esquema de la **Base de Control (Compartida)** dado que
   * *Given* un usuario Data Steward,
   * *When* invoca `POST /v1/quality/golden-set/evaluate`,
   * *Then* el servicio encola la petición y retorna un `202 Accepted`, evaluando los oficios sintéticos asíncronamente.
+* **AC-10: Golden set solo sintético y cola ciega opaca.**
+  * *Given* un Data Steward,
+  * *When* invoca `POST /v1/quality/golden-set` sin `"sintetico": true`, *Then* recibe 400 y no se persiste el oficio; con la marca se crea con origen `API`.
+  * *When* consulta `GET /v1/quality/blind-samples/pending`, *Then* recibe solo conteos y antigüedad, sin identificadores de documento ni de muestra.
 * **AC-05: Prevención de filtración de PII.**
   * *Given* un evento entrante con datos personales reales en el payload de campos crudos,
   * *When* el servicio extrae las estadísticas,

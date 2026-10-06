@@ -58,6 +58,25 @@ class PdfGenerationTest {
     }
 
     @Test
+    void pdfNativoMarcaSinteticoEnElCuerpoYEnLosMetadatos() throws IOException {
+        for (Tipo t : Tipo.values()) {
+            byte[] pdf = nativo(GEN.generar(t, 42, 1, Plan.LIMPIO));
+            try (PDDocument d = org.apache.pdfbox.Loader.loadPDF(pdf)) {
+                String texto = new PDFTextStripper().getText(d);
+                String sinPie = texto.lines().filter(l -> !l.contains("DOCUMENTO SINTÉTICO DE PRUEBA"))
+                    .collect(java.util.stream.Collectors.joining("\n"));
+                assertThat(sinPie).contains(OficioPdfWriter.MARCA_CUERPO);
+                assertThat(texto.lines().filter(l -> l.contains("DOCUMENTO SINTÉTICO DE PRUEBA")).count())
+                    .isEqualTo(d.getNumberOfPages());
+                var info = d.getDocumentInformation();
+                assertThat(info.getSubject()).contains("SINTÉTICO").contains("SIN VALOR LEGAL");
+                assertThat(info.getKeywords()).contains("ficticio");
+                assertThat(info.getCustomMetadataValue("Sintetico")).isEqualTo("true");
+            }
+        }
+    }
+
+    @Test
     void pdfNativoSeRasterizaSinErrorYNoEstaEnBlanco() throws IOException {
         for (Tipo t : Tipo.values()) {
             byte[] pdf = nativo(GEN.generar(t, 42, 2, Plan.CICLICO));

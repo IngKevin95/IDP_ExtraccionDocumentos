@@ -45,14 +45,14 @@ class CropServiceTest {
 
     private static ReviewProperties props(Duration ttl, String secret) {
         return new ReviewProperties("documents", "https://api.idp.example", secret, ttl, Duration.ofHours(4),
-                Duration.ofHours(1), 3, List.of("monto"), "none", false, 1024,
+                Duration.ofHours(1), 3, List.of("monto"), "none", false, 1024, 2, 3, 40_000_000L,
                 new ReviewProperties.Relay(false, Duration.ofSeconds(1)),
                 new ReviewProperties.Escalation(false, Duration.ofMinutes(1)));
     }
 
     private CropService service(Instant now, Duration ttl) {
         return new CropService(repo, pages, props(ttl, "k".repeat(40)), Clock.fixed(now, ZoneOffset.UTC),
-                mock(com.idp.review.service.BlindReviewPolicy.class));
+                mock(com.idp.review.service.BlindReviewPolicy.class), false);
     }
 
     private void givenField(String bbox) {
@@ -111,7 +111,7 @@ class CropServiceTest {
         ReviewProperties weak = props(Duration.ofSeconds(60), "corto");
 
         assertThatThrownBy(() -> new CropService(repo, pages, weak, Clock.systemUTC(),
-                mock(com.idp.review.service.BlindReviewPolicy.class)))
+                mock(com.idp.review.service.BlindReviewPolicy.class), false))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -146,5 +146,78 @@ class CropServiceTest {
     void unaPaginaIlegibleNoSeSirve() {
         assertThatThrownBy(() -> CropService.cropPng(new byte[] {1, 2, 3}, new double[] {0, 0, 1, 1}))
                 .isInstanceOf(ConflictException.class);
+    }
+
+    private CropService tuned(String baseUrl, boolean dev, int concurrent, int rate, long maxPixels, Instant now) {
+        ReviewProperties p = new ReviewProperties("documents", baseUrl, "k".repeat(40), Duration.ofSeconds(60),
+                Duration.ofHours(4), Duration.ofHours(1), 3, List.of("monto"), "none", false, 1024, concurrent, rate,
+                maxPixels, new ReviewProperties.Relay(false, Duration.ofSeconds(1)),
+                new ReviewProperties.Escalation(false, Duration.ofMinutes(1)));
+        return new CropService(repo, pages, p, Clock.fixed(now, ZoneOffset.UTC),
+                mock(com.idp.review.service.BlindReviewPolicy.class), dev);
+    }
+
+    @Test
+    void sec_elRateLimitPorUsuarioResponde429AlExcederLaCuota() throws Exception {
+        givenField("[0.1,0.1,0.5,0.1]");
+        Instant t0 = Instant.parse("2026-01-01T00:00:00Z");
+        when(pages.page(TENANT, documentId, 1)).thenReturn(Optional.of(png(100, 100)));
+        CropService svc = tuned("https://api.idp.example", false, 4, 3, 40_000_000L, t0);
+        CropService.CropLink link = svc.link(ana, taskId, fieldId);
+
+        for (int i = 0; i < 3; i++) {
+            assertThat(svc.crop(ana, taskId, fieldId, exp(link.url()), sig(link.url()))).isNotEmpty();
+        }
+        assertThatThrownBy(() -> svc.crop(ana, taskId, fieldId, exp(link.url()), sig(link.url())))
+                .isInstanceOf(com.idp.review.service.Exceptions.TooManyRequestsException.class);
+        Caller beto = new Caller(TENANT, "beto", Set.of("REVISOR"));
+        CropService.CropLink other = svc.link(beto, taskId, fieldId);
+        assertThat(svc.crop(beto, taskId, fieldId, exp(other.url()), sig(other.url()))).isNotEmpty();
+    }
+
+    @Test
+    void sec_elSemaforoDeDecodificacionResponde503CuandoEstaAgotado() throws Exception {
+        givenField("[0.1,0.1,0.5,0.1]");
+        Instant t0 = Instant.parse("2026-01-01T00:00:00Z");
+        CropService svc = tuned("https://api.idp.example", false, 1, 100, 40_000_000L, t0);
+        CropService.CropLink link = svc.link(ana, taskId, fieldId);
+        java.util.concurrent.atomic.AtomicReference<Throwable> nested = new java.util.concurrent.atomic.AtomicReference<>();
+        byte[] page = png(100, 100);
+        when(pages.page(TENANT, documentId, 1)).thenAnswer(inv -> {
+            // segunda decodificacion mientras la unica ficha esta tomada
+            try {
+                svc.crop(ana, taskId, fieldId, exp(link.url()), sig(link.url()));
+            } catch (Throwable t) {
+                nested.set(t);
+            }
+            return Optional.of(page);
+        });
+
+        assertThat(svc.crop(ana, taskId, fieldId, exp(link.url()), sig(link.url()))).isNotEmpty();
+
+        assertThat(nested.get()).isInstanceOf(com.idp.review.service.Exceptions.ServiceBusyException.class);
+        when(pages.page(TENANT, documentId, 1)).thenReturn(Optional.of(page));
+        assertThat(svc.crop(ana, taskId, fieldId, exp(link.url()), sig(link.url()))).isNotEmpty();
+    }
+
+    @Test
+    void sec_laPaginaMasGrandeQueElLimiteDePixelesNoSeDecodifica() throws Exception {
+        assertThatThrownBy(() -> CropService.cropPng(png(200, 200), new double[] {0.1, 0.1, 0.2, 0.2}, 10_000L))
+                .isInstanceOf(ConflictException.class);
+        assertThat(CropService.cropPng(png(200, 200), new double[] {0.1, 0.1, 0.2, 0.2}, 40_000L)).isNotEmpty();
+    }
+
+    @Test
+    void sec_publicBaseUrlEsObligatoriaYHttpsSalvoDevMode() {
+        Instant t0 = Instant.parse("2026-01-01T00:00:00Z");
+
+        assertThatThrownBy(() -> tuned(null, true, 4, 30, 1L, t0)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> tuned(" ", true, 4, 30, 1L, t0)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> tuned("http://api.idp.example", false, 4, 30, 1L, t0))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> tuned("ftp://api.idp.example", true, 4, 30, 1L, t0))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(tuned("https://api.idp.example", false, 4, 30, 1L, t0)).isNotNull();
+        assertThat(tuned("http://localhost:8080", true, 4, 30, 1L, t0)).isNotNull();
     }
 }
