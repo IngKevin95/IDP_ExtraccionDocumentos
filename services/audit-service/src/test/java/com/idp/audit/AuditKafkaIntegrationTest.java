@@ -56,6 +56,15 @@ class AuditKafkaIntegrationTest extends AuditTestSupport {
         kafka.send(topic, e.tenantId().toString(), SERDE.toJson(e)).get();
     }
 
+    private static EventEnvelope legalHoldForjado(UUID tenant) {
+        com.fasterxml.jackson.databind.node.ObjectNode p = JSON.createObjectNode();
+        p.put("holdId", UUID.randomUUID().toString());
+        p.put("reasonCode", "LITIGATION");
+        p.put("appliedBy", "atacante");
+        return new EventEnvelope(UUID.randomUUID(), "legalhold.aplicado", 1, java.time.Instant.now(), tenant,
+                UUID.randomUUID(), p);
+    }
+
     private void awaitEntries(UUID tenant, long expected) throws Exception {
         long deadline = System.nanoTime() + Duration.ofSeconds(60).toNanos();
         while (countEntries(tenant) < expected && System.nanoTime() < deadline) {
@@ -74,7 +83,9 @@ class AuditKafkaIntegrationTest extends AuditTestSupport {
         send(breakGlass(a));
         send(recibida(b, UUID.randomUUID()));
         // SEC-052: eventos por un topico que no es el de su productor se ignoran (no entran a la cadena).
-        send("audit.events", aprobada(b, UUID.randomUUID()));
+        send("audit.signals", aprobada(b, UUID.randomUUID()));
+        // Un evento de control (legalhold.*) por el topico de senales (multi-productor) no entra a la cadena.
+        send("audit.signals", legalHoldForjado(b));
         send("review.events", recibida(b, UUID.randomUUID()));
 
         awaitEntries(a, 3);

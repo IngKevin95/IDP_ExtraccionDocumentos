@@ -146,6 +146,25 @@ class AuditIngestionTest extends AuditTestSupport {
     }
 
     @Test
+    void sec053_tenantInexistenteSeDescartaSinCrearCabezaNiEntradas() {
+        UUID fantasma = UUID.randomUUID();
+        assertThrows(com.idp.audit.domain.Exceptions.UnknownTenantException.class,
+                () -> consume(recibida(fantasma, UUID.randomUUID())));
+        assertEquals(0, countEntries(fantasma));
+        assertEquals(0, jdbc.sql("select count(*) from audit_chain_head where tenant_id = :t").param("t", fantasma)
+                .query(Long.class).single(), "no se abre cadena para un tenant inexistente");
+        assertEquals(0, publisher.of(fantasma, "auditoria.alerta_integridad").size(),
+                "no es una alerta de integridad de cadena");
+    }
+
+    @Test
+    void sec053_tenantEnCualquierEstadoDelCicloDeVidaSiSeAudita() {
+        UUID t = newTenant();
+        jdbc.sql("update tenants set status = 'PENDING_DELETION' where id = :t").param("t", t).update();
+        assertEquals(Result.PROCESSED, consume(breakGlass(t)));
+    }
+
+    @Test
     void ac06_caidaDeLaBaseDeControlNoPierdeElEventoYElReintentoLoEncadena() {
         UUID t = newTenant();
         consume(recibida(t, UUID.randomUUID()));

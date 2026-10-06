@@ -40,7 +40,8 @@
       "format": "uuid"
     },
     "resourceId": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 256
     },
     "reasonCode": {
       "type": "string",

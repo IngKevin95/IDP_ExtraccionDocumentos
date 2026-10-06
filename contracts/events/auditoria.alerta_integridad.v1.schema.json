@@ -51,7 +51,8 @@
       ]
     },
     "details": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 1000
     }
   },
   "additionalProperties": false

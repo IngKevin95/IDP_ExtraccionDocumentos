@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.idp.tenant.context.TenantContextHolder;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -60,6 +61,24 @@ class JdbcOutboxPublisherTest {
         assertThrows(IllegalStateException.class,
             () -> quality.publish("k", TestEvents.accesoRevocado(UUID.randomUUID())));
         verify(repo, never()).insert(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void sec052_eventoDeOtroTenantQueElDelContextoSeRechazaYElDelMismoTenantSePersiste() {
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        UUID actual = UUID.randomUUID();
+        TenantContextHolder.setTenantId(actual.toString());
+        try {
+            assertThrows(IllegalStateException.class,
+                () -> publisher.publish("k", TestEvents.accesoRevocado(UUID.randomUUID())));
+            verify(repo, never()).insert(any(), any(), any(), any(), any());
+
+            EventEnvelope propio = TestEvents.accesoRevocado(actual);
+            publisher.publish("user-7", propio);
+            verify(repo).insert(eq(propio.eventId()), eq("user-7"), eq("acceso.revocado"), eq(actual), any());
+        } finally {
+            TenantContextHolder.clear();
+        }
     }
 
     @Test

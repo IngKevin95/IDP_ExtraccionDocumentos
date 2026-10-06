@@ -23,6 +23,18 @@ public interface FieldCandidateSource {
         return List.of();
     }
 
+    /** Estado de aprobacion del documento en el silo (tabla document del document-service). */
+    record ApprovedDocument(String status, String approvedBy, String classification) {
+    }
+
+    /**
+     * Estado, aprobador y clasificacion del documento en SU silo. Es la fuente de verdad para aceptar una muestra
+     * ciega: el evento de calidad solo prueba que alguien lo publico (SEC-052). Vacio = no verificable (se rechaza).
+     */
+    default java.util.Optional<ApprovedDocument> approvedDocument(UUID documentId) {
+        return java.util.Optional.empty();
+    }
+
     /** Subject de quien cargo el documento, si el dato existe (para exigir un revisor ciego independiente). */
     default java.util.Optional<String> uploader(UUID documentId) {
         return java.util.Optional.empty();

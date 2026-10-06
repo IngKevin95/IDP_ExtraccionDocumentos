@@ -101,6 +101,40 @@ class ReviewBlindSampleIntegrationTest extends AbstractReviewIntegrationTest {
     }
 
     @Test
+    void sec052_muestraCiegaSoloSeAceptaParaDocumentoAprobadoPorAutoStpDeTenantActivo() {
+        record Caso(String status, String approvedBy, String classification) { }
+        List<Caso> invalidos = List.of(
+                new Caso("EN_REVISION", "AUTO_STP", "CONFIDENCIAL"),
+                new Caso("APROBADO", "HUMAN_REVIEWER", "CONFIDENCIAL"),
+                new Caso("APROBADO", "DATA_STEWARD", "CONFIDENCIAL"),
+                new Caso("APROBADO", null, "CONFIDENCIAL"),
+                new Caso("APROBADO", "AUTO_STP", "ALTAMENTE_CONFIDENCIAL"));
+        for (Caso c : invalidos) {
+            UUID doc = UUID.randomUUID();
+            UUID sampleId = UUID.randomUUID();
+            fields.programApproved(doc, modelField("monto", "1000"));
+            fields.approval(doc, c.status(), c.approvedBy(), c.classification());
+            Topics.deliver(listener::onMessage, muestraCiega(tenant, doc, sampleId));
+            assertThat(count("select count(*) from review_task where id = ?", sampleId)).as(c.toString()).isZero();
+        }
+        // Documento inexistente en el silo del tenant (no verificable): se ignora.
+        UUID ghost = UUID.randomUUID();
+        UUID ghostSample = UUID.randomUUID();
+        Topics.deliver(listener::onMessage, muestraCiega(tenant, ghost, ghostSample));
+        assertThat(count("select count(*) from review_task where id = ?", ghostSample)).isZero();
+        // Tenant que no esta activo en el directorio: se ignora aunque el documento figure aprobado.
+        directory.remove(tenant);
+        UUID doc = UUID.randomUUID();
+        UUID sampleId = UUID.randomUUID();
+        fields.programApproved(doc, modelField("monto", "1000"));
+        Topics.deliver(listener::onMessage, muestraCiega(tenant, doc, sampleId));
+        assertThat(count("select count(*) from review_task where id = ?", sampleId)).isZero();
+        directory.add(tenant);
+        Topics.deliver(listener::onMessage, muestraCiega(tenant, doc, sampleId));
+        assertThat(count("select count(*) from review_task where id = ?", sampleId)).isEqualTo(1);
+    }
+
+    @Test
     void acB1_eventoFueraDeContratoSeRechaza() throws Exception {
         ObjectNode n = (ObjectNode) JSON.readTree(muestraCiega(tenant, UUID.randomUUID(), UUID.randomUUID()));
         n.remove("sampleId");

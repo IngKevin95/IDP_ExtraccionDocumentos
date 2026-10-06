@@ -49,6 +49,17 @@ public class TestBeans {
     }
 
     @Bean
+    @Primary
+    MutableTenantDirectory testTenantDirectory(
+            @org.springframework.beans.factory.annotation.Value("${idp.tenants:}") String csv) {
+        MutableTenantDirectory d = new MutableTenantDirectory();
+        if (!csv.isBlank()) {
+            java.util.Arrays.stream(csv.split(",")).map(String::trim).forEach(d::add);
+        }
+        return d;
+    }
+
+    @Bean
     org.springframework.web.client.RestClient.Builder testRestClientBuilder() {
         return org.springframework.web.client.RestClient.builder();
     }
@@ -77,6 +88,24 @@ public class TestBeans {
         @Override
         public void delete(TenantId tenantId, String path) {
             data.remove(tenantId.value() + "/" + path);
+        }
+    }
+
+    /** Directorio de tenants activos programable (los silos de prueba se crean al vuelo). */
+    public static final class MutableTenantDirectory implements com.idp.tenant.context.TenantDirectory {
+        private final java.util.Set<String> active = ConcurrentHashMap.newKeySet();
+
+        public void add(String tenant) {
+            active.add(tenant);
+        }
+
+        public void remove(String tenant) {
+            active.remove(tenant);
+        }
+
+        @Override
+        public List<String> activeTenants() {
+            return List.copyOf(active);
         }
     }
 
@@ -111,6 +140,19 @@ public class TestBeans {
         /** Campos de la ultima extraccion de un documento ya aprobado (revision ciega). */
         public void programApproved(UUID documentId, FieldCandidate... fields) {
             byDocument.put(documentId, List.of(fields));
+            approvals.put(documentId, new ApprovedDocument("APROBADO", "AUTO_STP", "CONFIDENCIAL"));
+        }
+
+        private final Map<UUID, ApprovedDocument> approvals = new ConcurrentHashMap<>();
+
+        /** Sustituye el estado de aprobacion del documento en el silo (por defecto APROBADO por AUTO_STP). */
+        public void approval(UUID documentId, String status, String approvedBy, String classification) {
+            approvals.put(documentId, new ApprovedDocument(status, approvedBy, classification));
+        }
+
+        @Override
+        public java.util.Optional<ApprovedDocument> approvedDocument(UUID documentId) {
+            return java.util.Optional.ofNullable(approvals.get(documentId));
         }
 
         public void uploadedBy(UUID documentId, String user) {

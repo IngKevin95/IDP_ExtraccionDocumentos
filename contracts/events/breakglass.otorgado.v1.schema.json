@@ -41,10 +41,12 @@
       "format": "uuid"
     },
     "subjectId": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 256
     },
     "approvedBy": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 256
     },
     "expiresAt": {
       "type": "string",

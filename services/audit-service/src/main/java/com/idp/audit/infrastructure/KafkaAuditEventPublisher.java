@@ -15,7 +15,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * Publica al topico que dicta EventTopology para el eventType (audit.events, clave tenantId) tras validar el evento contra su JSON Schema. Envio
+ * Publica al topico que dicta EventTopology para el eventType (audit.control, clave tenantId) tras validar el evento contra su JSON Schema. Envio
  * sincrono con confirmacion: si Kafka no confirma, la operacion de negocio falla y no se pierde la alerta.
  */
 @Component

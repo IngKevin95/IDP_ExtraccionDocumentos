@@ -6,10 +6,13 @@ import com.idp.document.domain.DocumentStatus;
 import com.idp.document.infra.DocumentRepository;
 import com.idp.document.infra.DomainEvents;
 import com.idp.events.EventEnvelope;
+import com.idp.events.EventOriginGuard;
 import com.idp.security.RoleAssignmentVerifier;
 import com.idp.security.Roles;
 import io.micrometer.core.instrument.MeterRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.time.Clock;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -31,9 +34,11 @@ public class PipelineEventHandler {
     private final DomainEvents events;
     private final RoleAssignmentVerifier roles;
     private final MeterRegistry meters;
+    private final Clock clock;
 
     public PipelineEventHandler(DocumentRepository repo, DocumentStateMachine states, DomainEvents events,
-                                RoleAssignmentVerifier roles, MeterRegistry meters) {
+                                RoleAssignmentVerifier roles, MeterRegistry meters, Clock clock) {
+        this.clock = clock;
         this.repo = repo;
         this.states = states;
         this.events = events;
@@ -50,13 +55,38 @@ public class PipelineEventHandler {
         }
     }
 
+    /**
+     * La auto-aprobacion exige que el evento traiga el resultado de ruteo automatico (routing=AUTO) y que este servicio
+     * haya solicitado la extraccion de ese documento (extraction_request). Sin eso se ignora con alerta SECURITY.
+     */
     void onExtractionCompleted(EventEnvelope e) {
-        load(e).filter(d -> expect(d, DocumentStatus.EN_EXTRACCION, e)).ifPresent(d -> approve(d, "AUTO_STP"));
+        load(e).filter(d -> expect(d, DocumentStatus.EN_EXTRACCION, e)).filter(d -> autoRoutingValid(d, e))
+                .ifPresent(d -> approve(d, "AUTO_STP"));
+    }
+
+    private boolean autoRoutingValid(DocumentRecord d, EventEnvelope e) {
+        boolean routedAuto = "AUTO".equals(e.payload().path("routing").asText(""));
+        boolean requested = routedAuto && repo.hasExtractionRequest(d.id());
+        if (!routedAuto || !requested) {
+            reject("extraccion.completada sin routing=AUTO o sin extraccion solicitada", d, e,
+                    routedAuto ? "no_extraction_request" : "routing_not_auto");
+        }
+        return routedAuto && requested;
     }
 
     void onRequiresReview(EventEnvelope e) {
-        load(e).filter(d -> expect(d, DocumentStatus.EN_EXTRACCION, e))
-                .ifPresent(d -> states.transition(d, DocumentStatus.EN_REVISION));
+        load(e).filter(d -> expect(d, DocumentStatus.EN_EXTRACCION, e)).ifPresent(d -> {
+            // Solicitud de revision registrada: sin ella, una revision.completada posterior no cambia el estado.
+            repo.registerReviewRequest(UUID.fromString(e.payload().path("taskId").asText()), d.id(),
+                    OffsetDateTime.now(clock));
+            states.transition(d, DocumentStatus.EN_REVISION);
+        });
+    }
+
+    private void reject(String what, DocumentRecord d, EventEnvelope e, String reason) {
+        LOG.error(EventOriginGuard.SECURITY, "ALERTA {} ignorado: reason={} documento={} tenant={}", what, reason,
+                d.id(), e.tenantId());
+        meters.counter("idp_document_pipeline_event_rejected_total", "reason", reason).increment();
     }
 
     void onReviewCompleted(EventEnvelope e) {
@@ -88,6 +118,16 @@ public class PipelineEventHandler {
         String reviewer = p.path("reviewerId").asText("");
         boolean critical = p.path("criticalCorrection").asBoolean(false);
         String second = p.path("secondReviewerId").asText("");
+        UUID taskId = UUID.fromString(p.path("taskId").asText());
+        if (!repo.hasReviewRequest(taskId, d.id())) {
+            reject("revision.completada sin solicitud de revision registrada", d, e, "no_review_request");
+            return false;
+        }
+        boolean approving = "APROBADO".equals(p.path("action").asText(""));
+        if (approving && !reviewer.isBlank() && reviewer.equals(d.uploadedBy())) {
+            reject("revision.completada APROBADO por quien cargo el documento", d, e, "reviewer_is_uploader");
+            return false;
+        }
         boolean ok = !reviewer.isBlank() && roles.hasRole(tenant, reviewer, Roles.REVISOR);
         if (ok && critical) {
             ok = !second.isBlank() && !second.equals(reviewer) && roles.hasRole(tenant, second, Roles.REVISOR);
@@ -107,6 +147,7 @@ public class PipelineEventHandler {
             return;
         }
         DocumentRecord approved = states.transition(d, DocumentStatus.APROBADO);
+        repo.setApprovedBy(approved.tenantId(), approved.id(), approvedBy);
         events.aprobada(approved, approvedBy);
     }
 

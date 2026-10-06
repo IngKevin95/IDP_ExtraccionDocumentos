@@ -43,6 +43,7 @@ abstract class AbstractReviewIntegrationTest {
     @Autowired TestBeans.StubFields fields;
     @Autowired TestBeans.InMemoryObjectStore store;
     @Autowired ReviewEventListener listener;
+    @Autowired TestBeans.MutableTenantDirectory directory;
 
     String tenant;
 
@@ -54,6 +55,7 @@ abstract class AbstractReviewIntegrationTest {
     String newTenant() {
         String t = UUID.randomUUID().toString();
         migrator.migrate(t);
+        directory.add(t);
         return t;
     }
 

@@ -74,6 +74,19 @@ public class JdbcExtractionFieldSource implements FieldCandidateSource {
     }
 
     @Override
+    public java.util.Optional<ApprovedDocument> approvedDocument(UUID documentId) {
+        try {
+            return isolated.execute(status -> jdbc.query(
+                    "select status, approved_by, classification from document where id = ?",
+                    (rs, i) -> new ApprovedDocument(rs.getString(1), rs.getString(2), rs.getString(3)), documentId)
+                    .stream().findFirst());
+        } catch (DataAccessException e) {
+            LOG.warn("No se pudo leer el estado de aprobacion del documento: {}", e.getClass().getSimpleName());
+            return java.util.Optional.empty();
+        }
+    }
+
+    @Override
     public java.util.Optional<String> uploader(UUID documentId) {
         try {
             return isolated.execute(status -> jdbc.query("select uploaded_by from document where id = ?",

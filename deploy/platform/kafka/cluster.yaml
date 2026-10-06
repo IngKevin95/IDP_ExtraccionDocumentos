@@ -22,6 +22,9 @@ spec:
       transaction.state.log.min.isr: 2
       default.replication.factor: 3
       min.insync.replicas: 2
+      # SEC-052: sin ACL no hay acceso y los topicos solo existen si los declara topics.yaml (no se crean al vuelo).
+      auto.create.topics.enable: "false"
+      allow.everyone.if.no.acl.found: "false"
     storage:
       type: jbod
       volumes:

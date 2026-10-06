@@ -88,7 +88,8 @@ class ExtractionServiceAcTest {
         assertThat(completada.path("documentId").asText()).isEqualTo(doc.toString());
         assertThat(completada.fieldNames()).toIterable().containsExactlyInAnyOrder("eventId", "eventType",
             "schemaVersion", "occurredAt", "tenantId", "correlationId", "documentId", "typology", "modelPromptKey",
-            "latencyMs", "costMicros");
+            "latencyMs", "costMicros", "routing");
+        assertThat(completada.path("routing").asText()).isEqualTo("AUTO");
         assertThat(completada.path("typology").asText()).isEqualTo("EC");
         assertThat(completada.path("modelPromptKey").asText()).endsWith(":" + PromptTemplates.VERSION);
         assertThat(completada.path("latencyMs").asLong()).isGreaterThanOrEqualTo(0);

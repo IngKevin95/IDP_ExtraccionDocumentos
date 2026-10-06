@@ -1,0 +1,44 @@
+# Alertas de integridad de eventos (ADR 0031, SEC-052, SEC-053). ruleSelectorNilUsesHelmValues=false en
+# kube-prometheus-stack.yaml: Prometheus carga cualquier PrometheusRule del cluster.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: idp-eventos-integridad
+  namespace: idp-platform
+  labels:
+    app.kubernetes.io/part-of: idp
+spec:
+  groups:
+    - name: idp.eventos.integridad
+      rules:
+        # Un consumidor recibio un eventType por un topico distinto del que asigna contracts/events/topology.yaml:
+        # productor comprometido o ACL rota. Debe ser siempre 0.
+        - alert: EventoOrigenInvalido
+          expr: increase(idp_events_origin_rejected_total[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+            control: SEC-052
+          annotations:
+            summary: "Evento rechazado por origen invalido"
+            description: "Se rechazaron eventos cuyo eventType no llego por el topico de su productor (reason={{ $labels.reason }}). Revisar ACL del KafkaUser y el productor sospechoso; el payload no se registra."
+        # audit-service descarta eventos que no puede encadenar (fuera de contrato, tenant inexistente, restriccion
+        # de BD violada por el contenido): son datos hostiles o un productor defectuoso.
+        - alert: AuditoriaEventosDescartados
+          expr: increase(audit_ingestion_rejected_total[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+            control: SEC-053
+          annotations:
+            summary: "audit-service descarto eventos que no pudo encadenar"
+            description: "Eventos descartados por contenido invalido; la cadena del tenant no los incluye. Revisar la alerta CRITICAL en el log del audit-service (sin payload)."
+        - alert: AuditoriaTenantInexistente
+          expr: increase(audit_ingestion_unknown_tenant_total[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+            control: SEC-053
+          annotations:
+            summary: "Evento de auditoria para un tenant inexistente"
+            description: "Un productor con Write en Kafka emitio un tenantId fuera del directorio de la plataforma; no se abrio cadena. Investigar el origen."

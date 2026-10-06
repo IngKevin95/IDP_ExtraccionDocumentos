@@ -42,7 +42,8 @@
       "format": "uuid"
     },
     "subjectId": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 256
     },
     "role": {
       "type": "string",
@@ -55,10 +56,12 @@
       ]
     },
     "requestedBy": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 256
     },
     "approvedBy": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 256
     }
   },
   "additionalProperties": false

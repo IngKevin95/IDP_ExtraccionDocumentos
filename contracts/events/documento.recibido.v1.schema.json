@@ -69,7 +69,8 @@
       ]
     },
     "objectStoreKey": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 512
     }
   },
   "additionalProperties": false

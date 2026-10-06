@@ -1,76 +1,69 @@
 #!/usr/bin/env python3
-"""Valida la topologia Kafka contra contracts/events/topology.yaml (ADR 0029, SEC-052).
+"""Valida la topologia Kafka contra contracts/events/topology.yaml (ADR 0031, SEC-052).
 
-Reglas (cada violacion es un ERROR):
-  1. Todo eventType del catalogo (contracts/events/*.schema.json) tiene entrada en topology.yaml.
-  2. Cada topico de la topologia esta declarado en topics.yaml y su clave coincide con la del topico.
-  3. Solo audit.events admite varios productores (senales); los demas topicos son de un unico productor.
-  4. Write ACL de cada servicio == exactamente los topicos de los eventTypes que produce (mas los *-dlt de los
-     topicos de dominio que consume si usa EventErrorHandlers.deadLetter). Nadie escribe en un topico ajeno.
-  5. Cada consumidor (@KafkaListener en main, incluidos los listeners de libs/security que cablea) tiene Read y
-     Describe sobre los topicos que escucha, y su grupo de consumo.
-  6. Servicios sin KafkaUser (renderer, edge-gateway) no producen ni escuchan.
-  7. Ningun fuente ni application.yml de main usa el topico retirado dominio.documentos.
+Requiere PyYAML (pip install pyyaml). Todo YAML se parsea con yaml.safe_load; las ACL se normalizan a tuplas
+(resourceType, name, patternType, operation) y cualquier recurso que el parser no interprete es un ERROR.
+
+Reglas (cada violacion es un ERROR etiquetado con su id; el --self-test exige una mutacion por cada id):
+  R01 Todo eventType del catalogo (contracts/events/*.schema.json) tiene entrada en topology.yaml y viceversa.
+  R02 Cada topico de la topologia esta definido, declarado en topics.yaml, con kind valido y clave coherente.
+  R03 Varios productores (por eventType o por topico) solo en topicos kind signal o control; los de dominio
+      tienen un unico productor.
+  R04 Separacion senal/control/estado: un topico signal (multi-productor abierto) solo contiene senales
+      (seguridad.*, chat.*); un topico control solo contiene eventos de control (legalhold.*, consumo.*,
+      auditoria.*). Nunca estado ni control en un topico multi-productor abierto.
+  R05 Write de cada servicio == exactamente los topicos de los eventTypes que produce (mas los *-dlt de los
+      topicos de dominio que consume si usa EventErrorHandlers.deadLetter). Nadie escribe en un topico ajeno.
+  R06 Read solo sobre los topicos que el servicio escucha (@KafkaListener, incluidos los de libs/security) y
+      obligatorio sobre ellos.
+  R07 Describe obligatorio sobre cada topico que lee o escribe y prohibido sobre cualquier otro.
+  R08 Ninguna ACL de recurso type cluster.
+  R09 patternType de topicos siempre literal; prefix solo en grupos (y solo los esperados).
+  R10 Ningun nombre de recurso "*".
+  R11 Operaciones solo dentro de {Write, Read, Describe} (nada de All, Create, Alter, Delete...).
+  R12 Recurso o ACL que el parser no puede interpretar (sin type/name, type desconocido, operacion ausente).
+  R13 ACL de grupo de consumo: la esperada de cada servicio (literal o prefijo) y ninguna otra.
+  R14 KafkaUser con authentication tls y authorization simple.
+  R15 Listeners del cluster solo tls con authentication tls (ningun plain).
+  R16 Cluster con authorization simple y sin superUsers.
+  R17 Cluster con auto.create.topics.enable "false" y allow.everyone.if.no.acl.found "false".
+  R18 Ningun fuente ni application.yml de main usa el topico retirado dominio.documentos.
+  R19 Servicios sin KafkaUser (renderer, edge-gateway) no producen ni escuchan; todo productor tiene KafkaUser.
+  R20 Todo eventType que un listener declara existe en topology.yaml.
 
 Uso: check_kafka_topics.py            valida el repositorio
-     check_kafka_topics.py --self-test  prueba la propia validacion (debe fallar al romper cada regla)
+     check_kafka_topics.py --self-test  prueba la propia validacion (una mutacion por regla, debe detectarla)
 """
 import copy
 import re
 import sys
 from pathlib import Path
 
+try:
+    import yaml
+except ImportError:  # pragma: no cover
+    sys.exit("Falta PyYAML: pip install pyyaml")
+
 ROOT = Path(__file__).resolve().parents[2]
 TOPOLOGY = ROOT / "contracts/events/topology.yaml"
 SCHEMAS = ROOT / "contracts/events"
-TOPICS = ROOT / "deploy/platform/kafka/topics.yaml"
-USERS = ROOT / "deploy/platform/kafka/users.yaml"
-SHARED_TOPIC = "audit.events"
-TENANT_TOPIC = "idp.tenant.events"
+KAFKA_DIR = ROOT / "deploy/platform/kafka"
 RETIRED_TOPIC = "dominio.documentos"
 # eventTypes reservados en la topologia sin esquema aun en el catalogo.
 RESERVED = {"tenant.credenciales_rotadas"}
+SIGNAL_PREFIXES = ("seguridad.", "chat.")
+CONTROL_PREFIXES = ("legalhold.", "consumo.", "auditoria.")
+KINDS = {"domain", "signal", "control"}
+ALLOWED_OPS = {"Write", "Read", "Describe"}
+RESOURCE_TYPES = {"topic", "group", "cluster", "transactionalId", "delegationToken", "userOnly"}
 NAME = r"[\w.\-]+"
 LISTENER_RE = re.compile(r'@KafkaListener\s*\(\s*topics\s*=\s*"((?:[^"\\]|\\.)*)"')
+RULES = {f"R{i:02d}" for i in range(1, 21)}
 
 
-def parse_topology(text):
-    section, topics, events = None, {}, {}
-    for line in text.splitlines():
-        if re.match(r"^topics:\s*$", line):
-            section = "topics"
-            continue
-        if re.match(r"^eventTypes:\s*$", line):
-            section = "events"
-            continue
-        m = re.match(rf"^  ({NAME}):\s*\{{(.*)\}}\s*$", line)
-        if not m or section is None:
-            continue
-        body = m.group(2)
-        key = re.search(r"\bkey:\s*(\w+)", body)
-        if section == "topics":
-            topics[m.group(1)] = {"key": key.group(1) if key else None}
-        else:
-            topic = re.search(rf"\btopic:\s*({NAME})", body)
-            prod = re.search(r"\bproducers:\s*\[([^\]]*)\]", body)
-            events[m.group(1)] = {
-                "topic": topic.group(1) if topic else None,
-                "producers": [p.strip() for p in prod.group(1).split(",") if p.strip()] if prod else [],
-                "key": key.group(1) if key else None,
-            }
-    return topics, events
-
-
-def kafka_users(text):
-    users = {}
-    for doc in text.split("\n---"):
-        m = re.search(r"^  name: (\S+)", doc, re.M)
-        if not m or "kind: KafkaUser" not in doc:
-            continue
-        acls = re.findall(rf"type: topic, name: ({NAME}), patternType: literal \}}\s*\n\s*operation: (\w+)", doc)
-        groups = re.findall(rf"type: group, name: ({NAME}), patternType: (\w+) \}}\s*\n\s*operation: Read", doc)
-        users[m.group(1)] = {"acls": acls, "groups": set(groups)}
-    return users
+def load_yaml_docs(path):
+    with open(path, encoding="utf-8") as f:
+        return [d for d in yaml.safe_load_all(f) if d is not None]
 
 
 def topics_of_listener(expr, topology_events, all_topics, errors, where):
@@ -82,7 +75,7 @@ def topics_of_listener(expr, topology_events, all_topics, errors, where):
     if spel:
         for et in re.findall(r"'([a-z0-9_.]+)'", spel.group(1)):
             if et not in topology_events:
-                errors.append(f"{where}: escucha el eventType '{et}' sin entrada en topology.yaml")
+                errors.append(("R20", f"{where}: escucha el eventType '{et}' sin entrada en topology.yaml"))
             else:
                 found.add(topology_events[et]["topic"])
         return found
@@ -90,13 +83,7 @@ def topics_of_listener(expr, topology_events, all_topics, errors, where):
     return {t.strip() for t in default.split(",") if re.fullmatch(NAME, t.strip())}
 
 
-def load_model():
-    topo_topics, events = parse_topology(TOPOLOGY.read_text(encoding="utf-8"))
-    all_topics = {e["topic"] for e in events.values() if e["topic"]}
-    errors = []
-    catalog = {re.sub(r"\.v\d+\.schema\.json$", "", f.name) for f in SCHEMAS.glob("*.schema.json")}
-    declared = set(re.findall(r"^  name: (" + NAME + r")$", TOPICS.read_text(encoding="utf-8"), re.M))
-    users = kafka_users(USERS.read_text(encoding="utf-8"))
+def scan_services(events, all_topics, errors):
     lib_listeners = {}
     for f in (ROOT / "libs/security/src/main/java").rglob("*KafkaListener.java"):
         src = f.read_text(encoding="utf-8")
@@ -110,8 +97,7 @@ def load_model():
             continue
         main = svc_dir / "src/main"
         listened, retired = set(), []
-        domain_listener = False
-        dlt = False
+        domain_listener = dlt = False
         lib_used = set()
         for f in main.rglob("*.java"):
             src = f.read_text(encoding="utf-8")
@@ -132,127 +118,359 @@ def load_model():
             listened |= lib_listeners[cls]
         services[svc_dir.name] = {"listened": listened, "domain_listener": domain_listener, "dlt": dlt,
                                   "lib_listeners": lib_used, "retired": retired}
-    return {"topo_topics": topo_topics, "events": events, "catalog": catalog, "declared": declared,
-            "users": users, "services": services, "load_errors": errors}
+    return services
 
 
-def validate(model):
-    errors = list(model["load_errors"])
-    events, topo_topics = model["events"], model["topo_topics"]
-    declared, users, services = model["declared"], model["users"], model["services"]
-    # 1. catalogo completo
-    for et in sorted(model["catalog"] - set(events)):
-        errors.append(f"eventType '{et}' del catalogo sin entrada en topology.yaml")
-    for et in sorted(set(events) - model["catalog"] - RESERVED):
-        errors.append(f"topology.yaml declara '{et}' sin esquema en contracts/events")
-    # 2 y 3. coherencia de topicos y productores
+def load_raw():
+    """Lee todos los insumos (YAML ya parseado + escaneo de fuentes). Los mutantes del self-test parten de aqui."""
+    topology = yaml.safe_load(TOPOLOGY.read_text(encoding="utf-8"))
+    events = {et: {"topic": (e or {}).get("topic")} for et, e in (topology.get("eventTypes") or {}).items()}
+    all_topics = {e["topic"] for e in events.values() if e["topic"]}
+    errors = []
+    services = scan_services(events, all_topics, errors)
+    catalog = {re.sub(r"\.v\d+\.schema\.json$", "", f.name) for f in SCHEMAS.glob("*.schema.json")}
+    return {"topology": topology, "catalog": catalog, "services": services, "load_errors": errors,
+            "users": load_yaml_docs(KAFKA_DIR / "users.yaml"), "topics": load_yaml_docs(KAFKA_DIR / "topics.yaml"),
+            "cluster": load_yaml_docs(KAFKA_DIR / "cluster.yaml")}
+
+
+def normalize_acls(user, errors):
+    """ACL de un KafkaUser -> lista de (resourceType, name, patternType, operation). Lo no interpretable es R12."""
+    out = []
+    acls = ((user.get("spec") or {}).get("authorization") or {}).get("acls") or []
+    if not isinstance(acls, list):
+        errors.append(("R12", f"{user['metadata']['name']}: acls no es una lista"))
+        return out
+    for i, acl in enumerate(acls):
+        where = f"{user['metadata']['name']}: acl #{i}"
+        res = acl.get("resource") if isinstance(acl, dict) else None
+        if not isinstance(res, dict) or not isinstance(res.get("type"), str):
+            errors.append(("R12", f"{where}: recurso sin type interpretable"))
+            continue
+        rtype, name = res["type"], res.get("name")
+        pattern = res.get("patternType", "literal")
+        if rtype not in RESOURCE_TYPES:
+            errors.append(("R12", f"{where}: type de recurso desconocido '{rtype}'"))
+            continue
+        if rtype != "cluster" and (not isinstance(name, str) or not name):
+            errors.append(("R12", f"{where}: recurso {rtype} sin name interpretable"))
+            continue
+        ops = acl.get("operations", [acl.get("operation")] if "operation" in acl else None)
+        if not isinstance(ops, list) or not ops or not all(isinstance(o, str) for o in ops):
+            errors.append(("R12", f"{where}: sin operacion interpretable"))
+            continue
+        if rtype == "cluster":
+            errors.append(("R08", f"{where}: ACL de tipo cluster (nunca permitido)"))
+            continue
+        if name == "*":
+            errors.append(("R10", f"{where}: nombre de recurso '*'"))
+            continue
+        if pattern not in ("literal", "prefix"):
+            errors.append(("R12", f"{where}: patternType desconocido '{pattern}'"))
+            continue
+        if rtype == "topic" and pattern != "literal":
+            errors.append(("R09", f"{where}: patternType '{pattern}' sobre el topico '{name}' (solo literal)"))
+            continue
+        for op in ops:
+            if op not in ALLOWED_OPS:
+                errors.append(("R11", f"{where}: operacion '{op}' sobre '{name}' (solo Write, Read, Describe)"))
+                continue
+            out.append((rtype, name, pattern, op))
+    return out
+
+
+def parse_users(docs, errors):
+    users = {}
+    for d in docs:
+        if d.get("kind") != "KafkaUser":
+            continue
+        name = (d.get("metadata") or {}).get("name")
+        if not name:
+            errors.append(("R12", "KafkaUser sin metadata.name"))
+            continue
+        spec = d.get("spec") or {}
+        if (spec.get("authentication") or {}).get("type") != "tls":
+            errors.append(("R14", f"{name}: authentication.type debe ser tls"))
+        if (spec.get("authorization") or {}).get("type") != "simple":
+            errors.append(("R14", f"{name}: authorization.type debe ser simple"))
+        users[name] = normalize_acls(d, errors)
+    return users
+
+
+def check_cluster(docs, errors):
+    kafkas = [d for d in docs if d.get("kind") == "Kafka"]
+    if len(kafkas) != 1:
+        errors.append(("R15", "cluster.yaml debe definir exactamente un recurso Kafka"))
+        return
+    spec = (kafkas[0].get("spec") or {}).get("kafka") or {}
+    listeners = spec.get("listeners") or []
+    if not listeners:
+        errors.append(("R15", "cluster.yaml sin listeners"))
+    for lst in listeners:
+        name = lst.get("name", "?")
+        if lst.get("tls") is not True:
+            errors.append(("R15", f"listener '{name}' sin tls (plain no permitido)"))
+        if (lst.get("authentication") or {}).get("type") != "tls":
+            errors.append(("R15", f"listener '{name}' sin authentication.type tls"))
+    authz = spec.get("authorization") or {}
+    if authz.get("type") != "simple":
+        errors.append(("R16", "cluster sin authorization.type simple"))
+    if authz.get("superUsers"):
+        errors.append(("R16", f"cluster con superUsers {authz['superUsers']} (prohibido)"))
+    config = spec.get("config") or {}
+    for key in ("auto.create.topics.enable", "allow.everyone.if.no.acl.found"):
+        if str(config.get(key)).lower() != "false":
+            errors.append(("R17", f"cluster sin {key}: \"false\""))
+
+
+def validate(raw):
+    errors = list(raw["load_errors"])
+    topo = raw["topology"]
+    topo_topics = topo.get("topics") or {}
+    events = {}
+    for et, e in (topo.get("eventTypes") or {}).items():
+        e = e or {}
+        events[et] = {"topic": e.get("topic"), "producers": list(e.get("producers") or []), "key": e.get("key")}
+    declared = {(d.get("metadata") or {}).get("name") for d in raw["topics"] if d.get("kind") == "KafkaTopic"}
+    services = raw["services"]
+    users = parse_users(raw["users"], errors)
+    check_cluster(raw["cluster"], errors)
+
+    # R01 catalogo completo
+    for et in sorted(raw["catalog"] - set(events)):
+        errors.append(("R01", f"eventType '{et}' del catalogo sin entrada en topology.yaml"))
+    for et in sorted(set(events) - raw["catalog"] - RESERVED):
+        errors.append(("R01", f"topology.yaml declara '{et}' sin esquema en contracts/events"))
+    # R02 definicion de topicos
+    for t, v in sorted(topo_topics.items()):
+        if (v or {}).get("kind") not in KINDS:
+            errors.append(("R02", f"topico '{t}': kind invalido (domain|signal|control)"))
+        if t not in declared:
+            errors.append(("R02", f"topico '{t}' no declarado en topics.yaml"))
+    # producciones por topico
+    producers_of_topic = {}
     for et, e in sorted(events.items()):
         if not e["topic"] or not e["producers"] or not e["key"]:
-            errors.append(f"{et}: entrada incompleta (topic, producers y key son obligatorios)")
+            errors.append(("R02", f"{et}: entrada incompleta (topic, producers y key son obligatorios)"))
             continue
+        producers_of_topic.setdefault(e["topic"], set()).update(e["producers"])
         if e["topic"] not in topo_topics:
-            errors.append(f"{et}: topico '{e['topic']}' sin definicion en la seccion topics de topology.yaml")
-        elif topo_topics[e["topic"]]["key"] != e["key"]:
-            errors.append(f"{et}: key '{e['key']}' distinta de la del topico '{e['topic']}'")
-        if e["topic"] not in declared:
-            errors.append(f"{et}: topico '{e['topic']}' no declarado en topics.yaml")
-        if len(e["producers"]) > 1 and e["topic"] != SHARED_TOPIC:
-            errors.append(f"{et}: varios productores solo se admiten en {SHARED_TOPIC} (topico '{e['topic']}')")
+            errors.append(("R02", f"{et}: topico '{e['topic']}' sin definicion en la seccion topics de topology.yaml"))
+            continue
+        if topo_topics[e["topic"]].get("key") != e["key"]:
+            errors.append(("R02", f"{et}: key '{e['key']}' distinta de la del topico '{e['topic']}'"))
+        kind = topo_topics[e["topic"]].get("kind")
+        if len(e["producers"]) > 1 and kind not in ("signal", "control"):
+            errors.append(("R03", f"{et}: varios productores solo se admiten en topicos signal o control "
+                                  f"(topico '{e['topic']}')"))
+        # R04 separacion
+        if kind == "signal" and not et.startswith(SIGNAL_PREFIXES):
+            errors.append(("R04", f"{et}: un topico signal multi-productor ('{e['topic']}') solo admite senales "
+                                  f"{SIGNAL_PREFIXES}, no estado ni control"))
+        if kind == "control" and not et.startswith(CONTROL_PREFIXES):
+            errors.append(("R04", f"{et}: un topico control ('{e['topic']}') solo admite eventos de control "
+                                  f"{CONTROL_PREFIXES}"))
+        if kind == "domain" and et.startswith(SIGNAL_PREFIXES + CONTROL_PREFIXES):
+            errors.append(("R04", f"{et}: senal o control en el topico de dominio '{e['topic']}'"))
         for p in e["producers"]:
             if p not in users:
-                errors.append(f"{et}: productor '{p}' sin KafkaUser en users.yaml")
-    # 4. Write exacto
+                errors.append(("R19", f"{et}: productor '{p}' sin KafkaUser en users.yaml"))
+    for t, ps in sorted(producers_of_topic.items()):
+        if len(ps) > 1 and (topo_topics.get(t) or {}).get("kind") not in ("signal", "control"):
+            errors.append(("R03", f"topico '{t}' con varios productores {sorted(ps)} y kind distinto de signal/control"))
+    # R05 a R07 por servicio
     produced = {}
     for et, e in events.items():
         for p in e["producers"]:
             produced.setdefault(p, set()).add(e["topic"])
-    for svc, u in sorted(users.items()):
-        writes = {n for n, o in u["acls"] if o == "Write"}
-        expected = set(produced.get(svc, set()))
-        info = services.get(svc)
-        if info and info["dlt"]:
-            expected |= {t + "-dlt" for t in info["listened"] if t not in (SHARED_TOPIC, TENANT_TOPIC)}
-        for t in sorted(expected - writes):
-            errors.append(f"{svc}: falta Write sobre '{t}' (topico que produce)")
-        for t in sorted(writes - expected):
-            errors.append(f"{svc}: Write sobre el topico ajeno '{t}' (solo debe escribir {sorted(expected)})")
-        for t in sorted(expected | writes):
+    for svc, acls in sorted(users.items()):
+        info = services.get(svc) or {"listened": set(), "domain_listener": False, "dlt": False, "lib_listeners": set()}
+        topic_ops = {}
+        for rtype, name, _pattern, op in acls:
+            if rtype == "topic":
+                topic_ops.setdefault(name, set()).add(op)
+        writes = {n for n, ops in topic_ops.items() if "Write" in ops}
+        reads = {n for n, ops in topic_ops.items() if "Read" in ops}
+        expected_w = set(produced.get(svc, set()))
+        if info["dlt"]:
+            expected_w |= {t + "-dlt" for t in info["listened"]
+                           if (topo_topics.get(t) or {}).get("kind") == "domain" and t != "idp.tenant.events"}
+        expected_r = set(info["listened"])
+        for t in sorted(expected_w - writes):
+            errors.append(("R05", f"{svc}: falta Write sobre '{t}' (topico que produce)"))
+        for t in sorted(writes - expected_w):
+            errors.append(("R05", f"{svc}: Write sobre el topico ajeno '{t}' (solo debe escribir {sorted(expected_w)})"))
+        for t in sorted(expected_r - reads):
+            errors.append(("R06", f"{svc}: sin Read sobre el topico '{t}' que escucha"))
+        for t in sorted(reads - expected_r):
+            errors.append(("R06", f"{svc}: Read sobre el topico '{t}' que no escucha"))
+        for t in sorted(expected_w | expected_r | set(topic_ops)):
             if t not in declared:
-                errors.append(f"{svc}: topico '{t}' no declarado en topics.yaml")
-        for t in sorted(expected):
-            if "Describe" not in {o for n, o in u["acls"] if n == t}:
-                errors.append(f"{svc}: falta Describe sobre '{t}'")
-    for svc in sorted(produced):
-        if svc not in users:
-            errors.append(f"{svc}: produce eventos pero no tiene KafkaUser")
-    # 5 y 6. consumidores
-    for svc, info in sorted(services.items()):
-        u = users.get(svc)
-        if u is None:
-            if info["listened"]:
-                errors.append(f"{svc}: escucha {sorted(info['listened'])} pero no tiene KafkaUser")
-            continue
-        for t in sorted(info["listened"]):
-            ops = {o for n, o in u["acls"] if n == t}
-            if t not in declared:
-                errors.append(f"{svc}: topico '{t}' no declarado en topics.yaml")
-            if "Read" not in ops:
-                errors.append(f"{svc}: sin Read sobre el topico '{t}' que escucha")
-            if "Describe" not in ops:
-                errors.append(f"{svc}: sin Describe sobre el topico '{t}' que escucha")
-        if info["domain_listener"] and not any(g == svc for g, _ in u["groups"]):
-            errors.append(f"{svc}: falta ACL del grupo de consumo '{svc}'")
+                errors.append(("R02", f"{svc}: topico '{t}' no declarado en topics.yaml"))
+        expected_d = expected_w | expected_r
+        for t in sorted(expected_d):
+            if "Describe" not in topic_ops.get(t, set()):
+                errors.append(("R07", f"{svc}: falta Describe sobre '{t}'"))
+        for t in sorted(set(topic_ops) - expected_d):
+            if "Describe" in topic_ops[t]:
+                errors.append(("R07", f"{svc}: Describe sobre el topico ajeno '{t}'"))
+        # R13 grupos
+        groups = {(n, p) for rtype, n, p, op in acls if rtype == "group" and op == "Read"}
+        expected_g = set()
+        if info["domain_listener"]:
+            expected_g.add((svc, "literal"))
         for cls, grp in (("AccesoRevocadoKafkaListener", "acceso-revocado"),
                          ("TenantPoolEvictionKafkaListener", "pool-evict")):
-            if cls in info["lib_listeners"] and (f"{svc}-{grp}-", "prefix") not in u["groups"]:
-                errors.append(f"{svc}: falta ACL de grupo prefijo '{svc}-{grp}-'")
+            if cls in info["lib_listeners"]:
+                expected_g.add((f"{svc}-{grp}-", "prefix"))
+        for g in sorted(expected_g - groups):
+            errors.append(("R13", f"{svc}: falta ACL del grupo de consumo '{g[0]}' ({g[1]})"))
+        for g in sorted({(n, p) for rtype, n, p, _o in acls if rtype == "group"} - expected_g):
+            errors.append(("R13", f"{svc}: ACL de grupo no esperada '{g[0]}' ({g[1]})"))
+    for svc in sorted(produced):
+        if svc not in users:
+            errors.append(("R19", f"{svc}: produce eventos pero no tiene KafkaUser"))
+    # R19 servicios sin usuario y R18 topico retirado
+    for svc, info in sorted(services.items()):
+        if svc not in users and info["listened"]:
+            errors.append(("R19", f"{svc}: escucha {sorted(info['listened'])} pero no tiene KafkaUser"))
         for f in info["retired"]:
-            errors.append(f"{svc}: {f} referencia el topico retirado '{RETIRED_TOPIC}'")
-    for f in model["services"].get("renderer", {}).get("retired", []):
-        errors.append(f"renderer: {f} referencia el topico retirado '{RETIRED_TOPIC}'")
+            errors.append(("R18", f"{svc}: {f} referencia el topico retirado '{RETIRED_TOPIC}'"))
     return errors
 
 
+# ---------------------------------------------------------------------------------------------------------
+# Self-test: una mutacion por regla (como minimo) sobre los insumos reales; validate() debe detectarla.
+# ---------------------------------------------------------------------------------------------------------
+
+def _user(raw, name):
+    for d in raw["users"]:
+        if d.get("kind") == "KafkaUser" and d["metadata"]["name"] == name:
+            return d
+    raise KeyError(name)
+
+
+def _acls(raw, name):
+    return _user(raw, name)["spec"]["authorization"]["acls"]
+
+
+def _acl(topic, op, pattern="literal", rtype="topic"):
+    return {"resource": {"type": rtype, "name": topic, "patternType": pattern}, "operation": op}
+
+
+def _drop(raw, user, rtype, name, op):
+    acls = _acls(raw, user)
+    acls[:] = [a for a in acls if not (a["resource"]["type"] == rtype and a["resource"].get("name") == name
+                                       and a.get("operation") == op)]
+
+
+def _kafka(raw):
+    return next(d for d in raw["cluster"] if d.get("kind") == "Kafka")["spec"]["kafka"]
+
+
+def _topic_doc(raw, name):
+    return next(d for d in raw["topics"] if d["metadata"]["name"] == name)
+
+
+def mutations():
+    """(regla, nombre, funcion de mutacion) — incluye los casos del hallazgo de auditoria."""
+    ev = lambda r: r["topology"]["eventTypes"]
+    return [
+        ("R01", "eventType sin entrada", lambda r: ev(r).pop("revision.completada")),
+        ("R01", "entrada sin esquema", lambda r: ev(r).update({"zzz.fantasma": {
+            "topic": "review.events", "producers": ["review-service"], "key": "documentId"}})),
+        ("R02", "topico sin declarar en topics.yaml", lambda r: r["topics"].remove(_topic_doc(r, "quality.events"))),
+        ("R02", "key incoherente", lambda r: ev(r)["documento.recibido"].update(key="tenantId")),
+        ("R02", "kind invalido", lambda r: r["topology"]["topics"]["quality.events"].update(kind="otro")),
+        ("R03", "dos productores en topico de dominio",
+         lambda r: ev(r)["revision.escalada"]["producers"].append("quality-service")),
+        ("R04", "control en el topico de senales",
+         lambda r: ev(r)["legalhold.aplicado"].update(topic="audit.signals")),
+        ("R04", "estado en el topico multi-productor de senales",
+         lambda r: ev(r)["revision.completada"].update(topic="audit.signals")),
+        ("R04", "senal en el topico de control",
+         lambda r: ev(r)["chat.respuesta_bloqueada"].update(topic="audit.control")),
+        ("R04", "senal en topico de dominio", lambda r: ev(r)["chat.respuesta_desde_cache"].update(
+            topic="review.events")),
+        ("R05", "Write ajeno", lambda r: _acls(r, "quality-service").append(_acl("review.events", "Write"))),
+        ("R05", "Write faltante", lambda r: _drop(r, "review-service", "topic", "review.events", "Write")),
+        ("R05", "suplantacion en document.events",
+         lambda r: _acls(r, "extraction-service").append(_acl("document.events", "Write"))),
+        ("R05", "Write extra sobre un -dlt ajeno",
+         lambda r: _acls(r, "document-service").append(_acl("quality.events-dlt", "Write"))),
+        ("R05", "Write de control para quien no lo produce",
+         lambda r: _acls(r, "document-service").append(_acl("audit.control", "Write"))),
+        ("R06", "Read ajeno extra", lambda r: _acls(r, "quality-service").append(_acl("notification.events", "Read"))),
+        ("R06", "consumidor sin Read", lambda r: _drop(r, "document-service", "topic", "review.events", "Read")),
+        ("R07", "falta Describe", lambda r: _drop(r, "review-service", "topic", "review.events", "Describe")),
+        ("R07", "Describe ajeno", lambda r: _acls(r, "quality-service").append(_acl("notification.events", "Describe"))),
+        ("R08", "ACL cluster", lambda r: _acls(r, "document-service").append(_acl("kafka-cluster", "Describe", rtype="cluster"))),
+        ("R08", "ACL cluster Write", lambda r: _acls(r, "audit-service").append(_acl("kafka-cluster", "Write", rtype="cluster"))),
+        ("R09", "prefix sobre topico", lambda r: _acls(r, "document-service").append(_acl("documentos.", "Read", "prefix"))),
+        ("R09", "prefix sobre topico propio", lambda r: _acls(r, "review-service").append(_acl("revision.", "Write", "prefix"))),
+        ("R12", "patternType desconocido sobre topico",
+         lambda r: _acls(r, "review-service").append(_acl("review.events", "Write", "contains"))),
+        ("R10", "wildcard sobre topico", lambda r: _acls(r, "document-service").append(_acl("*", "Read"))),
+        ("R10", "wildcard sobre grupo", lambda r: _acls(r, "document-service").append(_acl("*", "Read", rtype="group"))),
+        ("R11", "operation All sobre un topico propio",
+         lambda r: _acls(r, "review-service").append(_acl("review.events", "All"))),
+        ("R11", "operation Create", lambda r: _acls(r, "review-service").append(_acl("review.events", "Create"))),
+        ("R11", "operation Alter", lambda r: _acls(r, "review-service").append(_acl("review.events", "Alter"))),
+        ("R11", "operation Delete", lambda r: _acls(r, "review-service").append(_acl("review.events", "Delete"))),
+        ("R11", "All en lista operations", lambda r: _acls(r, "review-service").append({
+            "resource": {"type": "topic", "name": "review.events", "patternType": "literal"},
+            "operations": ["Write", "All"]})),
+        ("R12", "recurso sin type", lambda r: _acls(r, "review-service").append(
+            {"resource": {"name": "review.events"}, "operation": "Write"})),
+        ("R12", "type de recurso desconocido", lambda r: _acls(r, "review-service").append(
+            _acl("tx-1", "Write", rtype="transactionalIdX"))),
+        ("R12", "ACL sin recurso", lambda r: _acls(r, "review-service").append({"operation": "Write"})),
+        ("R12", "ACL sin operacion", lambda r: _acls(r, "review-service").append(
+            {"resource": {"type": "topic", "name": "review.events", "patternType": "literal"}})),
+        ("R13", "falta ACL de grupo", lambda r: _drop(r, "document-service", "group", "document-service", "Read")),
+        ("R13", "falta ACL de grupo prefijo",
+         lambda r: _drop(r, "document-service", "group", "document-service-acceso-revocado-", "Read")),
+        ("R13", "ACL de grupo ajeno", lambda r: _acls(r, "quality-service").append(
+            _acl("document-service", "Read", rtype="group"))),
+        ("R14", "KafkaUser sin tls", lambda r: _user(r, "review-service")["spec"]["authentication"].update(
+            type="scram-sha-512")),
+        ("R14", "KafkaUser sin authentication", lambda r: _user(r, "review-service")["spec"].pop("authentication")),
+        ("R14", "KafkaUser sin authorization simple",
+         lambda r: _user(r, "review-service")["spec"]["authorization"].update(type="opa")),
+        ("R15", "listener plain", lambda r: _kafka(r)["listeners"][0].update(tls=False)),
+        ("R15", "listener sin authentication tls", lambda r: _kafka(r)["listeners"][0].pop("authentication")),
+        ("R15", "listener plain adicional", lambda r: _kafka(r)["listeners"].append(
+            {"name": "plain", "port": 9092, "type": "internal", "tls": False})),
+        ("R16", "cluster sin authorization", lambda r: _kafka(r).pop("authorization")),
+        ("R16", "cluster con superUsers", lambda r: _kafka(r)["authorization"].update(superUsers=["CN=admin"])),
+        ("R17", "auto.create.topics.enable ausente", lambda r: _kafka(r)["config"].pop("auto.create.topics.enable")),
+        ("R17", "auto.create.topics.enable true",
+         lambda r: _kafka(r)["config"].update({"auto.create.topics.enable": "true"})),
+        ("R17", "allow.everyone.if.no.acl.found ausente",
+         lambda r: _kafka(r)["config"].pop("allow.everyone.if.no.acl.found")),
+        ("R18", "topico retirado", lambda r: r["services"]["review-service"]["retired"].append("X.java")),
+        ("R19", "servicio sin usuario escucha", lambda r: r["services"]["renderer"].update(listened={"document.events"})),
+        ("R19", "productor sin KafkaUser", lambda r: ev(r)["revision.escalada"].update(producers=["fantasma-service"])),
+        ("R20", "eventType escuchado desconocido",
+         lambda r: r["load_errors"].append(("R20", "x: escucha el eventType 'zzz'"))),
+    ]
+
+
 def self_test():
-    """Rompe una regla a la vez sobre el modelo real y exige que validate() la detecte."""
-    base = load_model()
+    base = load_raw()
     failures = []
     baseline = validate(base)
     if baseline:
         failures.append(f"el modelo base ya tiene errores: {baseline[:3]}")
-
-    def mutate(name, fn, expected):
-        m = copy.deepcopy(base)
-        fn(m)
-        errs = validate(m)
-        if not any(expected in e for e in errs):
-            failures.append(f"{name}: no se detecto (se esperaba '{expected}'); errores: {errs[:3]}")
-
-    mutate("eventType sin entrada", lambda m: m["events"].pop("revision.completada"),
-           "revision.completada' del catalogo sin entrada")
-    mutate("write ajeno", lambda m: m["users"]["quality-service"]["acls"].append(("review.events", "Write")),
-           "Write sobre el topico ajeno 'review.events'")
-    mutate("write faltante", lambda m: m["users"]["review-service"]["acls"].remove(("review.events", "Write")),
-           "falta Write sobre 'review.events'")
-    mutate("suplantacion en document.events",
-           lambda m: m["users"]["extraction-service"]["acls"].append(("document.events", "Write")),
-           "Write sobre el topico ajeno 'document.events'")
-    mutate("consumidor sin Read", lambda m: m["users"]["document-service"]["acls"].remove(("review.events", "Read")),
-           "sin Read sobre el topico 'review.events'")
-    mutate("topico sin declarar", lambda m: m["declared"].discard("quality.events"),
-           "topico 'quality.events' no declarado")
-    mutate("dos productores fuera de auditoria",
-           lambda m: m["events"]["revision.escalada"]["producers"].append("quality-service"),
-           "varios productores solo se admiten en audit.events")
-    mutate("key incoherente", lambda m: m["events"]["documento.recibido"].update(key="tenantId"),
-           "key 'tenantId' distinta")
-    mutate("servicio sin usuario escucha",
-           lambda m: m["services"]["renderer"].update(listened={"document.events"}),
-           "no tiene KafkaUser")
-    mutate("topico retirado", lambda m: m["services"]["review-service"]["retired"].append("X.java"),
-           "topico retirado")
-    mutate("eventType escuchado desconocido", lambda m: m["load_errors"].append("x: escucha el eventType 'zzz'"),
-           "escucha el eventType")
+    covered = set()
+    for rule, name, fn in mutations():
+        covered.add(rule)
+        raw = copy.deepcopy(base)
+        fn(raw)
+        if not any(r == rule for r, _ in validate(raw)):
+            failures.append(f"{rule} '{name}': la mutacion no fue detectada por la regla")
+    for rule in sorted(RULES - covered):
+        failures.append(f"{rule}: regla sin mutacion asociada en el self-test")
     for f in failures:
         print("SELF-TEST FALLO", f)
     print("SELF-TEST OK" if not failures else f"SELF-TEST: {len(failures)} fallo(s)")
@@ -262,9 +480,9 @@ def self_test():
 def main():
     if "--self-test" in sys.argv[1:]:
         return self_test()
-    errors = validate(load_model())
-    for e in errors:
-        print("ERROR", e)
+    errors = validate(load_raw())
+    for rule, msg in errors:
+        print(f"ERROR [{rule}] {msg}")
     print("OK" if not errors else f"{len(errors)} error(es)")
     return 1 if errors else 0
 

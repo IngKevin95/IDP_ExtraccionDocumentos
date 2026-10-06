@@ -30,6 +30,9 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Install PyYAML for the Kafka topology check
+        run: python3 -m pip install pyyaml
+
       - name: Validate Kafka topics and ACLs
         run: python3 tools/ci/check_kafka_topics.py && python3 tools/ci/check_kafka_topics.py --self-test
 

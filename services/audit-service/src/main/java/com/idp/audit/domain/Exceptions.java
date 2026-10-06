@@ -26,6 +26,16 @@ public final class Exceptions {
     }
 
     /**
+     * El evento pertenece a un tenant que no existe en el directorio de la plataforma (atribuible al contenido, no
+     * a la infraestructura): se descarta con alerta SECURITY y no crea cabeza de cadena (SEC-053).
+     */
+    public static class UnknownTenantException extends RuntimeException {
+        public UnknownTenantException(String message) {
+            super(message);
+        }
+    }
+
+    /**
      * La cadena del tenant es inconsistente (alteracion de BD o hueco). En el consumidor Kafka bloquea la
      * particion: se reintenta indefinidamente y no se hace commit del offset (AC-02).
      */

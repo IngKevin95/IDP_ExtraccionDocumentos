@@ -32,9 +32,9 @@ public final class OutboxRelay {
     private final int batchSize;
     private final Duration sendTimeout;
 
-    public OutboxRelay(TenantOutboxAccess access, Supplier<Collection<String>> tenantIds,
-                       KafkaTemplate<String, String> kafka, Function<String, String> topicResolver,
-                       int batchSize, Duration sendTimeout) {
+    private OutboxRelay(TenantOutboxAccess access, Supplier<Collection<String>> tenantIds,
+                        KafkaTemplate<String, String> kafka, Function<String, String> topicResolver,
+                        int batchSize, Duration sendTimeout) {
         this.access = access;
         this.tenantIds = tenantIds;
         this.kafka = kafka;
@@ -54,7 +54,12 @@ public final class OutboxRelay {
             batchSize, sendTimeout);
     }
 
-    /** Topic por defecto: el eventType. */
+    /**
+     * Topic por defecto: el eventType, sin validar productor.
+     *
+     * @deprecated solo para pruebas de la libreria; los servicios usan el constructor con {@link EventTopology}.
+     */
+    @Deprecated
     public OutboxRelay(TenantOutboxAccess access, Supplier<Collection<String>> tenantIds,
                        KafkaTemplate<String, String> kafka) {
         this(access, tenantIds, kafka, Function.identity(), 100, Duration.ofSeconds(10));
