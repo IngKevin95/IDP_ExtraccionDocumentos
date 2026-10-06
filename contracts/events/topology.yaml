@@ -1,38 +1,38 @@
 # Fuente unica de verdad de la topologia de eventos (ADR 0029, SEC-052).
 # Formato: una entrada por linea (flow style), parseable sin dependencias por tools/ci/check_kafka_topics.py.
 # Por eventType: topic (unico), producers (servicios con Write sobre ese topico) y key (clave de particion).
-# Regla: un topico por productor o familia; solo auditoria.eventos admite varios productores (senales de
+# Regla: un topico por productor o familia; solo audit.events admite varios productores (senales de
 # seguridad/metering, que audit-service trata como senales y no como estado autoritativo).
 # libs/events empaqueta este fichero y lo expone como EventTopology; tools/ci/check_kafka_topics.py lo valida
 # contra los esquemas, topics.yaml y users.yaml.
 topics:
-  documentos.eventos: { owner: document-service, key: documentId }
-  extraccion.eventos: { owner: extraction-service, key: documentId }
-  revision.eventos: { owner: review-service, key: documentId }
-  calidad.eventos: { owner: quality-service, key: documentId }
-  notificaciones.eventos: { owner: notification-service, key: documentId }
+  document.events: { owner: document-service, key: documentId }
+  extraction.events: { owner: extraction-service, key: documentId }
+  review.events: { owner: review-service, key: documentId }
+  quality.events: { owner: quality-service, key: documentId }
+  notification.events: { owner: notification-service, key: documentId }
   idp.tenant.events: { owner: tenant-service, key: tenantId }
-  auditoria.eventos: { owner: shared, key: tenantId }
+  audit.events: { owner: shared, key: tenantId }
 
 eventTypes:
-  documento.recibido: { topic: documentos.eventos, producers: [document-service], key: documentId }
-  documento.rechazado: { topic: documentos.eventos, producers: [document-service], key: documentId }
-  documento.renderizado: { topic: documentos.eventos, producers: [document-service], key: documentId }
-  documento.purgado: { topic: documentos.eventos, producers: [document-service], key: documentId }
-  extraccion.solicitada: { topic: documentos.eventos, producers: [document-service], key: documentId }
-  extraccion.aprobada: { topic: documentos.eventos, producers: [document-service], key: documentId }
+  documento.recibido: { topic: document.events, producers: [document-service], key: documentId }
+  documento.rechazado: { topic: document.events, producers: [document-service], key: documentId }
+  documento.renderizado: { topic: document.events, producers: [document-service], key: documentId }
+  documento.purgado: { topic: document.events, producers: [document-service], key: documentId }
+  extraccion.solicitada: { topic: document.events, producers: [document-service], key: documentId }
+  extraccion.aprobada: { topic: document.events, producers: [document-service], key: documentId }
 
-  extraccion.completada: { topic: extraccion.eventos, producers: [extraction-service], key: documentId }
-  extraccion.requiere_revision: { topic: extraccion.eventos, producers: [extraction-service], key: documentId }
-  ia.ejecucion_registrada: { topic: extraccion.eventos, producers: [extraction-service], key: documentId }
+  extraccion.completada: { topic: extraction.events, producers: [extraction-service], key: documentId }
+  extraccion.requiere_revision: { topic: extraction.events, producers: [extraction-service], key: documentId }
+  ia.ejecucion_registrada: { topic: extraction.events, producers: [extraction-service], key: documentId }
 
-  revision.completada: { topic: revision.eventos, producers: [review-service], key: documentId }
-  revision.escalada: { topic: revision.eventos, producers: [review-service], key: documentId }
+  revision.completada: { topic: review.events, producers: [review-service], key: documentId }
+  revision.escalada: { topic: review.events, producers: [review-service], key: documentId }
 
-  calidad.muestra_ciega_solicitada: { topic: calidad.eventos, producers: [quality-service], key: documentId }
+  calidad.muestra_ciega_solicitada: { topic: quality.events, producers: [quality-service], key: documentId }
 
-  webhook.entregado: { topic: notificaciones.eventos, producers: [notification-service], key: documentId }
-  webhook.fallido: { topic: notificaciones.eventos, producers: [notification-service], key: documentId }
+  webhook.entregado: { topic: notification.events, producers: [notification-service], key: documentId }
+  webhook.fallido: { topic: notification.events, producers: [notification-service], key: documentId }
 
   tenant.aprovisionado: { topic: idp.tenant.events, producers: [tenant-service], key: tenantId }
   tenant.aprovisionamiento_fallido: { topic: idp.tenant.events, producers: [tenant-service], key: tenantId }
@@ -46,11 +46,11 @@ eventTypes:
   cuota.umbral_alcanzado: { topic: idp.tenant.events, producers: [tenant-service], key: tenantId }
 
   # Excepcion documentada: senales con varios productores reales. audit-service las ingiere como senales.
-  consumo.registrado: { topic: auditoria.eventos, producers: [tenant-service, extraction-service], key: tenantId }
-  legalhold.aplicado: { topic: auditoria.eventos, producers: [tenant-service, audit-service], key: tenantId }
-  legalhold.liberado: { topic: auditoria.eventos, producers: [tenant-service, audit-service], key: tenantId }
-  auditoria.alerta_integridad: { topic: auditoria.eventos, producers: [audit-service], key: tenantId }
-  seguridad.acceso_denegado: { topic: auditoria.eventos, producers: [document-service, extraction-service, review-service, quality-service, notification-service, chat-service, tenant-service], key: tenantId }
-  seguridad.prompt_injection_detectado: { topic: auditoria.eventos, producers: [extraction-service, chat-service], key: tenantId }
-  chat.respuesta_bloqueada: { topic: auditoria.eventos, producers: [chat-service], key: tenantId }
-  chat.respuesta_desde_cache: { topic: auditoria.eventos, producers: [chat-service], key: tenantId }
+  consumo.registrado: { topic: audit.events, producers: [tenant-service, extraction-service], key: tenantId }
+  legalhold.aplicado: { topic: audit.events, producers: [tenant-service, audit-service], key: tenantId }
+  legalhold.liberado: { topic: audit.events, producers: [tenant-service, audit-service], key: tenantId }
+  auditoria.alerta_integridad: { topic: audit.events, producers: [audit-service], key: tenantId }
+  seguridad.acceso_denegado: { topic: audit.events, producers: [document-service, extraction-service, review-service, quality-service, notification-service, chat-service, tenant-service], key: tenantId }
+  seguridad.prompt_injection_detectado: { topic: audit.events, producers: [extraction-service, chat-service], key: tenantId }
+  chat.respuesta_bloqueada: { topic: audit.events, producers: [chat-service], key: tenantId }
+  chat.respuesta_desde_cache: { topic: audit.events, producers: [chat-service], key: tenantId }

@@ -105,7 +105,7 @@ public final class EventTopology {
         return entry(eventType).producers();
     }
 
-    /** Productor unico del eventType; falla si tiene varios (solo auditoria.eventos). */
+    /** Productor unico del eventType; falla si tiene varios (solo audit.events). */
     public String producerOf(String eventType) {
         List<String> p = producersOf(eventType);
         if (p.size() != 1) {

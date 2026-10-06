@@ -53,6 +53,10 @@ public class TenantRepository {
         return jdbc.sql("SELECT * FROM tenants WHERE id = :id").param("id", id).query(TENANT).optional();
     }
 
+    public Optional<Tenant> findForUpdate(UUID id) {
+        return jdbc.sql("SELECT * FROM tenants WHERE id = :id FOR UPDATE").param("id", id).query(TENANT).optional();
+    }
+
     public List<Tenant> list() {
         return jdbc.sql("SELECT * FROM tenants ORDER BY created_at, id").query(TENANT).list();
     }

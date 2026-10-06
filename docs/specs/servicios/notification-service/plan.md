@@ -21,7 +21,7 @@
   * `WebhookDelivery` (Entity JPA): Registro histórico de intentos por documento.
   * `WebhookEvent` (Enum): Tipos de eventos soportados.
 * **`com.idp.notification.event`**
-  * `DocumentEventConsumer`: `@KafkaListener` idempotente para `documentos.eventos` y `revision.eventos` (valida el tópico de origen, SEC-052).
+  * `DocumentEventConsumer`: `@KafkaListener` idempotente para `document.events` y `review.events` (valida el tópico de origen, SEC-052).
   * `OutboxEventPublisher`: Interfaz para guardar eventos `webhook.entregado` y `webhook.fallido` en la tabla outbox (transactional).
 * **`com.idp.notification.infrastructure.http`**
   * `WebhookDispatcher`: Revalida la URL, firma y clasifica el resultado del envío (`ApacheWebhookTransport` es el transporte seguro).

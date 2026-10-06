@@ -19,18 +19,18 @@ class EventTopologyTest {
 
     @Test
     void sec052_topicoPorProductor() {
-        assertThat(topology.topicFor("revision.completada")).isEqualTo("revision.eventos");
+        assertThat(topology.topicFor("revision.completada")).isEqualTo("review.events");
         assertThat(topology.producerOf("revision.completada")).isEqualTo("review-service");
-        assertThat(topology.topicFor("extraccion.aprobada")).isEqualTo("documentos.eventos");
-        assertThat(topology.topicFor("calidad.muestra_ciega_solicitada")).isEqualTo("calidad.eventos");
+        assertThat(topology.topicFor("extraccion.aprobada")).isEqualTo("document.events");
+        assertThat(topology.topicFor("calidad.muestra_ciega_solicitada")).isEqualTo("quality.events");
         assertThat(topology.keyOf("acceso.revocado")).isEqualTo("tenantId");
         assertThat(topology.topicsFor("extraccion.completada", "extraccion.requiere_revision", "revision.completada"))
-            .containsExactly("extraccion.eventos", "revision.eventos");
+            .containsExactly("extraction.events", "review.events");
     }
 
     @Test
     void sec052_servicioNoProductorFallaDeFormaExplicita() {
-        assertThat(topology.allowedTopicFor("review-service", "revision.completada")).isEqualTo("revision.eventos");
+        assertThat(topology.allowedTopicFor("review-service", "revision.completada")).isEqualTo("review.events");
         assertThatThrownBy(() -> topology.allowedTopicFor("quality-service", "revision.completada"))
             .isInstanceOf(IllegalStateException.class).hasMessageContaining("no es productor autorizado");
         assertThatThrownBy(() -> topology.topicFor("no.existe")).isInstanceOf(IllegalStateException.class);
@@ -40,7 +40,7 @@ class EventTopologyTest {
     void sec052_soloAuditoriaEventosAdmiteVariosProductores() {
         for (String type : topology.eventTypes()) {
             if (topology.producersOf(type).size() > 1) {
-                assertThat(topology.topicFor(type)).as(type).isEqualTo("auditoria.eventos");
+                assertThat(topology.topicFor(type)).as(type).isEqualTo("audit.events");
             }
         }
     }
@@ -61,9 +61,9 @@ class EventTopologyTest {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         EventOriginGuard guard = new EventOriginGuard(topology, registry);
 
-        assertThat(guard.accepts("revision.eventos", "revision.completada")).isTrue();
-        assertThat(guard.accepts("documentos.eventos", "revision.completada")).isFalse();
-        assertThat(guard.accepts("revision.eventos", "tipo.desconocido")).isFalse();
+        assertThat(guard.accepts("review.events", "revision.completada")).isTrue();
+        assertThat(guard.accepts("document.events", "revision.completada")).isFalse();
+        assertThat(guard.accepts("review.events", "tipo.desconocido")).isFalse();
         assertThat(guard.accepts(null, "revision.completada")).isFalse();
         assertThat(registry.counter("idp.events.origin.rejected", "reason", "wrong_topic").count()).isEqualTo(2.0);
         assertThat(registry.counter("idp.events.origin.rejected", "reason", "unknown_type").count()).isEqualTo(1.0);

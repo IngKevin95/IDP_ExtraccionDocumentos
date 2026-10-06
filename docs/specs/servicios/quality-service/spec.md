@@ -32,7 +32,7 @@ Gestionar el ciclo de vida de la calidad del sistema de extracción (Riesgo de M
 * `revision.completada.v1`: Para calcular errores (campos corregidos vs propuestos) y alimentar la precisión y recall.
 
 ### Eventos Publicados
-* `calidad.muestra_ciega_solicitada.v1` (tópico `calidad.eventos`, clave `documentId`): se emite por outbox, en la misma transacción que registra la selección, cuando el muestreo ciego elige un oficio auto-aprobado (`AUTO_STP`). Payload claim-check sin PII: `documentId`, `tenantId`, `typology`, `sampleId` (más el envelope único). `quality-service` es su único productor; lo consume `review-service`, que crea la tarea de revisión ciega. Esquema: `contracts/events/calidad.muestra_ciega_solicitada.v1.schema.json`. Una re-entrega de `extraccion.aprobada` no vuelve a seleccionar ni a publicar.
+* `calidad.muestra_ciega_solicitada.v1` (tópico `quality.events`, clave `documentId`): se emite por outbox, en la misma transacción que registra la selección, cuando el muestreo ciego elige un oficio auto-aprobado (`AUTO_STP`). Payload claim-check sin PII: `documentId`, `tenantId`, `typology`, `sampleId` (más el envelope único). `quality-service` es su único productor; lo consume `review-service`, que crea la tarea de revisión ciega. Esquema: `contracts/events/calidad.muestra_ciega_solicitada.v1.schema.json`. Una re-entrega de `extraccion.aprobada` no vuelve a seleccionar ni a publicar.
 * Las métricas se exponen vía API y tableros.
 
 ### Endpoints (API)
@@ -115,6 +115,6 @@ Las tablas residen en el esquema de la **Base de Control (Compartida)** dado que
 * **Métricas Exportables:** Tasa STP general y por tenant, Precisión de campos, Volumen de documentos sintéticos evaluados.
 
 ## Dependencias
-* **Kafka:** Para suscripción a los tópicos de extracción y revisión, y publicación de `calidad.muestra_ciega_solicitada` (ACL `Write` exclusiva sobre `calidad.eventos`; `Read` sobre `documentos.eventos`, `extraccion.eventos` y `revision.eventos`).
+* **Kafka:** Para suscripción a los tópicos de extracción y revisión, y publicación de `calidad.muestra_ciega_solicitada` (ACL `Write` exclusiva sobre `quality.events`; `Read` sobre `document.events`, `extraction.events` y `review.events`).
 * **PostgreSQL (Base Compartida):** Persistencia de métricas y documentos del Golden Set.
 * **LLM Provider (Opcional):** Si la evaluación del Golden Set requiere re-ejecutar *prompts* sintéticos de prueba.

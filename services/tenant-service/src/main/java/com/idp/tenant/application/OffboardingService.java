@@ -20,6 +20,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.transaction.support.TransactionTemplate;
+
 /**
  * Baja en dos fases (SEC-047): 1) PENDING_DELETION con plazo y tenant.baja_iniciada; 2) job de shredding que
  * deshabilita la KEK de datos (SEC-016) conservando la de auditoria. Bloqueada por legal hold (SEC-017).
@@ -35,9 +37,11 @@ public class OffboardingService {
     private final LegalHoldRepository tenantHolds;
     private final Clock clock;
     private final long graceDays;
+    private final TransactionTemplate tx;
 
     public OffboardingService(TenantRepository tenants, TenantEvents events, KeyService keyService,
                               LegalHoldGate holds, LegalHoldRepository tenantHolds, Clock clock,
+                              TransactionTemplate tx,
                               @Value("${idp.tenant.offboarding.grace-days:30}") long graceDays) {
         this.holds = holds;
         this.tenantHolds = tenantHolds;
@@ -45,6 +49,7 @@ public class OffboardingService {
         this.events = events;
         this.keyService = keyService;
         this.clock = clock;
+        this.tx = tx;
         this.graceDays = graceDays;
     }
 
@@ -93,8 +98,15 @@ public class OffboardingService {
         return shredded;
     }
 
-    private boolean shred(Tenant tenant) {
-        UUID id = tenant.id();
+    private boolean shred(Tenant t) {
+        return Boolean.TRUE.equals(tx.execute(status -> doShred(t.id())));
+    }
+
+    protected boolean doShred(UUID id) {
+        Tenant tenant = tenants.findForUpdate(id).orElse(null);
+        if (tenant == null || tenant.status() != TenantStatus.PENDING_DELETION) {
+            return false;
+        }
         TenantConfig config = tenants.findConfig(id).orElse(null);
         try {
             if (holds.anyHold(id.toString())) {

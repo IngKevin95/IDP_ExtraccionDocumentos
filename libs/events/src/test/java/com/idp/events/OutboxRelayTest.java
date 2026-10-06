@@ -92,7 +92,7 @@ class OutboxRelayTest {
         assertEquals(3, n);
         ArgumentCaptor<ProducerRecord<String, String>> cap = ArgumentCaptor.forClass(ProducerRecord.class);
         verify(kafka, times(3)).send(cap.capture());
-        assertEquals(List.of("extraccion.eventos", "extraccion.eventos", "auditoria.eventos"),
+        assertEquals(List.of("extraction.events", "extraction.events", "audit.events"),
             cap.getAllValues().stream().map(ProducerRecord::topic).toList());
     }
 

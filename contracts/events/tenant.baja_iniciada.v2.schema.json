@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/tenant.baja_iniciada/v2.json",
+  "title": "Tenant Baja Iniciada Event V2",
+  "description": "Evento emitido cuando se solicita la eliminación lógica de un tenant, previo a la purga. V2 segregada y no modificable.",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "requestedBy",
+    "reason"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "tenant.baja_iniciada"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 2
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "requestedBy": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}
+  },
+  "additionalProperties": false
+}

@@ -33,7 +33,7 @@ public class LegalHoldService {
     /** Aplica retencion legal; idempotente si ya hay una activa. Devuelve el id de la retencion activa. */
     @Transactional
     public UUID apply(UUID tenantId, String reasonCode, String actor) {
-        Tenant tenant = tenants.find(tenantId).orElseThrow(() -> new NotFoundException("Tenant no encontrado"));
+        Tenant tenant = tenants.findForUpdate(tenantId).orElseThrow(() -> new NotFoundException("Tenant no encontrado"));
         if (tenant.status() == TenantStatus.DELETED) {
             throw new ConflictException("El tenant ya fue eliminado");
         }

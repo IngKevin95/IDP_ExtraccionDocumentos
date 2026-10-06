@@ -51,9 +51,9 @@ import org.testcontainers.kafka.KafkaContainer;
 class ReviewKafkaIntegrationTest {
 
     static final String TENANT = "6f1c3b0e-8d2a-4c57-9a43-2b7e5d9f1a10";
-    /** requiere_revision llega por extraccion.eventos; revision.completada se publica en revision.eventos. */
-    private static final String IN_TOPIC = "extraccion.eventos";
-    private static final String OUT_TOPIC = "revision.eventos";
+    /** requiere_revision llega por extraction.events; revision.completada se publica en review.events. */
+    private static final String IN_TOPIC = "extraction.events";
+    private static final String OUT_TOPIC = "review.events";
 
     @Container
     static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka-native:3.8.0");

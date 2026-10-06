@@ -1,4 +1,4 @@
-# 0029. Tópico por productor y validación de origen de eventos
+# 0031. Tópico por productor y validación de origen de eventos
 
 Estado: Aceptada
 Fecha: 2026-10-05
@@ -11,15 +11,15 @@ Hasta ahora varios servicios tenían `Write` sobre el mismo tópico `dominio.doc
 
 | Tópico | Productor | Eventos | Clave |
 |---|---|---|---|
-| `documentos.eventos` | `document-service` | `documento.recibido/rechazado/renderizado/purgado`, `extraccion.solicitada`, `extraccion.aprobada` | `documentId` |
-| `extraccion.eventos` | `extraction-service` | `extraccion.completada`, `extraccion.requiere_revision`, `ia.ejecucion_registrada` | `documentId` |
-| `revision.eventos` | `review-service` | `revision.completada`, `revision.escalada` | `documentId` |
-| `calidad.eventos` | `quality-service` | `calidad.muestra_ciega_solicitada` | `documentId` |
-| `notificaciones.eventos` | `notification-service` | `webhook.entregado`, `webhook.fallido` | `documentId` |
+| `document.events` | `document-service` | `documento.recibido/rechazado/renderizado/purgado`, `extraccion.solicitada`, `extraccion.aprobada` | `documentId` |
+| `extraction.events` | `extraction-service` | `extraccion.completada`, `extraccion.requiere_revision`, `ia.ejecucion_registrada` | `documentId` |
+| `review.events` | `review-service` | `revision.completada`, `revision.escalada` | `documentId` |
+| `quality.events` | `quality-service` | `calidad.muestra_ciega_solicitada` | `documentId` |
+| `notification.events` | `notification-service` | `webhook.entregado`, `webhook.fallido` | `documentId` |
 | `idp.tenant.events` | `tenant-service` | `tenant.*`, `acceso.revocado`, `acceso.rol_sensible_otorgado`, `breakglass.*`, `cuota.umbral_alcanzado` | `tenantId` |
-| `auditoria.eventos` | varios (excepción) | señales: `seguridad.*`, `chat.*`, `consumo.registrado`, `legalhold.*`, `auditoria.alerta_integridad` | `tenantId` |
+| `audit.events` | varios (excepción) | señales: `seguridad.*`, `chat.*`, `consumo.registrado`, `legalhold.*`, `auditoria.alerta_integridad` | `tenantId` |
 
-- Excepción documentada: `auditoria.eventos` admite varios productores porque sus eventos son señales (seguridad, metering) con productores reales múltiples (`consumo.registrado`: `tenant-service` por cuotas y `extraction-service` por tokens y documentos; `legalhold.*`: `tenant-service` y `audit-service`). `audit-service` las ingiere en la cadena de hash como señales, no como estado autoritativo; ningún servicio decide nada de negocio a partir de ellas. Cada servicio sigue escribiendo solo los eventTypes que la topología le asigna.
+- Excepción documentada: `audit.events` admite varios productores porque sus eventos son señales (seguridad, metering) con productores reales múltiples (`consumo.registrado`: `tenant-service` por cuotas y `extraction-service` por tokens y documentos; `legalhold.*`: `tenant-service` y `audit-service`). `audit-service` las ingiere en la cadena de hash como señales, no como estado autoritativo; ningún servicio decide nada de negocio a partir de ellas. Cada servicio sigue escribiendo solo los eventTypes que la topología le asigna.
 - Fuente única de verdad: `contracts/events/topology.yaml` (por eventType: tópico, productores, clave). `libs/events` la empaqueta (como los esquemas) y expone `EventTopology` (`topicFor`, `producersOf`, `allowedTopicFor`, `topicsFor`).
 - Productores: los relays del outbox (`OutboxRelay`) y los publicadores (`JdbcOutboxPublisher`, `JdbcOutbox` de tenant, `KafkaAuditEventPublisher`) resuelven el tópico por eventType con `allowedTopicFor(servicio, eventType)`; un eventType que el servicio no produce falla de forma explícita (al encolar, y de nuevo en el relay).
 - Consumidores: cada consumo valida con `EventOriginGuard` que el eventType llegó por el tópico que la topología le asigna (topic del `ConsumerRecord`). Si no coincide: el evento se ignora, se incrementa `idp.events.origin.rejected` y se registra una alerta `SECURITY` sin payload. Aplica a document, extraction, review, quality, notification, audit y a los listeners de `libs/security` (`acceso.revocado`, `tenant.baja_iniciada`). Los `@KafkaListener` suscriben por defecto a los tópicos que dicta la topología (propiedades configurables).
@@ -36,7 +36,7 @@ Hasta ahora varios servicios tenían `Write` sobre el mismo tópico `dominio.doc
 ## Consecuencias
 - Positivas: la unicidad del productor deja de ser documental; un servicio comprometido ya no puede emitir `revision.completada`, `extraccion.aprobada` ni muestras ciegas; el orden por documento se conserva dentro de cada tópico (clave `documentId`).
 - Negativas o costos: más tópicos y particiones (incluidos cuatro `*-dlt`); el orden causal entre tópicos distintos no está garantizado (los consumidores ya eran idempotentes y dependen de estado, no de orden entre tópicos); un consumidor se suscribe a varios tópicos; hay que mantener la topología sincronizada con los esquemas (lo valida CI).
-- Riesgo residual: un servicio comprometido puede seguir emitiendo señales falsas en `auditoria.eventos` (excepción documentada); los DLT son escribibles por los consumidores de su tópico.
+- Riesgo residual: un servicio comprometido puede seguir emitiendo señales falsas en `audit.events` (excepción documentada); los DLT son escribibles por los consumidores de su tópico.
 
 ## Controles de seguridad relacionados
 SEC-052 (nuevo), SEC-050, SEC-051, SEC-009, SEC-039
