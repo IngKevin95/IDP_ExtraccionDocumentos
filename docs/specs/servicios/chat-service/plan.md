@@ -31,7 +31,7 @@ El servicio residirá en el directorio `services/chat-service`.
 * `PromptInjectionDetector`: Interfaz con implementación basada en heurística y/o un modelo LLM pequeño de clasificación, antes del procesamiento RAG.
 
 ## 4. Configuración Spring
-* `application.yml`: Configuración de base de CNPG, pool Hikari (dinámico vía OpenBao), tópicos de Kafka (escribe solo `auditoria.eventos`; consumirá `documentos.eventos` para `extraccion.aprobada`), configuraciones base de Spring AI.
+* `application.yml`: Configuración de base de CNPG, pool Hikari (dinámico vía OpenBao), tópicos de Kafka (escribe solo `auditoria.senales`; consumirá `documentos.eventos` para `extraccion.aprobada`), configuraciones base de Spring AI.
 * `KafkaConsumerConfig`: Factory para consumers idempotentes con offsets manuales (ack local tras commit DB).
 * `SecurityConfig`: Integración con `security-lib` para validar JWT, tenant y extraer claims (MDC logger).
 
@@ -43,7 +43,7 @@ Ruta: `src/main/resources/db/migration/tenant/` (se ejecutan en cada schema/silo
 ## 6. Adaptadores y Puertos
 * **Puerto `VectorStore`:** Interfaz agnóstica para guardar e interrogar chunks.
 * **Puerto `ObjectStore`:** Para recuperar la capa de texto del documento a indexar desde el bucket del tenant.
-* **Puerto `SecurityEventPublisher`:** Publicador específico para eventos que van a `auditoria.eventos` (ej. `seguridad.prompt_injection_detectado`).
+* **Puerto `SecurityEventPublisher`:** Publicador específico para eventos que van a `auditoria.senales` (ej. `seguridad.prompt_injection_detectado`).
 
 ## 7. Estrategia de Tests
 * **Unitarios (JUnit 5 + Mockito):** Validación estricta del prompt format, parsing de citas, casos de uso ignorando persistencia y LLM real (mockeando interfaces).

@@ -191,6 +191,7 @@ public class DocumentIngestionService {
                     .filter(a -> PageArtifact.PAGE_PNG.equals(a.kind())).map(PageArtifact::objectStoreKey).toList());
             DocumentRecord extracting = states.transition(rendered, DocumentStatus.EN_EXTRACCION);
             events.extraccionSolicitada(extracting);
+            repo.registerExtractionRequest(extracting.id(), now);
             return extracting;
         });
     }

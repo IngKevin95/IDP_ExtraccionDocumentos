@@ -6,7 +6,7 @@ El `audit-service` es el componente responsable de garantizar la inmutabilidad, 
 ## 2. Alcance y no alcance
 
 **Alcance:**
-* Consumo continuo y bloqueante de todos los tópicos de dominio y del tópico exclusivo `auditoria.eventos`.
+* Consumo continuo y bloqueante de todos los tópicos de dominio y de los tópicos `auditoria.senales` y `auditoria.control`.
 * Asignación de un número de secuencia estrictamente incremental por tenant al momento de la ingesta.
 * Cálculo y mantenimiento de una cadena de hash (hash-chain) aislada por tenant.
 * Empaquetado periódico de registros y su envío (anclaje) a un almacenamiento inmutable WORM.
@@ -39,7 +39,7 @@ El `audit-service` es el componente responsable de garantizar la inmutabilidad, 
 
 * **Eventos Consumidos (Referencia `contracts/events/*.v1.schema.json`):**
   * Todos los de dominio, en sus tópicos por productor (`documentos.eventos`, `extraccion.eventos`, `revision.eventos`, `calidad.eventos`, `notificaciones.eventos`, `idp.tenant.events`): `documento.recibido`, `extraccion.completada`, `extraccion.aprobada`, `revision.completada`, `documento.purgado`, etc. Un evento que llega por un tópico distinto al que `EventTopology` asigna a su `eventType` se ignora (SEC-052).
-  * Tópico de Seguridad (`auditoria.eventos`): `seguridad.acceso_denegado`, `seguridad.prompt_injection_detectado`, `breakglass.otorgado`, `breakglass.expirado`, `legalhold.aplicado`.
+  * Tópico de señales (`auditoria.senales`): `seguridad.acceso_denegado`, `seguridad.prompt_injection_detectado`, `chat.*`. Tópico de control (`auditoria.control`): `legalhold.aplicado`, `legalhold.liberado`, `consumo.registrado`, `auditoria.alerta_integridad`. `breakglass.*` llega por `idp.tenant.events`.
 
 * **Eventos Publicados:**
   * Ninguno directamente al flujo transaccional para no crear ciclos. Excepcionalmente alertas internas de seguridad (vía métricas u observabilidad).
@@ -100,6 +100,7 @@ La persistencia principal ocurre en la **Base de Control** (esquema compartido, 
   * *When* un usuario con rol `Auditoría` consulta el endpoint `/v1/audit/dossiers/{documentId}`,
   * *Then* el servicio consolida la traza de todos los eventos del documento, firma el compilado asimétricamente con OpenBao (ed25519) y retorna un archivo verificable.
 
+* **AC-05b [Seguridad]: Tenant inexistente (SEC-053).** Given un evento de un `tenantId` que no existe en el directorio de la plataforma, When se consume, Then se descarta con alerta SECURITY sin payload, no se crea cabeza ni entradas de cadena y el consumo no se bloquea (no es un error de infraestructura). Test: `sec053_tenantInexistenteSeDescartaSinCrearCabezaNiEntradas`, `KafkaConfigTest`.
 * **AC-05 [Seguridad]: Aislamiento multitenant del hash-chain.**
   * *Given* la llegada simultánea de eventos para Tenant A y Tenant B,
   * *When* se procesan concurrentemente,
@@ -134,6 +135,6 @@ La persistencia principal ocurre en la **Base de Control** (esquema compartido, 
 * Cero pérdida de eventos de dominio o seguridad (100% de fiabilidad en entrega y encadenamiento).
 
 ## 10. Dependencias
-* **Infraestructura:** CloudNativePG (Base de Control), Strimzi Kafka (todos los tópicos de `contracts/events/topology.yaml`; escribe solo `auditoria.eventos` para `auditoria.alerta_integridad` y `legalhold.*`), ObjectStore compatible con WORM (S3 Object Lock / Azure Blob Immutability).
+* **Infraestructura:** CloudNativePG (Base de Control), Strimzi Kafka (todos los tópicos de `contracts/events/topology.yaml`; escribe solo `auditoria.control` para `auditoria.alerta_integridad` y `legalhold.*`), ObjectStore compatible con WORM (S3 Object Lock / Azure Blob Immutability).
 * **Servicios Externa/Plataforma:** OpenBao Transit (para firmas ed25519), `tenant-service` (para validación de estado de tenant/Legal Hold).
 * **Librerías Base:** `libs/security`, `libs/events`, `libs/kms-port`.

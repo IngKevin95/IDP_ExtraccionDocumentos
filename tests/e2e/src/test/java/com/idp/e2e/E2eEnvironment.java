@@ -167,12 +167,14 @@ final class E2eEnvironment {
                 ScriptUtils.executeSqlScript(c, new ClassPathResource("db/migration/tenant/V3__task_origin.sql"));
                 ScriptUtils.executeSqlScript(c, new ClassPathResource("extraction-silo-h2.sql"));
                 c.createStatement().execute("create table document (id uuid primary key, "
-                    + "uploaded_by varchar(128))");
+                    + "uploaded_by varchar(128), status varchar(32), approved_by varchar(32), "
+                    + "classification varchar(32))");
             }
         }
         for (String t : List.of(TENANT_A, TENANT_B, TENANT_C, TENANT_D)) {
             try (Connection c = DriverManager.getConnection(documentUrl(t), "sa", "")) {
                 ScriptUtils.executeSqlScript(c, new ClassPathResource("db/migration/V1__init_document_schema.sql"));
+                ScriptUtils.executeSqlScript(c, new ClassPathResource("db/migration/V2__pipeline_registry.sql"));
             }
             try (Connection c = DriverManager.getConnection(Overrides.extractionUrl(t), "sa", "")) {
                 ScriptUtils.executeSqlScript(c, new ClassPathResource("extraction-silo-h2.sql"));
@@ -384,7 +386,7 @@ final class E2eEnvironment {
         List<Object[]> timed = new ArrayList<>();
         try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props)) {
             for (String topic : TOPICS) {
-                if (topic.equals("auditoria.eventos") || topic.equals("idp.tenant.events")) {
+                if (topic.startsWith("auditoria.") || topic.equals("idp.tenant.events")) {
                     continue;
                 }
                 TopicPartition tp = new TopicPartition(topic, 0);

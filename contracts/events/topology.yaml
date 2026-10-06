@@ -1,18 +1,23 @@
 # Fuente unica de verdad de la topologia de eventos (ADR 0029, SEC-052).
-# Formato: una entrada por linea (flow style), parseable sin dependencias por tools/ci/check_kafka_topics.py.
+# Formato: YAML estandar; lo leen libs/events (EventTopology, SnakeYAML) y tools/ci/check_kafka_topics.py (PyYAML).
 # Por eventType: topic (unico), producers (servicios con Write sobre ese topico) y key (clave de particion).
-# Regla: un topico por productor o familia; solo auditoria.eventos admite varios productores (senales de
-# seguridad/metering, que audit-service trata como senales y no como estado autoritativo).
-# libs/events empaqueta este fichero y lo expone como EventTopology; tools/ci/check_kafka_topics.py lo valida
-# contra los esquemas, topics.yaml y users.yaml.
+# Por topico: owner (servicio productor unico, o "multi" si es multi-productor), kind (domain | signal | control) y key.
+# Reglas: un topico de dominio por productor; solo los topicos multi-productor kind signal (auditoria.senales:
+# seguridad.*, chat.*) o kind control (auditoria.control: legalhold.*, consumo.registrado,
+# auditoria.alerta_integridad, con productores explicitos por eventType) admiten varios servicios con Write.
+# Un topico multi-productor abierto (signal) NO puede contener eventTypes de estado ni de control: un servicio
+# comprometido solo podria falsear senales, nunca el estado del dossier probatorio.
+# libs/events empaqueta este fichero; tools/ci/check_kafka_topics.py lo valida contra los esquemas, topics.yaml,
+# users.yaml y cluster.yaml.
 topics:
-  documentos.eventos: { owner: document-service, key: documentId }
-  extraccion.eventos: { owner: extraction-service, key: documentId }
-  revision.eventos: { owner: review-service, key: documentId }
-  calidad.eventos: { owner: quality-service, key: documentId }
-  notificaciones.eventos: { owner: notification-service, key: documentId }
-  idp.tenant.events: { owner: tenant-service, key: tenantId }
-  auditoria.eventos: { owner: shared, key: tenantId }
+  documentos.eventos: { kind: domain, owner: document-service, key: documentId }
+  extraccion.eventos: { kind: domain, owner: extraction-service, key: documentId }
+  revision.eventos: { kind: domain, owner: review-service, key: documentId }
+  calidad.eventos: { kind: domain, owner: quality-service, key: documentId }
+  notificaciones.eventos: { kind: domain, owner: notification-service, key: documentId }
+  idp.tenant.events: { kind: domain, owner: tenant-service, key: tenantId }
+  auditoria.senales: { owner: multi, kind: signal, key: tenantId }
+  auditoria.control: { owner: multi, kind: control, key: tenantId }
 
 eventTypes:
   documento.recibido: { topic: documentos.eventos, producers: [document-service], key: documentId }
@@ -45,12 +50,13 @@ eventTypes:
   breakglass.expirado: { topic: idp.tenant.events, producers: [tenant-service], key: tenantId }
   cuota.umbral_alcanzado: { topic: idp.tenant.events, producers: [tenant-service], key: tenantId }
 
-  # Excepcion documentada: senales con varios productores reales. audit-service las ingiere como senales.
-  consumo.registrado: { topic: auditoria.eventos, producers: [tenant-service, extraction-service], key: tenantId }
-  legalhold.aplicado: { topic: auditoria.eventos, producers: [tenant-service, audit-service], key: tenantId }
-  legalhold.liberado: { topic: auditoria.eventos, producers: [tenant-service, audit-service], key: tenantId }
-  auditoria.alerta_integridad: { topic: auditoria.eventos, producers: [audit-service], key: tenantId }
-  seguridad.acceso_denegado: { topic: auditoria.eventos, producers: [document-service, extraction-service, review-service, quality-service, notification-service, chat-service, tenant-service], key: tenantId }
-  seguridad.prompt_injection_detectado: { topic: auditoria.eventos, producers: [extraction-service, chat-service], key: tenantId }
-  chat.respuesta_bloqueada: { topic: auditoria.eventos, producers: [chat-service], key: tenantId }
-  chat.respuesta_desde_cache: { topic: auditoria.eventos, producers: [chat-service], key: tenantId }
+  # Control (auditoria.control): productores explicitos segun el codigo; audit-service los ingiere en la cadena.
+  consumo.registrado: { topic: auditoria.control, producers: [tenant-service, extraction-service], key: tenantId }
+  legalhold.aplicado: { topic: auditoria.control, producers: [tenant-service, audit-service], key: tenantId }
+  legalhold.liberado: { topic: auditoria.control, producers: [tenant-service, audit-service], key: tenantId }
+  auditoria.alerta_integridad: { topic: auditoria.control, producers: [audit-service], key: tenantId }
+  # Senales (auditoria.senales): multi-productor; audit-service las ingiere como senales, no como estado.
+  seguridad.acceso_denegado: { topic: auditoria.senales, producers: [document-service, extraction-service, review-service, quality-service, notification-service, chat-service, tenant-service], key: tenantId }
+  seguridad.prompt_injection_detectado: { topic: auditoria.senales, producers: [extraction-service, chat-service], key: tenantId }
+  chat.respuesta_bloqueada: { topic: auditoria.senales, producers: [chat-service], key: tenantId }
+  chat.respuesta_desde_cache: { topic: auditoria.senales, producers: [chat-service], key: tenantId }

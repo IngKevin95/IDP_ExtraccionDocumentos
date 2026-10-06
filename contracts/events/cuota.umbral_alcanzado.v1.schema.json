@@ -40,7 +40,8 @@
       "format": "uuid"
     },
     "metricName": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 256
     },
     "thresholdPercentage": {
       "type": "integer",

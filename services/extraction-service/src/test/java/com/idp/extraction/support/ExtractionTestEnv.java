@@ -123,7 +123,8 @@ public final class ExtractionTestEnv {
         this.repository = new JdbcExtractionRepository(jdbc, meters, false);
         EventSchemaValidator schemaValidator = new EventSchemaValidator(serde);
         this.consumer = new IdempotentEventConsumer(jdbc, tx, schemaValidator, serde);
-        JdbcOutboxPublisher outbox = new JdbcOutboxPublisher(new OutboxRepository(jdbc), schemaValidator, serde);
+        JdbcOutboxPublisher outbox = new JdbcOutboxPublisher(new OutboxRepository(jdbc), schemaValidator, serde,
+            com.idp.events.EventTopology.defaults(), "extraction-service");
         this.aiRegistry = new AiExecutionRegistry(keys, repository, mapper, "ai-registry");
         this.gateway = new ResilientLlmGateway(primary, secondary, Duration.ofSeconds(5), 4, Duration.ofMillis(50),
             CircuitBreakerConfig.custom().failureRateThreshold(50).slidingWindowSize(2).minimumNumberOfCalls(2)

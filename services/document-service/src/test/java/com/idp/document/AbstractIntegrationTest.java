@@ -137,6 +137,9 @@ abstract class AbstractIntegrationTest {
         n.put("tenantId", tenant);
         n.put("correlationId", UUID.randomUUID().toString());
         n.put("documentId", documentId);
+        if ("extraccion.completada".equals(type)) {
+            n.put("routing", "AUTO"); // resultado de ruteo de extraction-service (SEC-052)
+        }
         for (int i = 0; i + 1 < extra.length; i += 2) {
             n.put(extra[i], extra[i + 1]);
         }

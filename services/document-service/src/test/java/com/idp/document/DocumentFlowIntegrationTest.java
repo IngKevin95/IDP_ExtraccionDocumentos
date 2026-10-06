@@ -36,6 +36,18 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
         return body(r).path("id").asText();
     }
 
+    /** Entrega extraccion.requiere_revision (el document-service registra la solicitud) y devuelve el taskId. */
+    private String requiereRevision(String tenant, String documentId) {
+        String task = UUID.randomUUID().toString();
+        Topics.deliver(listener::onMessage, event("extraccion.requiere_revision", tenant, documentId, "taskId", task));
+        return task;
+    }
+
+    private String approvedBy(String tenant, String documentId) {
+        return inTenant(tenant, () -> jdbc.queryForObject("select approved_by from document where id = ?",
+                String.class, UUID.fromString(documentId)));
+    }
+
     @Test
     void ac01_mismoBinarioDevuelve200ConElIdOriginalSinNuevoProcesamiento() throws Exception {
         String tenant = newTenant();
@@ -219,6 +231,67 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
         var aprobadas = outbox(tenant, "extraccion.aprobada");
         assertThat(aprobadas).hasSize(1);
         assertThat(aprobadas.get(0).path("approvedBy").asText()).isEqualTo("AUTO_STP");
+        assertThat(approvedBy(tenant, id)).isEqualTo("AUTO_STP");
+    }
+
+    @Test
+    void sec052_autoAprobacionExigeRoutingAutoYExtraccionSolicitada() throws Exception {
+        String tenant = newTenant();
+        operator(tenant, "ana");
+        String sinRouting = uploadOk(tenant, "ana");
+        String routingRevision = uploadOk(tenant, "ana");
+        String sinSolicitud = uploadOk(tenant, "ana");
+        double before = meters.counter("idp_document_pipeline_event_rejected_total", "reason", "routing_not_auto")
+                .count();
+
+        ObjectNode noRouting = (ObjectNode) JSON.readTree(event("extraccion.completada", tenant, sinRouting));
+        noRouting.remove("routing");
+        Topics.deliver(listener::onMessage, noRouting.toString());
+        ObjectNode review = (ObjectNode) JSON.readTree(event("extraccion.completada", tenant, routingRevision));
+        review.put("routing", "REVIEW");
+        Topics.deliver(listener::onMessage, review.toString());
+        inTenant(tenant, () -> jdbc.update("delete from extraction_request where document_id = ?",
+                UUID.fromString(sinSolicitud)));
+        Topics.deliver(listener::onMessage, event("extraccion.completada", tenant, sinSolicitud));
+
+        assertThat(statusOf(tenant, sinRouting)).isEqualTo("EN_EXTRACCION");
+        assertThat(statusOf(tenant, routingRevision)).isEqualTo("EN_EXTRACCION");
+        assertThat(statusOf(tenant, sinSolicitud)).isEqualTo("EN_EXTRACCION");
+        assertThat(outbox(tenant, "extraccion.aprobada")).isEmpty();
+        assertThat(meters.counter("idp_document_pipeline_event_rejected_total", "reason", "routing_not_auto")
+                .count()).isEqualTo(before + 2);
+        assertThat(meters.counter("idp_document_pipeline_event_rejected_total", "reason", "no_extraction_request")
+                .count()).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    void sec052_revisionCompletadaExigeSolicitudRegistradaYRevisorDistintoDelCargador() throws Exception {
+        String tenant = newTenant();
+        operator(tenant, "ana");
+        roles.grant(tenant, "ana", Roles.REVISOR); // el cargador tambien tiene rol REVISOR
+        roles.grant(tenant, "rita", Roles.REVISOR);
+        String id = uploadOk(tenant, "ana");
+        String task = requiereRevision(tenant, id);
+        double before = meters.counter("idp_document_pipeline_event_rejected_total", "reason", "no_review_request")
+                .count();
+
+        // taskId que este servicio nunca solicito
+        Topics.deliver(listener::onMessage, event("revision.completada", tenant, id, "taskId",
+                UUID.randomUUID().toString(), "action", "APROBADO", "reviewerId", "rita"));
+        // el cargador no puede aprobar su propio documento aunque tenga el rol
+        Topics.deliver(listener::onMessage, event("revision.completada", tenant, id, "taskId", task, "action",
+                "APROBADO", "reviewerId", "ana"));
+        assertThat(statusOf(tenant, id)).isEqualTo("EN_REVISION");
+        assertThat(meters.counter("idp_document_pipeline_event_rejected_total", "reason", "no_review_request")
+                .count()).isEqualTo(before + 1);
+        assertThat(meters.counter("idp_document_pipeline_event_rejected_total", "reason", "reviewer_is_uploader")
+                .count()).isGreaterThanOrEqualTo(1);
+
+        // un revisor distinto con la solicitud registrada si aprueba
+        Topics.deliver(listener::onMessage, event("revision.completada", tenant, id, "taskId", task, "action",
+                "APROBADO", "reviewerId", "rita"));
+        assertThat(statusOf(tenant, id)).isEqualTo("APROBADO");
+        assertThat(approvedBy(tenant, id)).isEqualTo("HUMAN_REVIEWER");
     }
 
     @Test
@@ -241,13 +314,12 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
         roles.grant(tenant, "rita", Roles.REVISOR);
         String approved = uploadOk(tenant, "ana");
         String rejected = uploadOk(tenant, "ana");
-        for (String id : new String[] {approved, rejected}) {
-            Topics.deliver(listener::onMessage, event("extraccion.requiere_revision", tenant, id, "taskId", UUID.randomUUID().toString()));
-        }
+        String taskApproved = requiereRevision(tenant, approved);
+        String taskRejected = requiereRevision(tenant, rejected);
 
-        Topics.deliver(listener::onMessage, event("revision.completada", tenant, approved, "taskId", UUID.randomUUID().toString(),
+        Topics.deliver(listener::onMessage, event("revision.completada", tenant, approved, "taskId", taskApproved,
                 "action", "APROBADO", "reviewerId", "rita"));
-        Topics.deliver(listener::onMessage, event("revision.completada", tenant, rejected, "taskId", UUID.randomUUID().toString(),
+        Topics.deliver(listener::onMessage, event("revision.completada", tenant, rejected, "taskId", taskRejected,
                 "action", "RECHAZADO", "reviewerId", "rita"));
 
         assertThat(statusOf(tenant, approved)).isEqualTo("APROBADO");
@@ -263,11 +335,11 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
         operator(tenant, "ana");
         roles.grant(tenant, "rita", Roles.REVISOR);
         String id = uploadOk(tenant, "ana");
-        Topics.deliver(listener::onMessage, event("extraccion.requiere_revision", tenant, id, "taskId", UUID.randomUUID().toString()));
+        String task = requiereRevision(tenant, id);
 
         // Una medicion de calidad (blindSample) jamas aprueba ni rechaza: el documento sigue su propio flujo.
         ObjectNode blind = (ObjectNode) JSON.readTree(event("revision.completada", tenant, id, "taskId",
-                UUID.randomUUID().toString(), "action", "APROBADO", "reviewerId", "rita"));
+                task, "action", "APROBADO", "reviewerId", "rita"));
         blind.put("blindSample", true);
         Topics.deliver(listener::onMessage, blind.toString());
 
@@ -281,12 +353,11 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
         operator(tenant, "ana");
         roles.grant(tenant, "rita", Roles.REVISOR);
         String id = uploadOk(tenant, "ana");
-        Topics.deliver(listener::onMessage, event("extraccion.requiere_revision", tenant, id, "taskId",
-                UUID.randomUUID().toString()));
+        String task = requiereRevision(tenant, id);
         double before = meters.counter("idp.events.origin.rejected", "reason", "wrong_topic").count();
 
         // Un servicio comprometido publica revision.completada APROBADO (con un revisor real) por otro topico.
-        String forged = event("revision.completada", tenant, id, "taskId", UUID.randomUUID().toString(), "action",
+        String forged = event("revision.completada", tenant, id, "taskId", task, "action",
                 "APROBADO", "reviewerId", "rita");
         listener.onMessage(forged, "documentos.eventos");
         listener.onMessage(forged, "extraccion.eventos");
@@ -308,20 +379,20 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
         roles.grant(tenant, "rita", Roles.REVISOR);
         roles.grant(tenant, "rosa", Roles.REVISOR);
         String id = uploadOk(tenant, "ana");
-        Topics.deliver(listener::onMessage, event("extraccion.requiere_revision", tenant, id, "taskId", UUID.randomUUID().toString()));
+        String task = requiereRevision(tenant, id);
         double before = meters.counter("idp_document_review_event_rejected_total").count();
 
         // reviewerId sin rol REVISOR vigente
-        Topics.deliver(listener::onMessage, event("revision.completada", tenant, id, "taskId", UUID.randomUUID().toString(),
+        Topics.deliver(listener::onMessage, event("revision.completada", tenant, id, "taskId", task,
                 "action", "APROBADO", "reviewerId", "intruso"));
         assertThat(statusOf(tenant, id)).isEqualTo("EN_REVISION");
         // correccion critica sin segundo aprobador, y con el mismo revisor como segundo
         ObjectNode noSecond = (ObjectNode) JSON.readTree(event("revision.completada", tenant, id, "taskId",
-                UUID.randomUUID().toString(), "action", "APROBADO", "reviewerId", "rita"));
+                task, "action", "APROBADO", "reviewerId", "rita"));
         noSecond.put("criticalCorrection", true);
         Topics.deliver(listener::onMessage, noSecond.toString());
         ObjectNode sameSecond = (ObjectNode) JSON.readTree(event("revision.completada", tenant, id, "taskId",
-                UUID.randomUUID().toString(), "action", "APROBADO", "reviewerId", "rita", "secondReviewerId", "rita"));
+                task, "action", "APROBADO", "reviewerId", "rita", "secondReviewerId", "rita"));
         sameSecond.put("criticalCorrection", true);
         Topics.deliver(listener::onMessage, sameSecond.toString());
         assertThat(statusOf(tenant, id)).isEqualTo("EN_REVISION");
@@ -335,7 +406,7 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
 
         // correccion critica con segundo aprobador distinto y con rol: se aprueba
         ObjectNode ok = (ObjectNode) JSON.readTree(event("revision.completada", tenant, id, "taskId",
-                UUID.randomUUID().toString(), "action", "APROBADO", "reviewerId", "rita", "secondReviewerId", "rosa"));
+                task, "action", "APROBADO", "reviewerId", "rita", "secondReviewerId", "rosa"));
         ok.put("criticalCorrection", true);
         Topics.deliver(listener::onMessage, ok.toString());
         assertThat(statusOf(tenant, id)).isEqualTo("APROBADO");
@@ -388,6 +459,7 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
         assertThat(body(ok).path("status").asText()).isEqualTo("APROBADO");
         assertThat(outbox(tenant, "extraccion.aprobada").get(0).path("approvedBy").asText())
                 .isEqualTo("DATA_STEWARD");
+        assertThat(approvedBy(tenant, id)).isEqualTo("DATA_STEWARD");
 
         int again = mvc.perform(post("/v1/documents/" + id + "/approve-confidential").with(token(tenant, "bruno")))
                 .andReturn().getResponse().getStatus();

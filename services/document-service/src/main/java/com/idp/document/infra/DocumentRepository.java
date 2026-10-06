@@ -85,6 +85,35 @@ public class DocumentRepository {
                 + "and status = ? and purged_at is null", to.name(), now, tenantId, id, from.name());
     }
 
+    /** Quien aprobo el documento (AUTO_STP, HUMAN_REVIEWER, DATA_STEWARD); lo lee el review-service (SEC-052). */
+    public void setApprovedBy(String tenantId, UUID id, String approvedBy) {
+        jdbc.update("update document set approved_by = ? where tenant_id = ? and id = ?", approvedBy, tenantId, id);
+    }
+
+    /** Registra (idempotente) que este servicio solicito la extraccion del documento. */
+    public void registerExtractionRequest(UUID documentId, OffsetDateTime now) {
+        jdbc.update("insert into extraction_request (document_id, requested_at) select ?, ? where not exists "
+                + "(select 1 from extraction_request where document_id = ?)", documentId, now, documentId);
+    }
+
+    public boolean hasExtractionRequest(UUID documentId) {
+        Long n = jdbc.queryForObject("select count(*) from extraction_request where document_id = ?", Long.class,
+                documentId);
+        return n != null && n > 0;
+    }
+
+    /** Registra (idempotente) la solicitud de revision recibida en extraccion.requiere_revision. */
+    public void registerReviewRequest(UUID taskId, UUID documentId, OffsetDateTime now) {
+        jdbc.update("insert into review_request (task_id, document_id, requested_at) select ?, ?, ? where not exists "
+                + "(select 1 from review_request where task_id = ?)", taskId, documentId, now, taskId);
+    }
+
+    public boolean hasReviewRequest(UUID taskId, UUID documentId) {
+        Long n = jdbc.queryForObject("select count(*) from review_request where task_id = ? and document_id = ?",
+                Long.class, taskId, documentId);
+        return n != null && n > 0;
+    }
+
     /**
      * Lista paginada. {@code privileged} permite ver los Altamente Confidenciales de otros cargadores
      * (Data Steward o admin); si no, solo los propios.

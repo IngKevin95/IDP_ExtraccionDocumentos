@@ -113,4 +113,20 @@ class JdbcExtractionFieldSourceTest {
         assertThat(uploader).contains("operador-1");
         assertThat(source.approvedFields(UUID.randomUUID())).isEmpty();
     }
+
+    @Test
+    void estadoDeAprobacionDelDocumentoSeLeeDelSiloYSinLaTablaNoEsVerificable() {
+        UUID doc = UUID.randomUUID();
+        assertThat(source.approvedDocument(doc).isPresent()).isFalse();
+        jdbc.execute("create table document (id uuid primary key, uploaded_by varchar(128), "
+                + "status varchar(32), approved_by varchar(32), classification varchar(32))");
+        jdbc.update("insert into document values (?, 'op', 'APROBADO', 'AUTO_STP', 'CONFIDENCIAL')", doc);
+
+        java.util.Optional<com.idp.review.infra.FieldCandidateSource.ApprovedDocument> found =
+                new TransactionTemplate(tx).execute(s -> source.approvedDocument(doc));
+
+        assertThat(found).contains(new com.idp.review.infra.FieldCandidateSource.ApprovedDocument("APROBADO",
+                "AUTO_STP", "CONFIDENCIAL"));
+        assertThat(source.approvedDocument(UUID.randomUUID())).isEmpty();
+    }
 }

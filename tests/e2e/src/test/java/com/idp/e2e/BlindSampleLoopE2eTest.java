@@ -96,7 +96,8 @@ class BlindSampleLoopE2eTest {
                                              String ciudad) throws SQLException {
         try (Connection c = DriverManager.getConnection(E2eEnvironment.reviewUrl(TENANT_D), "sa", "")) {
             UUID extraction = UUID.randomUUID();
-            try (PreparedStatement ps = c.prepareStatement("insert into document values (?, ?)")) {
+            try (PreparedStatement ps = c.prepareStatement("insert into document (id, uploaded_by, status, approved_by, "
+                + "classification) values (?, ?, 'APROBADO', 'AUTO_STP', 'CONFIDENCIAL')")) {
                 ps.setObject(1, documentId);
                 ps.setString(2, uploader);
                 ps.executeUpdate();

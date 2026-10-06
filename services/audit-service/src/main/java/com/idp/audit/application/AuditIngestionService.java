@@ -5,7 +5,9 @@ import com.idp.audit.domain.AuditEntry;
 import com.idp.audit.domain.Exceptions.ChainIntegrityException;
 import com.idp.audit.infrastructure.AuditRepository;
 import com.idp.audit.infrastructure.AuditRepository.Head;
+import com.idp.audit.domain.Exceptions.UnknownTenantException;
 import com.idp.events.EventEnvelope;
+import com.idp.events.EventOriginGuard;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -15,6 +17,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -29,6 +33,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Service
 public class AuditIngestionService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(AuditIngestionService.class);
     private static final List<String> ACTOR_FIELDS = List.of("actorId", "subjectId", "appliedBy", "releasedBy",
             "approvedBy", "reviewerId", "userId");
 
@@ -52,6 +57,7 @@ public class AuditIngestionService {
     @Transactional
     public AuditEntry ingest(EventEnvelope e) {
         UUID tenantId = e.tenantId();
+        requireKnownTenant(e);
         repo.ensureHead(tenantId);
         Head head = repo.lockHead(tenantId).orElseThrow(() -> new IllegalStateException("Cabeza de cadena ausente"));
         long next = head.lastSequenceId() + 1;
@@ -75,6 +81,24 @@ public class AuditIngestionService {
         metrics.chainLength(tenantId, next);
         metrics.ingestionLag(Duration.between(occurredAt, now));
         return entry;
+    }
+
+    /**
+     * SEC-053: un tenantId inexistente no puede abrir una cadena (ensureHead) ni inflar la base de auditoria. Se
+     * descarta con alerta SECURITY sin payload; no es un error de infraestructura, no se reintenta.
+     */
+    private void requireKnownTenant(EventEnvelope e) {
+        if (!repo.tenantExists(e.tenantId())) {
+            metrics.count("audit.ingestion.unknown_tenant");
+            LOG.error(EventOriginGuard.SECURITY,
+                    "Evento descartado: tenant inexistente en el directorio tenant={} eventType={}", e.tenantId(),
+                    safe(e.eventType()));
+            throw new UnknownTenantException("Tenant inexistente en el directorio de la plataforma");
+        }
+    }
+
+    private static String safe(String value) {
+        return value != null && value.matches("[a-zA-Z0-9_.-]{1,80}") ? value : "?";
     }
 
     /** La huella en memoria solo avanza tras el commit: un rollback no debe dejarla por delante de la BD. */

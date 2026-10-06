@@ -37,12 +37,28 @@ class EventTopologyTest {
     }
 
     @Test
-    void sec052_soloAuditoriaEventosAdmiteVariosProductores() {
+    void sec052_soloSenalesYControlAdmitenVariosProductores() {
         for (String type : topology.eventTypes()) {
             if (topology.producersOf(type).size() > 1) {
-                assertThat(topology.topicFor(type)).as(type).isEqualTo("auditoria.eventos");
+                assertThat(topology.topicFor(type)).as(type).isIn("auditoria.senales", "auditoria.control");
             }
         }
+    }
+
+    @Test
+    void sec052_auditoriaSenalesSoloTieneSenalesYControlNoSeMezcla() {
+        for (String type : topology.eventTypes()) {
+            boolean senal = type.startsWith("seguridad.") || type.startsWith("chat.");
+            if (topology.topicFor(type).equals("auditoria.senales")) {
+                assertThat(senal).as("%s en auditoria.senales debe ser una senal", type).isTrue();
+            } else {
+                assertThat(senal).as("%s es una senal y debe ir en auditoria.senales", type).isFalse();
+            }
+        }
+        assertThat(topology.topicsFor("legalhold.aplicado", "legalhold.liberado", "consumo.registrado",
+            "auditoria.alerta_integridad")).containsExactly("auditoria.control");
+        assertThat(topology.topicsFor("seguridad.acceso_denegado", "chat.respuesta_bloqueada"))
+            .containsExactly("auditoria.senales");
     }
 
     @Test

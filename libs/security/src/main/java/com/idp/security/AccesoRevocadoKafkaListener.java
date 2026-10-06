@@ -22,10 +22,6 @@ public final class AccesoRevocadoKafkaListener {
     private final EventSerde serde;
     private final EventOriginGuard guard;
 
-    public AccesoRevocadoKafkaListener(CachingRoleAssignmentVerifier verifier, EventSerde serde) {
-        this(verifier, serde, EventOriginGuard.standalone());
-    }
-
     public AccesoRevocadoKafkaListener(CachingRoleAssignmentVerifier verifier, EventSerde serde,
                                        EventOriginGuard guard) {
         this.handler = new AccesoRevocadoHandler(verifier);

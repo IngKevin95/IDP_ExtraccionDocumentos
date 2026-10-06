@@ -40,9 +40,9 @@ Proveer una interfaz conversacional (chat documental o RAG) para consultar infor
 * **Eventos Consumidos:**
   * `extraccion.aprobada` (`documentos.eventos`; se valida el tópico de origen, SEC-052): Dispara la división en chunks y la indexación vectorial del documento.
 * **Eventos Publicados:**
-  * `chat.respuesta_bloqueada` (`auditoria.eventos`, señal): `contracts/events/chat.respuesta_bloqueada.v1.schema.json`
-  * `chat.respuesta_desde_cache` (`auditoria.eventos`, señal): `contracts/events/chat.respuesta_desde_cache.v1.schema.json`
-  * `seguridad.prompt_injection_detectado` (auditoria.eventos): `contracts/events/seguridad.prompt_injection_detectado.v1.schema.json`
+  * `chat.respuesta_bloqueada` (`auditoria.senales`, señal): `contracts/events/chat.respuesta_bloqueada.v1.schema.json`
+  * `chat.respuesta_desde_cache` (`auditoria.senales`, señal): `contracts/events/chat.respuesta_desde_cache.v1.schema.json`
+  * `seguridad.prompt_injection_detectado` (`auditoria.senales`): `contracts/events/seguridad.prompt_injection_detectado.v1.schema.json`
 
 ## 6. Modelo de Datos
 La persistencia reside en la **Base de Datos por Tenant** (silo físico o lógico en PostgreSQL con extensión `pgvector`).
@@ -113,5 +113,5 @@ La persistencia reside en la **Base de Datos por Tenant** (silo físico o lógic
 ## 10. Dependencias
 * `document-service` (API/Base de datos compartida indirectamente para verificar estado o textos en outbox si es necesario, pero idealmente recibe texto en bucket).
 * Base de datos Postgres con `pgvector`.
-* Kafka (Topics: `documentos.eventos` lectura, `auditoria.eventos` escritura).
+* Kafka (Topics: `documentos.eventos` lectura, `auditoria.senales` escritura).
 * Proveedor LLM (Embedding model y Chat model).

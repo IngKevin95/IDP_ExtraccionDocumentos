@@ -53,6 +53,7 @@ public class DocumentLifecycleService {
         }
         return tx.execute(s -> {
             DocumentRecord approved = states.transition(doc, DocumentStatus.APROBADO);
+            repo.setApprovedBy(approved.tenantId(), approved.id(), Roles.DATA_STEWARD);
             events.aprobada(approved, Roles.DATA_STEWARD);
             return approved;
         });

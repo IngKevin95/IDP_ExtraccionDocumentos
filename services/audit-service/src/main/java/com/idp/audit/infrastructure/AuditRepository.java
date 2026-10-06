@@ -56,6 +56,14 @@ public class AuditRepository {
                 rs.getBoolean("worm_anchored"), instant(rs, "created_at"));
     }
 
+    // ---- directorio de tenants (base de control compartida) ----
+
+    /** {@code true} si el tenant figura en el directorio de la plataforma (cualquier estado del ciclo de vida). */
+    public boolean tenantExists(UUID tenantId) {
+        return jdbc.sql("select count(*) from tenants where id = :t").param("t", tenantId)
+                .query(Long.class).single() > 0;
+    }
+
     // ---- cabeza de cadena (bloqueo por tenant) ----
 
     public void ensureHead(UUID tenantId) {

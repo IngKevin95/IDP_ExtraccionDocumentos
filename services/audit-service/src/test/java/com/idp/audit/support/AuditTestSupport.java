@@ -48,6 +48,7 @@ public abstract class AuditTestSupport {
 
     protected UUID newTenant() {
         UUID tenant = UUID.randomUUID();
+        jdbc.sql("insert into tenants (id, status) values (:t, 'ACTIVE')").param("t", tenant).update();
         jdbc.sql("insert into tenant_config (tenant_id, data_kek_id, audit_kek_id) values (?, 'data', 'audit-signing')")
             .param(1, tenant.toString()).update();
         return tenant;

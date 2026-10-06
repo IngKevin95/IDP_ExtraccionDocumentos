@@ -30,7 +30,7 @@ public class OutboxRelay {
         for (JdbcOutbox.Pending p : outbox.findPending(100)) {
             try {
                 // Topico por eventType (EventTopology): tenant.* y acceso.* en idp.tenant.events; consumo.registrado y
-                // legalhold.* en auditoria.eventos (senales con varios productores).
+                // legalhold.* en auditoria.control (control con productores explicitos por eventType).
                 String topic = topology.allowedTopicFor(JdbcOutbox.PRODUCER, p.type());
                 kafka.send(topic, p.partitionKey(), p.payload()).get(5, TimeUnit.SECONDS);
                 outbox.markPublished(p.id());
