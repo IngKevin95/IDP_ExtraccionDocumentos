@@ -51,8 +51,10 @@ public final class CropService {
     private final PageImageSource pages;
     private final ReviewProperties props;
     private final Clock clock;
+    private final BlindReviewPolicy blindPolicy;
 
-    public CropService(ReviewRepository repo, PageImageSource pages, ReviewProperties props, Clock clock) {
+    public CropService(ReviewRepository repo, PageImageSource pages, ReviewProperties props, Clock clock,
+                       BlindReviewPolicy blindPolicy) {
         if (props.cropSecret() == null || props.cropSecret().getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalStateException("idp.review.crop-secret debe tener al menos 32 bytes");
         }
@@ -60,6 +62,7 @@ public final class CropService {
         this.pages = pages;
         this.props = props;
         this.clock = clock;
+        this.blindPolicy = blindPolicy;
     }
 
     public CropLink link(Caller caller, UUID taskId, UUID fieldId) {
@@ -96,6 +99,7 @@ public final class CropService {
         if (task.assigneeId() != null && !task.assigneeId().equals(caller.userId())) {
             throw new ConflictException("REVIEW_TASK_ASSIGNED", "La tarea esta asignada a otro revisor");
         }
+        blindPolicy.requireIndependent(task, caller.userId());
         return repo.field(taskId, fieldId).orElseThrow(TaskNotFoundException::new);
     }
 

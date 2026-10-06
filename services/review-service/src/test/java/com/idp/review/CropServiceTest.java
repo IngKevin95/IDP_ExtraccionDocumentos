@@ -51,7 +51,8 @@ class CropServiceTest {
     }
 
     private CropService service(Instant now, Duration ttl) {
-        return new CropService(repo, pages, props(ttl, "k".repeat(40)), Clock.fixed(now, ZoneOffset.UTC));
+        return new CropService(repo, pages, props(ttl, "k".repeat(40)), Clock.fixed(now, ZoneOffset.UTC),
+                mock(com.idp.review.service.BlindReviewPolicy.class));
     }
 
     private void givenField(String bbox) {
@@ -109,7 +110,8 @@ class CropServiceTest {
     void elSecretoDebeTenerAlMenos32Bytes() {
         ReviewProperties weak = props(Duration.ofSeconds(60), "corto");
 
-        assertThatThrownBy(() -> new CropService(repo, pages, weak, Clock.systemUTC()))
+        assertThatThrownBy(() -> new CropService(repo, pages, weak, Clock.systemUTC(),
+                mock(com.idp.review.service.BlindReviewPolicy.class)))
                 .isInstanceOf(IllegalStateException.class);
     }
 

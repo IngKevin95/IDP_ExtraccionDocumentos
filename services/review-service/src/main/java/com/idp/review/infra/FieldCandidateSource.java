@@ -14,4 +14,17 @@ public interface FieldCandidateSource {
     FieldCandidateSource NONE = (documentId, taskId) -> List.of();
 
     List<FieldCandidate> candidates(UUID documentId, UUID taskId);
+
+    /**
+     * Todos los campos extraidos de un documento ya aprobado (ultima extraccion), para la revision ciega: el revisor
+     * los transcribe sin ver la salida del modelo. Vacio si no hay extraccion disponible.
+     */
+    default List<FieldCandidate> approvedFields(UUID documentId) {
+        return List.of();
+    }
+
+    /** Subject de quien cargo el documento, si el dato existe (para exigir un revisor ciego independiente). */
+    default java.util.Optional<String> uploader(UUID documentId) {
+        return java.util.Optional.empty();
+    }
 }

@@ -105,9 +105,31 @@ public class TestBeans {
             byTask.put(taskId, List.of(fields));
         }
 
+        private final Map<UUID, List<FieldCandidate>> byDocument = new ConcurrentHashMap<>();
+        private final Map<UUID, String> uploaders = new ConcurrentHashMap<>();
+
+        /** Campos de la ultima extraccion de un documento ya aprobado (revision ciega). */
+        public void programApproved(UUID documentId, FieldCandidate... fields) {
+            byDocument.put(documentId, List.of(fields));
+        }
+
+        public void uploadedBy(UUID documentId, String user) {
+            uploaders.put(documentId, user);
+        }
+
         @Override
         public List<FieldCandidate> candidates(UUID documentId, UUID taskId) {
             return byTask.getOrDefault(taskId, List.of());
+        }
+
+        @Override
+        public List<FieldCandidate> approvedFields(UUID documentId) {
+            return byDocument.getOrDefault(documentId, List.of());
+        }
+
+        @Override
+        public java.util.Optional<String> uploader(UUID documentId) {
+            return java.util.Optional.ofNullable(uploaders.get(documentId));
         }
     }
 }

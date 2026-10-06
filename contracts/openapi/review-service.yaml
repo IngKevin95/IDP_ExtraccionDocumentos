@@ -509,6 +509,12 @@ components:
           description: Veces que se escalo por SLA vencido
         overdue:
           type: boolean
+        blindSample:
+          type: boolean
+          description: >-
+            true en una revision ciega de un oficio ya auto-aprobado (muestreo de calidad). En esas tareas
+            confidence y originalValue se devuelven nulos, no hay segunda aprobacion ni rechazo, y el revisor debe
+            ser independiente de quien intervino en el documento.
         createdAt:
           type: string
           format: date-time

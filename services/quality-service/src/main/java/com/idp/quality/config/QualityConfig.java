@@ -5,6 +5,11 @@ import com.idp.events.EventErrorHandlers;
 import com.idp.events.EventSchemaValidator;
 import com.idp.events.EventSerde;
 import com.idp.events.IdempotentEventConsumer;
+import com.idp.events.JdbcOutboxPublisher;
+import com.idp.events.OutboxPublisher;
+import com.idp.events.OutboxRelay;
+import com.idp.events.OutboxRepository;
+import com.idp.events.TenantOutboxAccess;
 import com.idp.quality.golden.EvaluationEngine;
 import com.idp.quality.golden.ExtractionRunner;
 import com.idp.quality.golden.FilePredictionRunner;
@@ -18,9 +23,12 @@ import com.idp.security.RoleAssignmentVerifier;
 import com.idp.security.TenantAuthorizer;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +36,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -63,6 +72,52 @@ public class QualityConfig {
     IdempotentEventConsumer idempotentEventConsumer(JdbcTemplate jdbc, TransactionTemplate tx,
                                                     EventSchemaValidator validator, EventSerde serde) {
         return new IdempotentEventConsumer(jdbc, tx, validator, serde);
+    }
+
+    @Bean
+    OutboxRepository outboxRepository(JdbcTemplate jdbc) {
+        return new OutboxRepository(jdbc);
+    }
+
+    @Bean
+    OutboxPublisher outboxPublisher(OutboxRepository repo, EventSchemaValidator validator, EventSerde serde) {
+        return new JdbcOutboxPublisher(repo, validator, serde);
+    }
+
+    /**
+     * quality-service no tiene silo por tenant: su outbox vive en la base de control. El acceso ignora el tenant y
+     * opera siempre sobre esa base (cada fila conserva su tenantId, que el relay publica en la cabecera).
+     */
+    @Bean
+    TenantOutboxAccess controlOutboxAccess(OutboxRepository repo, TransactionTemplate tx) {
+        return new TenantOutboxAccess() {
+            @Override
+            public <T> T inTransaction(String tenantId, java.util.function.Function<OutboxRepository, T> work) {
+                return tx.execute(status -> work.apply(repo));
+            }
+        };
+    }
+
+    @Bean
+    @ConditionalOnProperty(value = "quality.relay.enabled", matchIfMissing = true)
+    OutboxRelayJob outboxRelayJob(TenantOutboxAccess access, KafkaTemplate<String, String> kafka,
+                                  @Value("${quality.kafka.topic:dominio.documentos}") String topic) {
+        return new OutboxRelayJob(new OutboxRelay(access, () -> List.of("control"), kafka, eventType -> topic, 100,
+            Duration.ofSeconds(10)));
+    }
+
+    /** Planifica el relay del outbox de la base de control hacia Kafka. */
+    public static final class OutboxRelayJob {
+        private final OutboxRelay relay;
+
+        OutboxRelayJob(OutboxRelay relay) {
+            this.relay = relay;
+        }
+
+        @Scheduled(fixedDelayString = "${quality.relay.interval:1s}")
+        public void run() {
+            relay.relayAll();
+        }
     }
 
     /** 3 reintentos con backoff exponencial y luego DLT; los mensajes fuera de contrato van directo a DLT. */

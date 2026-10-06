@@ -74,6 +74,7 @@
 | SEC-048 | IA | Abstención obligatoria del chat ("información insuficiente") sin inventar datos cuando el contexto no alcanza. | Plan Maestro (8) | `chat-service` | Test unitario: preguntas fuera de contexto son rechazadas. | F6 |
 | SEC-049 | IA | Registro inmutable y firmado del conjunto prompt + configuración + versión de modelo usado por cada extracción/respuesta. | Plan Maestro (8) | `audit-service`, `extraction-service` | Verificación de logs de auditoría por transacción. | F5 |
 | SEC-050 | Auditoría | Cero PII en eventos Kafka (patrón claim-check). Los consumidores obtienen datos por API REST u outbox. | Plan Maestro (8) | Todos los servicios | Test unitario: esquemas JSON de eventos sin PII. | F4 |
+| SEC-051 | IA | Revisión ciega independiente del error silente: el revisor no ve la salida del modelo ni el score, es distinto de quien intervino en el documento, y la medición no cambia el estado del documento ni se notifica al integrador. | ADR 0028 | `review-service`, `quality-service`, `document-service`, `notification-service` | Tests de integración: enmascarado de campos, 403 a revisor no independiente, `revision.completada` ciega ignorada por document y notification. | F5 |
 
 ## Mapeo Normativo (Pendiente de validación por Cumplimiento)
 

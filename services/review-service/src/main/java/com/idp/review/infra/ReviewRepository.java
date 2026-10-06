@@ -41,6 +41,7 @@ public class ReviewRepository {
     private static final String TASK_COLS = "id, tenant_id, document_id, correlation_id, status, assignee_id, "
             + "assigned_at, first_reviewer_id, second_reviewer_id, critical_correction, sla_due_at, "
             + "escalation_level, escalated_at, completed_at, created_at, updated_at";
+    private static final String TASK_SELECT = TASK_COLS + ", blind_sample";
     private static final String FIELD_COLS = "id, task_id, field_name, page, bounding_box, original_value, "
             + "confidence, critical, status, created_at";
     private static final String CORRECTION_COLS = "id, task_id, field_name, original_value, corrected_value, "
@@ -62,7 +63,8 @@ public class ReviewRepository {
             rs.getObject("escalated_at", OffsetDateTime.class),
             rs.getObject("completed_at", OffsetDateTime.class),
             rs.getObject("created_at", OffsetDateTime.class),
-            rs.getObject("updated_at", OffsetDateTime.class));
+            rs.getObject("updated_at", OffsetDateTime.class),
+            rs.getBoolean("blind_sample"));
 
     private static final RowMapper<ReviewField> FIELD = (rs, i) -> {
         int page = rs.getInt("page");
@@ -147,7 +149,7 @@ public class ReviewRepository {
     // ---- lecturas --------------------------------------------------------------------------------------------
 
     public Optional<ReviewTask> findTask(String tenantId, UUID id) {
-        return jdbc.query("select " + TASK_COLS + " from review_task where tenant_id = ? and id = ?", TASK,
+        return jdbc.query("select " + TASK_SELECT + " from review_task where tenant_id = ? and id = ?", TASK,
                 UUID.fromString(tenantId), id).stream().findFirst();
     }
 
@@ -157,7 +159,7 @@ public class ReviewRepository {
         String where = taskFilter(tenantId, status, assignee, escalatedOnly, args);
         args.add(limit);
         args.add(offset);
-        return jdbc.query("select " + TASK_COLS + " from review_task where " + where
+        return jdbc.query("select " + TASK_SELECT + " from review_task where " + where
                 + " order by escalation_level desc, sla_due_at asc, id limit ? offset ?", TASK, args.toArray());
     }
 
@@ -200,6 +202,18 @@ public class ReviewRepository {
                 + "field_name", CORRECTION, taskId);
     }
 
+    /** Campos de la tarea que el revisor aun no transcribio ni confirmo. */
+    public long pendingFieldCount(UUID taskId) {
+        return count("select count(*) from review_field where task_id = ? and status = 'PENDING'", taskId);
+    }
+
+    /** true si el usuario ya intervino en el documento en otra tarea (primer o segundo revisor, o asignado). */
+    public boolean hasIntervened(UUID documentId, UUID excludeTaskId, String userId) {
+        return count("select count(*) from review_task where document_id = ? and id <> ? and "
+                + "(first_reviewer_id = ? or second_reviewer_id = ? or assignee_id = ?)", documentId, excludeTaskId,
+                userId, userId, userId) > 0;
+    }
+
     public boolean hasCriticalCorrection(UUID taskId) {
         return count("select count(*) from correction where task_id = ? and is_critical = true", taskId) > 0;
     }
@@ -211,7 +225,7 @@ public class ReviewRepository {
         args.add(limit);
         args.add(offset);
         return jdbc.query("select f.id as field_id, t.id as task_id, t.document_id, f.field_name, f.critical, "
-                + "f.page, f.confidence, t.status, t.assignee_id, t.sla_due_at, t.escalation_level "
+                + "f.page, case when t.blind_sample then null else f.confidence end as confidence, t.status, t.assignee_id, t.sla_due_at, t.escalation_level "
                 + "from review_field f join review_task t on t.id = f.task_id where " + where
                 + " order by t.escalation_level desc, t.sla_due_at asc, f.created_at, f.field_name limit ? offset ?",
                 QUEUE_ITEM, args.toArray());

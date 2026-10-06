@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/calidad.muestra_ciega_solicitada/v1.json",
+  "title": "Calidad Muestra Ciega Solicitada Event",
+  "description": "Emitido por quality-service al seleccionar un oficio auto-aprobado (AUTO_STP) para revision humana ciega. Claim-check: solo identificadores opacos y tipologia, sin PII ni salida del modelo (SEC-050). review-service lo consume y crea una tarea de revision ciega; el documento no cambia de estado.",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "documentId",
+    "typology",
+    "sampleId"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "calidad.muestra_ciega_solicitada"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "documentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "typology": {
+      "type": "string",
+      "pattern": "^[A-Z]{2,4}$",
+      "description": "Tipologia del oficio auto-aprobado."
+    },
+    "sampleId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identificador opaco de la muestra. Es el id de la tarea de revision ciega en review-service (el taskId de revision.completada)."
+    }
+  },
+  "additionalProperties": false
+}

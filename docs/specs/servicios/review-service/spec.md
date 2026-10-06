@@ -47,9 +47,16 @@ El contrato completo se encuentra en `contracts/openapi/review-service.yaml`.
 
 ### 5.2 Eventos Consumidos
 * `extraccion.requiere_revision` (Tópico global particionado por `documentId`). Crea la tarea de revisión.
+* `calidad.muestra_ciega_solicitada` (productor único: `quality-service`). Crea una tarea de revisión **ciega** (`blind_sample=true`, id de tarea = `sampleId`) sobre un documento ya aprobado por `AUTO_STP`. Los campos son todos los de la última extracción del documento; si no hay extracción disponible no se crea tarea.
 
 ### 5.3 Eventos Publicados
-* `revision.completada` (Tópico global particionado por `documentId`). Esquema definido en `contracts/events/revision.completada.v1.schema.json`. Se emite a través de Outbox transaccional.
+* `revision.completada` (Tópico global particionado por `documentId`). Esquema definido en `contracts/events/revision.completada.v1.schema.json`. Se emite a través de Outbox transaccional. En una revisión ciega lleva `blindSample=true`, `criticalCorrection=false`, sin segundo aprobador, y `correctedFields` con solo nombre y tipo de la diferencia entre lo transcrito y lo extraído por el modelo (nunca valores).
+
+### 5.4 Revisión ciega (medición del error silente)
+* El revisor ve únicamente el recorte de página (`crop-link`) y los campos a completar: `confidence` y `originalValue` se enmascaran en `GET /fields`, `GET /queue`, `GET/POST /corrections`; el original que se compara es siempre el guardado por el servicio, nunca el que envíe el cliente.
+* `approve` exige que todos los campos estén transcritos (valor vacío = el documento no trae el campo). No hay segunda aprobación aunque difiera un campo crítico: es medición, no corrección al modelo. `reject` no aplica (el documento ya está aprobado).
+* Independencia: quien cargó el documento (`document.uploaded_by` del silo) o intervino antes en él en otra tarea (primer o segundo revisor, asignado) no puede reclamar, corregir, aprobar, ver el recorte ni recibir por reasignación la tarea ciega (403).
+* El documento NO cambia de estado: `document-service` y `notification-service` ignoran `revision.completada` con `blindSample=true`.
 
 ## 6. Modelo de Datos
 El almacenamiento utiliza el patrón de Silo por Tenant (`libs/tenant-context`) sobre PostgreSQL.
@@ -76,6 +83,7 @@ El almacenamiento utiliza el patrón de Silo por Tenant (`libs/tenant-context`) 
 ## 7. Controles de Seguridad Aplicados
 * **SEC-009:** La API `POST /tasks/{taskId}/approve-secondary` verifica que el ID del token JWT del usuario actual sea diferente a `first_reviewer_id`.
 * **SEC-050:** Ni `extraccion.requiere_revision` ni `revision.completada` contienen datos extraídos, solo UUIDs (claim-check). Las correcciones se leen mediante API REST protegida.
+* **SEC-051:** La revisión ciega no expone la salida del modelo ni el score y exige un revisor independiente (§5.4).
 
 ## 8. Escenarios de Aceptación (Given/When/Then)
 
@@ -87,6 +95,11 @@ El almacenamiento utiliza el patrón de Silo por Tenant (`libs/tenant-context`) 
 * **AC-06 (Prevención de Auto-Aprobación SEC-009):** Given una tarea en `PENDING_SECOND_APPROVAL`, When el MISMO usuario que fue `first_reviewer_id` intenta llamar a `POST /v1/review/tasks/{taskId}/approve-secondary`, Then la API retorna `403 Forbidden` y el estado no cambia.
 * **AC-07 (Rechazo del documento):** Given una tarea en `PENDING` o `PENDING_SECOND_APPROVAL`, When un usuario llama a `POST /v1/review/tasks/{taskId}/reject`, Then el estado cambia a `REJECTED` y se emite el evento `revision.completada` con action `RECHAZADO`.
 * **AC-08 (Aislamiento de Tenants):** Given un JWT de un usuario perteneciente al Tenant A, When intenta acceder a una tarea `taskId` que pertenece al Tenant B, Then la API retorna `404 Not Found` (ya que la búsqueda se realiza exclusivamente en el pool/schema del Tenant A).
+
+* **AC-09 (Tarea ciega por muestra de calidad):** Given un `calidad.muestra_ciega_solicitada` válido de un documento con extracción disponible, When es consumido (incluso repetido o con otro `eventId` y el mismo `sampleId`), Then existe una única `review_task` `PENDING` con `blind_sample=true` y un campo por cada campo extraído, sin eventos en el outbox.
+* **AC-10 (Sin exposición de la salida del modelo):** Given una tarea ciega, When el revisor consulta campos, cola, tarea y correcciones o envía correcciones con un `originalValue` propio, Then ninguna respuesta contiene el valor del modelo ni el score y el original guardado es el del modelo.
+* **AC-11 (Cierre de la revisión ciega):** Given una tarea ciega con todos los campos transcritos, When el revisor llama a `approve`, Then pasa a `APPROVED` aunque difiera un campo crítico y se emite `revision.completada` con `blindSample=true`, `criticalCorrection=false`, sin `secondReviewerId` y `correctedFields` solo con nombre y tipo (`VALOR`, `FORMATO`, `OMISION`, `SOBRANTE`); si todo coincide no hay `correctedFields`. Con campos sin transcribir o con `reject` responde 400.
+* **AC-12 (Revisor independiente):** Given una tarea ciega, When la intenta tomar quien cargó el documento o fue revisor del mismo documento en otra tarea, Then 403 `REVIEW_FOUR_EYES_VIOLATION`; otro revisor sí puede.
 
 ## 9. Métricas y SLO
 * **SLI Latencia API:** 99% de las peticiones de lectura `< 100ms`.

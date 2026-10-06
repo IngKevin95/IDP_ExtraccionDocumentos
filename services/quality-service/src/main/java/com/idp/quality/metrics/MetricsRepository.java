@@ -59,11 +59,11 @@ public class MetricsRepository {
     }
 
     /** Registra la seleccion para revision ciega; false si el oficio ya estaba seleccionado. */
-    public boolean selectBlind(UUID tenant, UUID documentId, String tipologia) {
-        return jdbc.update("insert into qa_blind_sample (tenant_id, document_id, tipologia) "
-            + "select cast(? as uuid), cast(? as uuid), cast(? as varchar) where not exists "
+    public boolean selectBlind(UUID tenant, UUID documentId, String tipologia, UUID sampleId) {
+        return jdbc.update("insert into qa_blind_sample (tenant_id, document_id, tipologia, sample_id) "
+            + "select cast(? as uuid), cast(? as uuid), cast(? as varchar), cast(? as uuid) where not exists "
             + "(select 1 from qa_blind_sample where tenant_id = cast(? as uuid) and document_id = cast(? as uuid))",
-            tenant, documentId, tipologia, tenant, documentId) > 0;
+            tenant, documentId, tipologia, sampleId, tenant, documentId) > 0;
     }
 
     /** Si el oficio estaba pendiente de revision ciega lo marca revisado y devuelve true. */

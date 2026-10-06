@@ -84,4 +84,33 @@ class JdbcExtractionFieldSourceTest {
 
         assertThat(found).isEmpty();
     }
+
+    @Test
+    void camposDeLaUltimaExtraccionDelDocumentoYSuCargadorParaLaRevisionCiega() {
+        jdbc.execute("create table extraction (id uuid primary key, document_id uuid not null, "
+                + "review_task_id uuid, created_at timestamp with time zone not null)");
+        jdbc.execute("create table field_value (id uuid primary key, extraction_id uuid not null, "
+                + "table_name varchar(64), row_index integer, field_name varchar(64) not null, value_text text, "
+                + "confidence_score numeric(5,4), evidence_page integer, bounding_box varchar(200), "
+                + "requires_review boolean not null default false)");
+        jdbc.execute("create table document (id uuid primary key, uploaded_by varchar(128))");
+        UUID doc = UUID.randomUUID();
+        UUID old = UUID.randomUUID();
+        UUID latest = UUID.randomUUID();
+        jdbc.update("insert into extraction values (?,?,?, timestamp with time zone '2026-01-01 10:00:00+00')", old,
+                doc, null);
+        jdbc.update("insert into extraction values (?,?,?, timestamp with time zone '2026-01-02 10:00:00+00')",
+                latest, doc, null);
+        field(old, null, null, "monto_viejo", false, 1, "[0,0,1,1]");
+        field(latest, null, null, "monto", false, 1, "[0.1,0.2,0.3,0.1]");
+        field(latest, null, null, "ciudad", false, 2, "[0,0,1,1]");
+        jdbc.update("insert into document values (?, ?)", doc, "operador-1");
+
+        List<FieldCandidate> found = new TransactionTemplate(tx).execute(s -> source.approvedFields(doc));
+        java.util.Optional<String> uploader = new TransactionTemplate(tx).execute(s -> source.uploader(doc));
+
+        assertThat(found).extracting(FieldCandidate::fieldName).containsExactlyInAnyOrder("monto", "ciudad");
+        assertThat(uploader).contains("operador-1");
+        assertThat(source.approvedFields(UUID.randomUUID())).isEmpty();
+    }
 }

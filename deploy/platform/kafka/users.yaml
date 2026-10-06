@@ -75,7 +75,8 @@ metadata:
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
-  # Productor de revision.completada y revision.escalada (topico dominio.documentos).
+  # Productor de revision.completada y revision.escalada; consumidor de extraccion.requiere_revision y
+  # calidad.muestra_ciega_solicitada (topico dominio.documentos).
 spec:
   authentication:
     type: tls
@@ -102,6 +103,7 @@ metadata:
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
+  # Productor de calidad.muestra_ciega_solicitada (topico dominio.documentos, via outbox de la base de control).
 spec:
   authentication:
     type: tls
@@ -112,6 +114,8 @@ spec:
         operation: Write
       - resource: { type: topic, name: auditoria.eventos, patternType: literal }
         operation: Describe
+      - resource: { type: topic, name: dominio.documentos, patternType: literal }
+        operation: Write
       - resource: { type: topic, name: dominio.documentos, patternType: literal }
         operation: Read
       - resource: { type: topic, name: dominio.documentos, patternType: literal }

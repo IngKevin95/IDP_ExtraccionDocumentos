@@ -422,6 +422,19 @@ class DeliveryFlowIntegrationTest extends AbstractIntegrationTest {
         assertThat(rechazo.path("reasonCode").asText()).isEqualTo("MALWARE_DETECTED");
     }
 
+    @Test
+    void ac15_revisionCompletadaCiegaDeCalidadNoSeNotificaAlIntegrador() throws Exception {
+        Setup s = setup("revision.completada");
+        com.fasterxml.jackson.databind.node.ObjectNode blind = (com.fasterxml.jackson.databind.node.ObjectNode)
+            JSON.readTree(event("revision.completada", s.tenant(), UUID.randomUUID().toString(),
+                "taskId", UUID.randomUUID().toString(), "action", "APROBADO", "reviewerId", "revisor-1"));
+        blind.put("blindSample", true);
+
+        listener.onMessage(blind.toString());
+
+        assertThat(deliveries(s.tenant())).isEmpty();
+    }
+
     // ---------------------------------------------------------------- AC-07 aislamiento
 
     @Test

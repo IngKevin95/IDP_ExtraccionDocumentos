@@ -74,4 +74,40 @@ public class ReviewIntakeHandler {
         meters.counter("idp_review_tasks_created_total").increment();
         LOG.info("Tarea de revision {} creada con {} campos", taskId, unique.size());
     }
+
+    /**
+     * calidad.muestra_ciega_solicitada: crea la tarea de revision ciega de un oficio ya auto-aprobado. El id de la
+     * tarea es el sampleId. Los campos son todos los extraidos (el revisor los transcribe sin ver el valor del modelo ni
+     * su score). No toca el estado del documento. Sin campos disponibles no se crea tarea: transcribir nada no mide
+     * nada y falsearia la tasa de acuerdo.
+     */
+    public void handleBlind(EventEnvelope e) {
+        UUID taskId = UUID.fromString(e.payload().path("sampleId").asText());
+        UUID documentId = UUID.fromString(e.payload().path("documentId").asText());
+        Map<String, FieldCandidate> unique = new LinkedHashMap<>();
+        for (FieldCandidate c : fieldSource.approvedFields(documentId)) {
+            unique.putIfAbsent(c.fieldName(), c);
+        }
+        if (unique.isEmpty()) {
+            LOG.warn("Muestra ciega {} sin campos extraidos disponibles: no se crea tarea", taskId);
+            meters.counter("idp_review_blind_unavailable_total").increment();
+            return;
+        }
+        OffsetDateTime now = OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
+        ReviewTask task = new ReviewTask(taskId, e.tenantId().toString(), documentId, e.correlationId(),
+                TaskStatus.PENDING, null, null, null, null, false, now.plus(props.sla()), 0, null, null, now, now,
+                true);
+        if (!repo.insertTaskIfAbsent(task)) {
+            LOG.debug("Tarea ciega {} ya existe, evento ignorado", taskId);
+            return;
+        }
+        repo.setOrigin(taskId, e.payload().path("typology").asText(null), true);
+        for (FieldCandidate c : unique.values()) {
+            repo.insertField(new ReviewField(UUID.randomUUID(), taskId, c.fieldName(), c.page(), c.boundingBox(),
+                    c.originalValue(), c.confidence(), critical.isCritical(c.fieldName()), FieldStatus.PENDING,
+                    now));
+        }
+        meters.counter("idp_review_blind_tasks_created_total").increment();
+        LOG.info("Tarea ciega {} creada con {} campos", taskId, unique.size());
+    }
 }

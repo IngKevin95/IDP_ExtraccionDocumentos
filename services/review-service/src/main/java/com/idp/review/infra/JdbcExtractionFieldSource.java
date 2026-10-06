@@ -30,28 +30,57 @@ public class JdbcExtractionFieldSource implements FieldCandidateSource {
         this.isolated.setReadOnly(true);
     }
 
+    private static final String FIELD_SELECT = "select f.table_name, f.row_index, f.field_name, "
+            + "f.value_text, f.confidence_score, f.evidence_page, cast(f.bounding_box as varchar(200)) as bbox "
+            + "from field_value f join extraction e on e.id = f.extraction_id ";
+    private static final String FIELD_ORDER = " order by f.table_name, f.row_index, f.field_name";
+
+    private static FieldCandidate candidate(java.sql.ResultSet rs) throws java.sql.SQLException {
+        String table = rs.getString("table_name");
+        int row = rs.getInt("row_index");
+        boolean hasRow = !rs.wasNull();
+        String name = table == null ? rs.getString("field_name")
+                : table + (hasRow ? "[" + row + "]" : "") + "." + rs.getString("field_name");
+        int page = rs.getInt("evidence_page");
+        Integer pageOrNull = rs.wasNull() ? null : page;
+        return new FieldCandidate(name, pageOrNull, rs.getString("bbox"), rs.getString("value_text"),
+                rs.getBigDecimal("confidence_score"));
+    }
+
     @Override
     public List<FieldCandidate> candidates(UUID documentId, UUID taskId) {
         try {
-            return isolated.execute(status -> jdbc.query("select f.table_name, f.row_index, f.field_name, "
-                    + "f.value_text, f.confidence_score, f.evidence_page, cast(f.bounding_box as varchar(200)) as bbox "
-                    + "from field_value f join extraction e on e.id = f.extraction_id "
-                    + "where e.review_task_id = ? and e.document_id = ? and f.requires_review = true "
-                    + "order by f.table_name, f.row_index, f.field_name", (rs, i) -> {
-                        String table = rs.getString("table_name");
-                        int row = rs.getInt("row_index");
-                        boolean hasRow = !rs.wasNull();
-                        String name = table == null ? rs.getString("field_name")
-                                : table + (hasRow ? "[" + row + "]" : "") + "." + rs.getString("field_name");
-                        int page = rs.getInt("evidence_page");
-                        Integer pageOrNull = rs.wasNull() ? null : page;
-                        return new FieldCandidate(name, pageOrNull, rs.getString("bbox"), rs.getString("value_text"),
-                                rs.getBigDecimal("confidence_score"));
-                    }, taskId, documentId));
+            return isolated.execute(status -> jdbc.query(FIELD_SELECT
+                    + "where e.review_task_id = ? and e.document_id = ? and f.requires_review = true" + FIELD_ORDER,
+                    (rs, i) -> candidate(rs), taskId, documentId));
         } catch (DataAccessException e) {
             LOG.warn("No se pudieron leer los campos dudosos de la tarea {}: {}", taskId,
                     e.getClass().getSimpleName());
             return List.of();
+        }
+    }
+
+    /** Todos los campos de la extraccion mas reciente del documento (revision ciega). */
+    @Override
+    public List<FieldCandidate> approvedFields(UUID documentId) {
+        try {
+            return isolated.execute(status -> jdbc.query(FIELD_SELECT + "where e.id = (select x.id from extraction x "
+                    + "where x.document_id = ? order by x.created_at desc limit 1)" + FIELD_ORDER,
+                    (rs, i) -> candidate(rs), documentId));
+        } catch (DataAccessException e) {
+            LOG.warn("No se pudieron leer los campos del documento aprobado: {}", e.getClass().getSimpleName());
+            return List.of();
+        }
+    }
+
+    @Override
+    public java.util.Optional<String> uploader(UUID documentId) {
+        try {
+            return isolated.execute(status -> jdbc.query("select uploaded_by from document where id = ?",
+                    (rs, i) -> rs.getString(1), documentId).stream().filter(s -> s != null && !s.isBlank())
+                    .findFirst());
+        } catch (DataAccessException e) {
+            return java.util.Optional.empty();
         }
     }
 }

@@ -16,6 +16,8 @@ USERS = ROOT / "deploy/platform/kafka/users.yaml"
 SECURITY_LISTENER_SERVICES = {"document-service", "audit-service", "extraction-service", "tenant-service"}
 SECURITY_DEFAULT_TOPIC_RE = re.compile(r'revocation-topic:([\w.\-]+)\}')
 NAME = r"[\w.\-]+"
+# Productores cuyo Write no se deduce de application.yml (publican con el relay del outbox).
+PRODUCER_ACLS = {"quality-service": "dominio.documentos"}
 
 
 def default_of(value):
@@ -93,6 +95,13 @@ def main():
                     errors.append(f"{svc}: falta ACL de grupo prefijo '{svc}-{g}-'")
     if sec_default and "Write" not in {o for n, o in users.get("tenant-service", []) if n == sec_default}:
         errors.append(f"tenant-service: falta Write sobre '{sec_default}'")
+    # Productores por outbox: cada uno necesita Write sobre el topico al que publica su relay.
+    for svc, topic in PRODUCER_ACLS.items():
+        if "Write" not in {o for n, o in users.get(svc, []) if n == topic}:
+            errors.append(f"{svc}: falta Write sobre '{topic}' (productor de eventos por outbox)")
+    # review-service consume calidad.muestra_ciega_solicitada (quality-service es su unico productor).
+    if "Read" not in {o for n, o in users.get("review-service", []) if n == "dominio.documentos"}:
+        errors.append("review-service: falta Read sobre 'dominio.documentos'")
     for e in errors:
         print("ERROR", e)
     print("OK" if not errors else f"{len(errors)} error(es)")

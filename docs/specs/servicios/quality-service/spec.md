@@ -22,7 +22,7 @@ Gestionar el ciclo de vida de la calidad del sistema de extracción (Riesgo de M
 ## Reglas
 1. **Aislamiento de PII:** Los eventos de `revision.completada` que ingresen al servicio se utilizarán exclusivamente para extraer metadatos de qué campos fallaron, la tipología y el delta de corrección (como tipo de error matemático o de formato), eliminando el valor en crudo.
 2. **Umbrales Calibrados:** El servicio calcula estadísticamente los umbrales óptimos para auto-aprobación ($\tau_{auto}$) basados en la métrica histórica de error, permitiendo su consulta por los servicios core.
-3. **Muestreo Ciego:** El sistema registrará métricas bajo la etiqueta `blind_sample` cuando identifique oficios reales que superaron $\tau_{auto}$ pero fueron forzados a revisión humana aleatoriamente, usando estas diferencias para hallar la tasa de Error Silente.
+3. **Muestreo Ciego:** El sistema registrará métricas bajo la etiqueta `blind_sample` cuando identifique oficios reales que superaron $\tau_{auto}$ pero fueron forzados a revisión humana aleatoriamente, usando estas diferencias para hallar la tasa de Error Silente. El lazo se cierra así: `extraccion.aprobada` (AUTO_STP) → decisión HMAC → `qa_blind_sample` + `calidad.muestra_ciega_solicitada` → `review-service` crea la tarea ciega (el documento NO cambia de estado) → `revision.completada` con `blindSample=true` y `correctedFields` (diferencia entre lo transcrito por el revisor y lo extraído por el modelo, calculada en `review-service`) → un desacuerdo cuenta como error silente; un acuerdo solo suma a `blind_samples_total`.
 4. **Golden Set Independiente:** Las evaluaciones del *Golden Set* se ejecutan contra oficios sintéticos creados por los Data Stewards, permitiendo certificar nuevas versiones del sistema.
 
 ## Contrato
@@ -32,7 +32,8 @@ Gestionar el ciclo de vida de la calidad del sistema de extracción (Riesgo de M
 * `revision.completada.v1`: Para calcular errores (campos corregidos vs propuestos) y alimentar la precisión y recall.
 
 ### Eventos Publicados
-* Ninguno directamente. Las métricas se exponen vía API y tableros.
+* `calidad.muestra_ciega_solicitada.v1` (tópico `dominio.documentos`, clave `documentId`): se emite por outbox, en la misma transacción que registra la selección, cuando el muestreo ciego elige un oficio auto-aprobado (`AUTO_STP`). Payload claim-check sin PII: `documentId`, `tenantId`, `typology`, `sampleId` (más el envelope único). `quality-service` es su único productor; lo consume `review-service`, que crea la tarea de revisión ciega. Esquema: `contracts/events/calidad.muestra_ciega_solicitada.v1.schema.json`. Una re-entrega de `extraccion.aprobada` no vuelve a seleccionar ni a publicar.
+* Las métricas se exponen vía API y tableros.
 
 ### Endpoints (API)
 Referencia completa en: `contracts/openapi/quality-service.yaml`
@@ -47,6 +48,8 @@ Las tablas residen en el esquema de la **Base de Control (Compartida)** dado que
 
 * `qa_metrics_daily`: Almacena agregados diarios (tenant_id, fecha, tipologia, total_documentos, stp_count, hitl_count, silent_error_count).
 * `qa_field_error`: Almacena frecuencia de error por campo (tenant_id, fecha, campo_modificado, tipo_correccion, cuenta).
+* `qa_blind_sample`: oficios seleccionados para revisión ciega (tenant_id, document_id, tipologia, sample_id, status `PENDING`/`REVIEWED`).
+* `outbox`: outbox transaccional de este servicio en la base de control (no tiene silo por tenant); un relay planificado publica `calidad.muestra_ciega_solicitada`. Cada fila conserva su `tenantId`, que viaja en la cabecera Kafka.
 * `golden_set_document`: (id, nombre, tipologia, payload_sintetico_json, tags).
 * `golden_set_evaluation`: (id, fecha, version_prompt, accuracy, precision, recall).
 
@@ -86,6 +89,14 @@ Las tablas residen en el esquema de la **Base de Control (Compartida)** dado que
   * *Given* un usuario con rol `Operador`,
   * *When* intenta invocar `GET /v1/quality/reports/stp`,
   * *Then* recibe `403 Forbidden`.
+* **AC-09: Solicitud de muestra ciega por outbox.**
+  * *Given* un `extraccion.aprobada.v1` con `approvedBy=AUTO_STP` y el muestreo eligiendo ese oficio,
+  * *When* `quality-service` lo procesa,
+  * *Then* registra la selección en `qa_blind_sample` y deja en su outbox un `calidad.muestra_ciega_solicitada.v1` válido contra su schema (solo `documentId`, `tenantId`, `typology`, `sampleId` y envelope), una sola vez aunque la aprobación se re-entregue, y nunca para aprobaciones humanas.
+* **AC-10: Acuerdo y desacuerdo de la revisión ciega cambian el reporte.**
+  * *Given* dos oficios en muestra ciega, uno cuya revisión ciega llega sin `correctedFields` y otro con un campo corregido,
+  * *When* se consultan `GET /v1/quality/reports/silent-error` antes y después,
+  * *Then* `blind_samples_total` sube con ambos, `silent_errors_found` solo con el desacuerdo, y `qa_field_error` registra el campo con origen `BLIND`.
 * **AC-08: Alerta de deriva (Drift).**
   * *Given* un reporte consolidado diario,
   * *When* el porcentaje de Error Silente supera el 5% histórico o la tasa STP cae más de 10 puntos,
@@ -97,6 +108,6 @@ Las tablas residen en el esquema de la **Base de Control (Compartida)** dado que
 * **Métricas Exportables:** Tasa STP general y por tenant, Precisión de campos, Volumen de documentos sintéticos evaluados.
 
 ## Dependencias
-* **Kafka:** Para suscripción a los tópicos de extracción y revisión.
+* **Kafka:** Para suscripción a los tópicos de extracción y revisión, y publicación de `calidad.muestra_ciega_solicitada` (ACL `Write` sobre `dominio.documentos`).
 * **PostgreSQL (Base Compartida):** Persistencia de métricas y documentos del Golden Set.
 * **LLM Provider (Opcional):** Si la evaluación del Golden Set requiere re-ejecutar *prompts* sintéticos de prueba.

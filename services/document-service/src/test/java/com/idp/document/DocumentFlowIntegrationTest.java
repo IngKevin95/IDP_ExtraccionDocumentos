@@ -256,6 +256,24 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void revisionCompletadaCiegaNoCambiaElEstadoDelDocumento() throws Exception {
+        String tenant = newTenant();
+        operator(tenant, "ana");
+        roles.grant(tenant, "rita", Roles.REVISOR);
+        String id = uploadOk(tenant, "ana");
+        listener.onMessage(event("extraccion.requiere_revision", tenant, id, "taskId", UUID.randomUUID().toString()));
+
+        // Una medicion de calidad (blindSample) jamas aprueba ni rechaza: el documento sigue su propio flujo.
+        ObjectNode blind = (ObjectNode) JSON.readTree(event("revision.completada", tenant, id, "taskId",
+                UUID.randomUUID().toString(), "action", "APROBADO", "reviewerId", "rita"));
+        blind.put("blindSample", true);
+        listener.onMessage(blind.toString());
+
+        assertThat(statusOf(tenant, id)).isEqualTo("EN_REVISION");
+        assertThat(outbox(tenant, "extraccion.aprobada")).isEmpty();
+    }
+
+    @Test
     void a6_revisionCompletadaConRevisorSinRolOSegundoAprobadorInvalidoSeIgnora() throws Exception {
         String tenant = newTenant();
         operator(tenant, "ana");

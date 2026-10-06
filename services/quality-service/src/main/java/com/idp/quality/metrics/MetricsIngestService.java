@@ -1,8 +1,12 @@
 package com.idp.quality.metrics;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.idp.events.EventEnvelope;
 import com.idp.events.EventValidationException;
+import com.idp.events.OutboxPublisher;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Set;
@@ -28,12 +32,19 @@ public class MetricsIngestService {
     private static final Pattern FIELD = Pattern.compile("[a-z][a-z0-9_]{0,63}");
     private static final Set<String> CORRECTION_TYPES = Set.of("VALOR", "FORMATO", "OMISION", "SOBRANTE");
 
+    public static final String MUESTRA_CIEGA = "calidad.muestra_ciega_solicitada";
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private final MetricsRepository repo;
     private final BlindSampler sampler;
+    private final OutboxPublisher outbox;
+    private final Clock clock;
 
-    public MetricsIngestService(MetricsRepository repo, BlindSampler sampler) {
+    public MetricsIngestService(MetricsRepository repo, BlindSampler sampler, OutboxPublisher outbox, Clock clock) {
         this.repo = repo;
         this.sampler = sampler;
+        this.outbox = outbox;
+        this.clock = clock;
     }
 
     public void handle(EventEnvelope e) {
@@ -52,8 +63,26 @@ public class MetricsIngestService {
         boolean stp = "AUTO_STP".equals(e.payload().path("approvedBy").asText());
         repo.addDaily(e.tenantId(), day, tip, 1, stp ? 1 : 0, 0, 0, 0);
         if (stp && sampler.shouldSample(e.tenantId(), documentId(e), tip)) {
-            repo.selectBlind(e.tenantId(), documentId(e), tip);
+            requestBlindReview(e, tip);
         }
+    }
+
+    /**
+     * Registra la seleccion y publica por outbox (misma transaccion) calidad.muestra_ciega_solicitada, para que
+     * review-service cree la tarea ciega. Una re-entrega de la aprobacion no vuelve a seleccionar ni a publicar.
+     */
+    private void requestBlindReview(EventEnvelope approved, String typology) {
+        UUID documentId = documentId(approved);
+        UUID sampleId = UUID.randomUUID();
+        if (!repo.selectBlind(approved.tenantId(), documentId, typology, sampleId)) {
+            return;
+        }
+        ObjectNode p = MAPPER.createObjectNode();
+        p.put("documentId", documentId.toString());
+        p.put("typology", typology);
+        p.put("sampleId", sampleId.toString());
+        outbox.publish(documentId.toString(), new EventEnvelope(UUID.randomUUID(), MUESTRA_CIEGA, 1, clock.instant(),
+            approved.tenantId(), approved.correlationId(), p));
     }
 
     /**

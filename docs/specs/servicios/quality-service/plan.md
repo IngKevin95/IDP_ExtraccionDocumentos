@@ -27,9 +27,14 @@
   * Deserialización JSON.
 * Roles de seguridad JWT configurados para requerir rol `DATA_STEWARD` en la API REST.
 
+## Publicación de eventos (outbox)
+* `quality-service` publica `calidad.muestra_ciega_solicitada.v1` con `libs/events` (`OutboxRepository`, `JdbcOutboxPublisher`, `OutboxRelay`). Como no tiene silo por tenant, el outbox vive en la base de control (esquema `quality`) y `TenantOutboxAccess` opera siempre sobre esa base; el relay (`quality.relay.enabled`, `quality.relay.interval`) publica en `dominio.documentos` con clave `documentId` y cabecera `tenantId`.
+* `MetricsIngestService` registra la selección (`qa_blind_sample.sample_id`) y publica en la misma transacción del consumidor idempotente.
+
 ## Migraciones Flyway
 * **Ruta:** `services/quality-service/src/main/resources/db/migration`
 * `V1__init_quality_schema.sql`: Creación de tablas `qa_metrics_daily`, `qa_field_error`, `golden_set_document`, `golden_set_evaluation`.
+* `V2__outbox_and_sample_id.sql`: tabla `outbox` y columna `qa_blind_sample.sample_id`.
 * Creación de índices en las tablas de métricas por `tenant_id` y `fecha` para consultas rápidas de los dashboards.
 
 ## Adaptadores

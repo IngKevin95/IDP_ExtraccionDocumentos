@@ -39,6 +39,10 @@ public class NotificationEventHandler {
         if (type == null) {
             return;
         }
+        if (event.payload().path("blindSample").asBoolean(false)) {
+            // Revision ciega de calidad: es una medicion interna, no un resultado para el integrador.
+            return;
+        }
         UUID documentId = UUID.fromString(event.payload().path("documentId").asText());
         Instant now = clock.instant();
         int created = 0;

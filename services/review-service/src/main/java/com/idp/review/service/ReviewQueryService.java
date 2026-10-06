@@ -45,14 +45,23 @@ public class ReviewQueryService {
         return new Page<>(data, p, s, total, pages(total, s));
     }
 
+    /** En una tarea ciega el revisor no ve ni el valor del modelo ni su score. */
     public List<ReviewField> fields(Caller caller, UUID taskId) {
-        get(caller, taskId);
-        return repo.fields(taskId);
+        ReviewTask task = get(caller, taskId);
+        List<ReviewField> fields = repo.fields(taskId);
+        return task.blindSample() ? fields.stream().map(f -> new ReviewField(f.id(), f.taskId(), f.fieldName(),
+                f.page(), f.boundingBox(), null, null, f.critical(), f.status(), f.createdAt())).toList() : fields;
     }
 
     public List<Correction> corrections(Caller caller, UUID taskId) {
-        get(caller, taskId);
-        return repo.corrections(taskId);
+        ReviewTask task = get(caller, taskId);
+        return task.blindSample() ? blindView(repo.corrections(taskId)) : repo.corrections(taskId);
+    }
+
+    /** Correcciones sin el valor original del modelo (solo lo transcrito por el revisor ciego). */
+    static List<Correction> blindView(List<Correction> corrections) {
+        return corrections.stream().map(c -> new Correction(c.id(), c.taskId(), c.fieldName(), null,
+                c.correctedValue(), c.critical(), c.createdAt(), c.createdBy())).toList();
     }
 
     /** Cola por campo: campos pendientes de tareas abiertas; escaladas y mas proximas a vencer primero. */

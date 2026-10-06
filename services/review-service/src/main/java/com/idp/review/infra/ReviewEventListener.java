@@ -10,14 +10,15 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Consume el topico de dominio y procesa solo extraccion.requiere_revision, con consumo idempotente (processed_event)
- * y validacion contra su JSON Schema. Los mensajes fuera de contrato van al DLT por el error handler de Kafka.
+ * Consume el topico de dominio y procesa solo extraccion.requiere_revision y calidad.muestra_ciega_solicitada (tarea
+ * de revision ciega), con consumo idempotente (processed_event) y validacion contra su JSON Schema. Los mensajes fuera de contrato van al DLT por el error handler de Kafka.
  */
 @Component
 public class ReviewEventListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReviewEventListener.class);
     static final String HANDLED = "extraccion.requiere_revision";
+    static final String BLIND = "calidad.muestra_ciega_solicitada";
 
     private final IdempotentEventConsumer consumer;
     private final ReviewIntakeHandler handler;
@@ -31,10 +32,13 @@ public class ReviewEventListener {
 
     @KafkaListener(topics = "${idp.topic:dominio.documentos}", groupId = "review-service")
     public void onMessage(String json) {
-        if (!HANDLED.equals(eventType(json))) {
+        String type = eventType(json);
+        if (!HANDLED.equals(type) && !BLIND.equals(type)) {
             return;
         }
-        if (consumer.consume(json, handler::handle) == IdempotentEventConsumer.Result.DUPLICATE) {
+        java.util.function.Consumer<com.idp.events.EventEnvelope> work = BLIND.equals(type) ? handler::handleBlind
+                : handler::handle;
+        if (consumer.consume(json, work) == IdempotentEventConsumer.Result.DUPLICATE) {
             LOG.debug("Evento duplicado ignorado");
         }
     }

@@ -48,17 +48,19 @@ public class ReviewTaskService {
     private final ReviewEvents events;
     private final CriticalFields critical;
     private final RoleAssignmentVerifier roles;
+    private final BlindReviewPolicy blindPolicy;
     private final TransactionTemplate tx;
     private final MeterRegistry meters;
     private final Clock clock;
 
     public ReviewTaskService(ReviewRepository repo, ReviewEvents events, CriticalFields critical,
-                             RoleAssignmentVerifier roles, TransactionTemplate tx, MeterRegistry meters,
-                             Clock clock) {
+                             RoleAssignmentVerifier roles, BlindReviewPolicy blindPolicy, TransactionTemplate tx,
+                             MeterRegistry meters, Clock clock) {
         this.repo = repo;
         this.events = events;
         this.critical = critical;
         this.roles = roles;
+        this.blindPolicy = blindPolicy;
         this.tx = tx;
         this.meters = meters;
         this.clock = clock;
@@ -71,6 +73,7 @@ public class ReviewTaskService {
         return inTx(() -> {
             ReviewTask task = load(caller, taskId);
             requireOpen(task);
+            blindPolicy.requireIndependent(task, caller.userId());
             if (!repo.claim(caller.tenantId(), taskId, caller.userId(), now())) {
                 throw failure(load(caller, taskId), caller, Expected.OPEN);
             }
@@ -102,6 +105,7 @@ public class ReviewTaskService {
             if (!roles.hasRole(caller.tenantId(), assigneeId, Roles.REVISOR)) {
                 throw new InvalidRequestException("El destinatario no tiene el rol REVISOR vigente");
             }
+            blindPolicy.requireIndependent(task, assigneeId);
             if (task.status() == TaskStatus.PENDING_SECOND_APPROVAL && assigneeId.equals(task.firstReviewerId())) {
                 meters.counter("idp_review_four_eyes_denied_total").increment();
                 throw new FourEyesViolationException("El primer revisor no puede tomar la segunda aprobacion");
@@ -128,6 +132,7 @@ public class ReviewTaskService {
             if (task.status() != TaskStatus.PENDING) {
                 throw new InvalidStateException("Solo se corrige una tarea en estado PENDING");
             }
+            blindPolicy.requireIndependent(task, caller.userId());
             if (!repo.claim(caller.tenantId(), taskId, caller.userId(), now())) {
                 throw failure(load(caller, taskId), caller, Expected.PENDING_ONLY);
             }
@@ -137,14 +142,20 @@ public class ReviewTaskService {
             for (CorrectionInput in : inputs) {
                 String name = in.fieldName().trim();
                 ReviewField field = known.get(name);
-                String original = in.originalValue() != null ? in.originalValue()
+                if (task.blindSample() && field == null) {
+                    throw new InvalidRequestException("Campo desconocido en una revision ciega");
+                }
+                // Ciega: el original es siempre el del modelo (guardado), nunca el que envie el cliente.
+                String original = task.blindSample() ? field.originalValue()
+                        : in.originalValue() != null ? in.originalValue()
                         : field == null ? null : field.originalValue();
                 repo.upsertCorrection(new Correction(UUID.randomUUID(), taskId, name, original,
                         in.correctedValue(), critical.isCritical(name), now, caller.userId()));
                 repo.markFieldCorrected(taskId, name);
             }
             LOG.info("Tarea {}: {} correcciones registradas", taskId, inputs.size());
-            return repo.corrections(taskId);
+            return task.blindSample() ? ReviewQueryService.blindView(repo.corrections(taskId))
+                    : repo.corrections(taskId);
         });
     }
 
@@ -159,6 +170,9 @@ public class ReviewTaskService {
             ReviewTask task = load(caller, taskId);
             if (task.status() != TaskStatus.PENDING) {
                 throw new InvalidStateException("Solo se aprueba una tarea en estado PENDING");
+            }
+            if (task.blindSample()) {
+                return completeBlind(caller, task);
             }
             boolean needsSecond = repo.hasCriticalCorrection(taskId);
             OffsetDateTime now = now();
@@ -176,6 +190,27 @@ public class ReviewTaskService {
             }
             return updated;
         });
+    }
+
+    /**
+     * Cierra una revision ciega: el revisor debe haber transcrito todos los campos. Es medicion, no correccion: sin
+     * segunda aprobacion ni criticalCorrection; revision.completada lleva blindSample=true y solo el tipo de diferencia
+     * entre lo transcrito y lo que extrajo el modelo. No toca el estado del documento.
+     */
+    private ReviewTask completeBlind(Caller caller, ReviewTask task) {
+        blindPolicy.requireIndependent(task, caller.userId());
+        if (repo.pendingFieldCount(task.id()) > 0) {
+            throw new InvalidStateException("Faltan campos por transcribir en la revision ciega");
+        }
+        OffsetDateTime now = now();
+        if (!repo.firstApprove(caller.tenantId(), task.id(), caller.userId(), false, now, cycleSeconds(task, now))) {
+            throw failure(load(caller, task.id()), caller, Expected.PENDING_ONLY);
+        }
+        repo.confirmPendingFields(task.id());
+        ReviewTask updated = load(caller, task.id());
+        emitCompleted(updated, ReviewEvents.APROBADO, caller.userId(), null, false, true);
+        completed(updated, ReviewEvents.APROBADO);
+        return updated;
     }
 
     /** Segunda aprobacion (cuatro ojos): otro revisor, distinto del primero, ambos con rol vigente. */
@@ -213,6 +248,9 @@ public class ReviewTaskService {
         return inTx(() -> {
             ReviewTask task = load(caller, taskId);
             requireOpen(task);
+            if (task.blindSample()) {
+                throw new InvalidStateException("Una revision ciega no se rechaza: el documento ya esta aprobado");
+            }
             OffsetDateTime now = now();
             if (!repo.reject(caller.tenantId(), taskId, caller.userId(), now, cycleSeconds(task, now))) {
                 throw failure(load(caller, taskId), caller, Expected.OPEN);

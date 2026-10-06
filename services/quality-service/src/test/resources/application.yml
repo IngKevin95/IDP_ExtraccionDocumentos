@@ -34,6 +34,8 @@ idp:
     audience: quality-service
     dev-mode: true
 quality:
+  relay:
+    enabled: false
   current-model-prompt: modelo-a/prompt-v1
   blind-sampling:
     rate: 0

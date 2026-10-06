@@ -85,19 +85,19 @@ graph TD
 - **Responsabilidad:** Cola de revisión manual (HITL), regla de cuatro ojos para campos críticos (monto, identificación, cuenta/producto, tipo de medida).
 - **Datos:** `review_task`, `correction`.
 - **API:** `GET /tasks`, `POST /tasks/{id}/approve`.
-- **Eventos:** Consume `extraccion.requiere_revision`. Publica `revision.completada` y `revision.escalada` (SLA vencido).
-- **Privilegios:** Validación de rol revisor y segundo aprobador distinto para campos críticos.
+- **Eventos:** Consume `extraccion.requiere_revision` y `calidad.muestra_ciega_solicitada` (tarea de revisión ciega de un oficio ya auto-aprobado, sin cambiar el estado del documento). Publica `revision.completada` (con `blindSample=true` en la revisión ciega) y `revision.escalada` (SLA vencido).
+- **Privilegios:** Validación de rol revisor y segundo aprobador distinto para campos críticos; en la revisión ciega, revisor distinto de quien intervino en el documento y sin ver la salida del modelo.
 - **Escalado:** Bajo/Medio.
-- **Controles SEC:** SEC-009, SEC-034, SEC-050.
+- **Controles SEC:** SEC-009, SEC-034, SEC-050, SEC-051.
 
 ### 2.6 `quality-service`
 - **Responsabilidad:** Golden set con oficios sintéticos, muestreo ciego, deriva, calibración.
 - **Datos:** Métricas QA.
 - **API:** Interna y exportación de reportes (rol riesgo de modelo).
-- **Eventos:** Consume `extraccion.aprobada` y `revision.completada`.
+- **Eventos:** Consume `extraccion.aprobada` y `revision.completada`. Publica `calidad.muestra_ciega_solicitada` (único productor) por outbox en la base de control.
 - **Privilegios:** Lectura golden set, evaluación independiente.
 - **Escalado:** Bajo.
-- **Controles SEC:** SEC-035.
+- **Controles SEC:** SEC-035, SEC-051.
 
 ### 2.7 `chat-service`
 - **Responsabilidad:** RAG, pgvector, citación verificable. Abstención obligatoria ante información insuficiente. Búsqueda exacta por `document_id`.
@@ -165,6 +165,7 @@ Patrón claim-check estricto: cero PII en eventos Kafka. Se usan identificadores
 | `extraccion.requiere_revision`| Evento | `extraction-service` | `documentId`, `taskId`, `tenantId` |
 | `ia.ejecucion_registrada` | Evento | `extraction-service` | `documentId`, `modelVersion`, `promptVersion`, `configHash`, `signatureRef` (SEC-049) |
 | `revision.completada` | Evento | `review-service` | `documentId`, `taskId`, `action` (opcionales: `typology`, `blindSample`, `correctedFields[]` solo nombre y tipo) |
+| `calidad.muestra_ciega_solicitada` | Evento | `quality-service` (consumidor: `review-service`) | `documentId`, `tenantId`, `typology`, `sampleId` |
 | `revision.escalada` | Evento | `review-service` (consumidor: `notification-service`) | `documentId`, `taskId`, `level`, `slaBreachedAt` |
 | `extraccion.aprobada` | Evento | `document-service` | `documentId`, `tenantId`, `finalScore` |
 | `seguridad.acceso_denegado` | Evento | (Cualquier servicio) | `tenantId`, `userId`, `recurso` |
@@ -187,7 +188,7 @@ Patrón claim-check estricto: cero PII en eventos Kafka. Se usan identificadores
 - **Tópicos y Particiones:** Tópicos globales, particionados por `documentId`. Sin tópicos ni credenciales por tenant.
 - **Tópico de Auditoría:** `auditoria.eventos` usa clave `tenantId`. Su consumidor implementa reintento BLOQUEANTE (sin `@RetryableTopic`) para no romper el orden de la hash-chain, disparando alerta en caso de fallo.
 - **Seguridad (ACL):** Acceso estricto por `KafkaUser` de Strimzi para cada servicio.
-- **Producción (Outbox):** Se usa una tabla `outbox` en la base de datos de cada tenant. Un proceso relay por servicio recorre las bases de datos de los tenants con `FOR UPDATE SKIP LOCKED`. Los tenants se reparten por hash entre las réplicas usando ShedLock. Se implementa Debezium diferido.
+- **Producción (Outbox):** Se usa una tabla `outbox` en la base de datos de cada tenant (excepción: `quality-service` no tiene silo y usa un `outbox` propio en la base de control; ADR 0028). Un proceso relay por servicio recorre las bases de datos de los tenants con `FOR UPDATE SKIP LOCKED`. Los tenants se reparten por hash entre las réplicas usando ShedLock. Se implementa Debezium diferido.
 - **Consumo:** Idempotencia en cada consumidor.
 
 
@@ -195,7 +196,7 @@ Patrón claim-check estricto: cero PII en eventos Kafka. Se usan identificadores
 
 | Nombre de Tópico | Tipo | Clave | Particiones | Retención | Productores | Consumidores |
 |---|---|---|---|---|---|---|
-| `dominio.documentos` | Pipeline | `documentId` | 12 | 7 días | `document-service`, `extraction-service`, `review-service`, `tenant-service`, `notification-service`, `chat-service` | `document-service`, `extraction-service`, `review-service`, `notification-service`, `chat-service`, `quality-service`, `audit-service` |
+| `dominio.documentos` | Pipeline | `documentId` | 12 | 7 días | `document-service`, `extraction-service`, `review-service`, `tenant-service`, `notification-service`, `chat-service`, `quality-service` | `document-service`, `extraction-service`, `review-service`, `notification-service`, `chat-service`, `quality-service`, `audit-service` |
 | `auditoria.eventos` | Auditoría | `tenantId` | 6 | 365 días | Todos (para eventos exclusivos de seguridad) | `audit-service` |
 | `idp.tenant.events` | Control de tenant | `tenantId` | 3 | 7 días | `tenant-service` (outbox) | `document-service`, `audit-service`, `extraction-service`, `tenant-service` (grupos efímeros `<app>-acceso-revocado-*` y `<app>-pool-evict-*`, `auto.offset.reset=latest`; eventos `acceso.revocado`, `tenant.baja_iniciada`, `tenant.credenciales_rotadas`) |
 

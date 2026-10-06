@@ -60,6 +60,11 @@ public class PipelineEventHandler {
     }
 
     void onReviewCompleted(EventEnvelope e) {
+        if (e.payload().path("blindSample").asBoolean(false)) {
+            // Revision ciega de calidad sobre un documento ya aprobado: mide error silente, no cambia su estado.
+            LOG.debug("revision.completada ciega ignorada para el estado del documento");
+            return;
+        }
         load(e).filter(d -> expect(d, DocumentStatus.EN_REVISION, e)).filter(d -> reviewersValid(d, e))
                 .ifPresent(d -> {
                     String action = e.payload().path("action").asText("");
