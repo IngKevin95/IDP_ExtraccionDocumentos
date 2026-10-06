@@ -15,7 +15,7 @@ RNF-105 (resiliencia basada en eventos, consumidores idempotentes), RF-601 (traz
 2. Todo evento debe publicarse primero en la tabla outbox de la transaccion de negocio.
 3. Los consumidores deben ser idempotentes basandose en el correlationId o eventId.
 4. Fallos en el consumo tras los reintentos permitidos iran a una Dead Letter Topic (DLT).
-5. Un topico por productor o familia (ADR 0029): cada eventType pertenece a un unico topico y solo sus productores declarados en `contracts/events/topology.yaml` tienen `Write` sobre el (unica excepcion: `auditoria.eventos`, senales). Los productores resuelven el topico con `EventTopology`; publicar un eventType ajeno falla de forma explicita.
+5. Un topico por productor o familia (ADR 0029): cada eventType pertenece a un unico topico y solo sus productores declarados en `contracts/events/topology.yaml` tienen `Write` sobre el (unica excepcion: `audit.events`, senales). Los productores resuelven el topico con `EventTopology`; publicar un eventType ajeno falla de forma explicita.
 6. Todo consumidor valida que el eventType llego por el topico que la topologia le asigna; si no, ignora el evento, cuenta `idp.events.origin.rejected` y registra una alerta SECURITY sin payload.
 
 ## Contrato

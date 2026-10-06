@@ -17,7 +17,7 @@ public final class Topics {
     public static String of(String json) {
         Matcher m = TYPE.matcher(json == null ? "" : json);
         EventTopology topology = EventTopology.defaults();
-        return m.find() && topology.knows(m.group(1)) ? topology.topicFor(m.group(1)) : "documentos.eventos";
+        return m.find() && topology.knows(m.group(1)) ? topology.topicFor(m.group(1)) : "document.events";
     }
 
     public static void deliver(BiConsumer<String, String> listener, String json) {

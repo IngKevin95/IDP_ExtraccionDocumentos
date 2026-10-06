@@ -8,36 +8,36 @@ metadata:
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
-  # Productor de documentos.eventos; consume extraccion.eventos y revision.eventos.
+  # Productor de document.events; consume extraction.events y review.events.
 spec:
   authentication:
     type: tls
   authorization:
     type: simple
     acls:
-      - resource: { type: topic, name: documentos.eventos, patternType: literal }
+      - resource: { type: topic, name: document.events, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: documentos.eventos, patternType: literal }
+      - resource: { type: topic, name: document.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: extraccion.eventos, patternType: literal }
+      - resource: { type: topic, name: extraction.events, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: extraccion.eventos, patternType: literal }
+      - resource: { type: topic, name: extraction.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: revision.eventos, patternType: literal }
+      - resource: { type: topic, name: review.events, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: revision.eventos, patternType: literal }
+      - resource: { type: topic, name: review.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: extraccion.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: extraction.events-dlt, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: extraccion.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: extraction.events-dlt, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: revision.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: review.events-dlt, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: revision.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: review.events-dlt, patternType: literal }
         operation: Describe
       - resource: { type: group, name: document-service, patternType: literal }
         operation: Read
@@ -58,28 +58,28 @@ metadata:
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
-  # Productor de extraccion.eventos; consume documentos.eventos (extraccion.solicitada).
+  # Productor de extraction.events; consume document.events (extraccion.solicitada).
 spec:
   authentication:
     type: tls
   authorization:
     type: simple
     acls:
-      - resource: { type: topic, name: extraccion.eventos, patternType: literal }
+      - resource: { type: topic, name: extraction.events, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: extraccion.eventos, patternType: literal }
+      - resource: { type: topic, name: extraction.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: documentos.eventos, patternType: literal }
+      - resource: { type: topic, name: document.events, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: documentos.eventos, patternType: literal }
+      - resource: { type: topic, name: document.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: documentos.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: document.events-dlt, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: documentos.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: document.events-dlt, patternType: literal }
         operation: Describe
       - resource: { type: group, name: extraction-service, patternType: literal }
         operation: Read
@@ -100,37 +100,37 @@ metadata:
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
-  # Productor de revision.eventos (revision.completada, revision.escalada); consume extraccion.eventos
-  # (extraccion.requiere_revision) y calidad.eventos (calidad.muestra_ciega_solicitada).
+  # Productor de review.events (revision.completada, revision.escalada); consume extraction.events
+  # (extraccion.requiere_revision) y quality.events (calidad.muestra_ciega_solicitada).
 spec:
   authentication:
     type: tls
   authorization:
     type: simple
     acls:
-      - resource: { type: topic, name: revision.eventos, patternType: literal }
+      - resource: { type: topic, name: review.events, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: revision.eventos, patternType: literal }
+      - resource: { type: topic, name: review.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: extraccion.eventos, patternType: literal }
+      - resource: { type: topic, name: extraction.events, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: extraccion.eventos, patternType: literal }
+      - resource: { type: topic, name: extraction.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: calidad.eventos, patternType: literal }
+      - resource: { type: topic, name: quality.events, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: calidad.eventos, patternType: literal }
+      - resource: { type: topic, name: quality.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: extraccion.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: extraction.events-dlt, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: extraccion.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: extraction.events-dlt, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: calidad.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: quality.events-dlt, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: calidad.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: quality.events-dlt, patternType: literal }
         operation: Describe
       - resource: { type: group, name: review-service, patternType: literal }
         operation: Read
@@ -150,45 +150,45 @@ metadata:
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
-  # Productor de calidad.eventos (calidad.muestra_ciega_solicitada, via outbox de la base de control); consume
-  # extraccion.aprobada (documentos.eventos), extraccion.completada (extraccion.eventos) y revision.completada.
+  # Productor de quality.events (calidad.muestra_ciega_solicitada, via outbox de la base de control); consume
+  # extraccion.aprobada (document.events), extraccion.completada (extraction.events) y revision.completada.
 spec:
   authentication:
     type: tls
   authorization:
     type: simple
     acls:
-      - resource: { type: topic, name: calidad.eventos, patternType: literal }
+      - resource: { type: topic, name: quality.events, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: calidad.eventos, patternType: literal }
+      - resource: { type: topic, name: quality.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: documentos.eventos, patternType: literal }
+      - resource: { type: topic, name: document.events, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: documentos.eventos, patternType: literal }
+      - resource: { type: topic, name: document.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: extraccion.eventos, patternType: literal }
+      - resource: { type: topic, name: extraction.events, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: extraccion.eventos, patternType: literal }
+      - resource: { type: topic, name: extraction.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: revision.eventos, patternType: literal }
+      - resource: { type: topic, name: review.events, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: revision.eventos, patternType: literal }
+      - resource: { type: topic, name: review.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: documentos.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: document.events-dlt, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: documentos.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: document.events-dlt, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: extraccion.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: extraction.events-dlt, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: extraccion.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: extraction.events-dlt, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: revision.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: review.events-dlt, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: revision.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: review.events-dlt, patternType: literal }
         operation: Describe
       - resource: { type: group, name: quality-service, patternType: literal }
         operation: Read
@@ -206,16 +206,16 @@ metadata:
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
-  # Solo emite senales de seguridad/chat en auditoria.eventos; aun no consume topicos.
+  # Solo emite senales de seguridad/chat en audit.events; aun no consume topicos.
 spec:
   authentication:
     type: tls
   authorization:
     type: simple
     acls:
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Describe
 ---
 apiVersion: kafka.strimzi.io/v1beta2
@@ -225,37 +225,37 @@ metadata:
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
-  # Productor de notificaciones.eventos (webhook.entregado, webhook.fallido); consume extraccion.aprobada y
-  # documento.rechazado (documentos.eventos) y revision.completada (revision.eventos).
+  # Productor de notification.events (webhook.entregado, webhook.fallido); consume extraccion.aprobada y
+  # documento.rechazado (document.events) y revision.completada (review.events).
 spec:
   authentication:
     type: tls
   authorization:
     type: simple
     acls:
-      - resource: { type: topic, name: notificaciones.eventos, patternType: literal }
+      - resource: { type: topic, name: notification.events, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: notificaciones.eventos, patternType: literal }
+      - resource: { type: topic, name: notification.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: documentos.eventos, patternType: literal }
+      - resource: { type: topic, name: document.events, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: documentos.eventos, patternType: literal }
+      - resource: { type: topic, name: document.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: revision.eventos, patternType: literal }
+      - resource: { type: topic, name: review.events, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: revision.eventos, patternType: literal }
+      - resource: { type: topic, name: review.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: documentos.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: document.events-dlt, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: documentos.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: document.events-dlt, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: revision.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: review.events-dlt, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: revision.eventos-dlt, patternType: literal }
+      - resource: { type: topic, name: review.events-dlt, patternType: literal }
         operation: Describe
       - resource: { type: group, name: notification-service, patternType: literal }
         operation: Read
@@ -276,38 +276,38 @@ metadata:
   labels:
     strimzi.io/cluster: idp-kafka
   # Consume todos los topicos de eventos (senales y estado); produce auditoria.alerta_integridad y legalhold.*
-  # en auditoria.eventos.
+  # en audit.events.
 spec:
   authentication:
     type: tls
   authorization:
     type: simple
     acls:
-      - resource: { type: topic, name: documentos.eventos, patternType: literal }
+      - resource: { type: topic, name: document.events, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: documentos.eventos, patternType: literal }
+      - resource: { type: topic, name: document.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: extraccion.eventos, patternType: literal }
+      - resource: { type: topic, name: extraction.events, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: extraccion.eventos, patternType: literal }
+      - resource: { type: topic, name: extraction.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: revision.eventos, patternType: literal }
+      - resource: { type: topic, name: review.events, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: revision.eventos, patternType: literal }
+      - resource: { type: topic, name: review.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: calidad.eventos, patternType: literal }
+      - resource: { type: topic, name: quality.events, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: calidad.eventos, patternType: literal }
+      - resource: { type: topic, name: quality.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: notificaciones.eventos, patternType: literal }
+      - resource: { type: topic, name: notification.events, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: notificaciones.eventos, patternType: literal }
+      - resource: { type: topic, name: notification.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Read
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Describe
       - resource: { type: topic, name: idp.tenant.events, patternType: literal }
         operation: Read
@@ -328,7 +328,7 @@ metadata:
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
-  # Productor de idp.tenant.events; ademas emite consumo.registrado, legalhold.* y senales en auditoria.eventos.
+  # Productor de idp.tenant.events; ademas emite consumo.registrado, legalhold.* y senales en audit.events.
 spec:
   authentication:
     type: tls
@@ -341,9 +341,9 @@ spec:
         operation: Read
       - resource: { type: topic, name: idp.tenant.events, patternType: literal }
         operation: Describe
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Write
-      - resource: { type: topic, name: auditoria.eventos, patternType: literal }
+      - resource: { type: topic, name: audit.events, patternType: literal }
         operation: Describe
       - resource: { type: group, name: tenant-service-acceso-revocado-, patternType: prefix }
         operation: Read

@@ -74,8 +74,8 @@ class AuditKafkaIntegrationTest extends AuditTestSupport {
         send(breakGlass(a));
         send(recibida(b, UUID.randomUUID()));
         // SEC-052: eventos por un topico que no es el de su productor se ignoran (no entran a la cadena).
-        send("auditoria.eventos", aprobada(b, UUID.randomUUID()));
-        send("revision.eventos", recibida(b, UUID.randomUUID()));
+        send("audit.events", aprobada(b, UUID.randomUUID()));
+        send("review.events", recibida(b, UUID.randomUUID()));
 
         awaitEntries(a, 3);
         awaitEntries(b, 1);

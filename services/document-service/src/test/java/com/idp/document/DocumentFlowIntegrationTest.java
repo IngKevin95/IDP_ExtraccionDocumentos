@@ -288,16 +288,16 @@ class DocumentFlowIntegrationTest extends AbstractIntegrationTest {
         // Un servicio comprometido publica revision.completada APROBADO (con un revisor real) por otro topico.
         String forged = event("revision.completada", tenant, id, "taskId", UUID.randomUUID().toString(), "action",
                 "APROBADO", "reviewerId", "rita");
-        listener.onMessage(forged, "documentos.eventos");
-        listener.onMessage(forged, "extraccion.eventos");
+        listener.onMessage(forged, "document.events");
+        listener.onMessage(forged, "extraction.events");
 
         assertThat(statusOf(tenant, id)).isEqualTo("EN_REVISION");
         assertThat(outbox(tenant, "extraccion.aprobada")).isEmpty();
         assertThat(meters.counter("idp.events.origin.rejected", "reason", "wrong_topic").count())
                 .isEqualTo(before + 2);
 
-        // Por su topico legitimo (revision.eventos) el mismo evento si se procesa.
-        listener.onMessage(forged, "revision.eventos");
+        // Por su topico legitimo (review.events) el mismo evento si se procesa.
+        listener.onMessage(forged, "review.events");
         assertThat(statusOf(tenant, id)).isEqualTo("APROBADO");
     }
 

@@ -4,7 +4,7 @@
 Reglas (cada violacion es un ERROR):
   1. Todo eventType del catalogo (contracts/events/*.schema.json) tiene entrada en topology.yaml.
   2. Cada topico de la topologia esta declarado en topics.yaml y su clave coincide con la del topico.
-  3. Solo auditoria.eventos admite varios productores (senales); los demas topicos son de un unico productor.
+  3. Solo audit.events admite varios productores (senales); los demas topicos son de un unico productor.
   4. Write ACL de cada servicio == exactamente los topicos de los eventTypes que produce (mas los *-dlt de los
      topicos de dominio que consume si usa EventErrorHandlers.deadLetter). Nadie escribe en un topico ajeno.
   5. Cada consumidor (@KafkaListener en main, incluidos los listeners de libs/security que cablea) tiene Read y
@@ -25,7 +25,7 @@ TOPOLOGY = ROOT / "contracts/events/topology.yaml"
 SCHEMAS = ROOT / "contracts/events"
 TOPICS = ROOT / "deploy/platform/kafka/topics.yaml"
 USERS = ROOT / "deploy/platform/kafka/users.yaml"
-SHARED_TOPIC = "auditoria.eventos"
+SHARED_TOPIC = "audit.events"
 TENANT_TOPIC = "idp.tenant.events"
 RETIRED_TOPIC = "dominio.documentos"
 # eventTypes reservados en la topologia sin esquema aun en el catalogo.
@@ -230,24 +230,24 @@ def self_test():
 
     mutate("eventType sin entrada", lambda m: m["events"].pop("revision.completada"),
            "revision.completada' del catalogo sin entrada")
-    mutate("write ajeno", lambda m: m["users"]["quality-service"]["acls"].append(("revision.eventos", "Write")),
-           "Write sobre el topico ajeno 'revision.eventos'")
-    mutate("write faltante", lambda m: m["users"]["review-service"]["acls"].remove(("revision.eventos", "Write")),
-           "falta Write sobre 'revision.eventos'")
-    mutate("suplantacion en documentos.eventos",
-           lambda m: m["users"]["extraction-service"]["acls"].append(("documentos.eventos", "Write")),
-           "Write sobre el topico ajeno 'documentos.eventos'")
-    mutate("consumidor sin Read", lambda m: m["users"]["document-service"]["acls"].remove(("revision.eventos", "Read")),
-           "sin Read sobre el topico 'revision.eventos'")
-    mutate("topico sin declarar", lambda m: m["declared"].discard("calidad.eventos"),
-           "topico 'calidad.eventos' no declarado")
+    mutate("write ajeno", lambda m: m["users"]["quality-service"]["acls"].append(("review.events", "Write")),
+           "Write sobre el topico ajeno 'review.events'")
+    mutate("write faltante", lambda m: m["users"]["review-service"]["acls"].remove(("review.events", "Write")),
+           "falta Write sobre 'review.events'")
+    mutate("suplantacion en document.events",
+           lambda m: m["users"]["extraction-service"]["acls"].append(("document.events", "Write")),
+           "Write sobre el topico ajeno 'document.events'")
+    mutate("consumidor sin Read", lambda m: m["users"]["document-service"]["acls"].remove(("review.events", "Read")),
+           "sin Read sobre el topico 'review.events'")
+    mutate("topico sin declarar", lambda m: m["declared"].discard("quality.events"),
+           "topico 'quality.events' no declarado")
     mutate("dos productores fuera de auditoria",
            lambda m: m["events"]["revision.escalada"]["producers"].append("quality-service"),
-           "varios productores solo se admiten en auditoria.eventos")
+           "varios productores solo se admiten en audit.events")
     mutate("key incoherente", lambda m: m["events"]["documento.recibido"].update(key="tenantId"),
            "key 'tenantId' distinta")
     mutate("servicio sin usuario escucha",
-           lambda m: m["services"]["renderer"].update(listened={"documentos.eventos"}),
+           lambda m: m["services"]["renderer"].update(listened={"document.events"}),
            "no tiene KafkaUser")
     mutate("topico retirado", lambda m: m["services"]["review-service"]["retired"].append("X.java"),
            "topico retirado")

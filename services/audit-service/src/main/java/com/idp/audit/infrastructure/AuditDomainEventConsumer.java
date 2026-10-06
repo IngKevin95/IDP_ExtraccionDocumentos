@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 /**
  * Consume todos los topicos de contracts/events/topology.yaml con consumer group propio. Cada evento debe llegar
  * por el topico que la topologia asigna a su eventType (SEC-052); si no, se ignora con alerta SECURITY. Los eventos
- * de {@code auditoria.eventos} se tratan como senales, no como estado autoritativo. El orden de la
+ * de {@code audit.events} se tratan como senales, no como estado autoritativo. El orden de la
  * cadena lo fija la ingesta en BD (no el offset). Un fallo de persistencia propaga la excepcion al
  * {@code DefaultErrorHandler} de reintento bloqueante: el offset no avanza ni se envia a DLT (AC-06).
  */

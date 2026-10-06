@@ -381,7 +381,7 @@ final class E2eEnvironment {
         List<Object[]> timed = new ArrayList<>();
         try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props)) {
             for (String topic : TOPICS) {
-                if (topic.equals("auditoria.eventos") || topic.equals("idp.tenant.events")) {
+                if (topic.equals("audit.events") || topic.equals("idp.tenant.events")) {
                     continue;
                 }
                 TopicPartition tp = new TopicPartition(topic, 0);

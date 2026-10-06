@@ -91,7 +91,7 @@ class NotificationPostgresKafkaIntegrationTest extends AbstractIntegrationTest {
         String doc = UUID.randomUUID().toString();
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps())) {
-            producer.send(new ProducerRecord<>("documentos.eventos", doc, aprobada(TENANT, doc))).get();
+            producer.send(new ProducerRecord<>("document.events", doc, aprobada(TENANT, doc))).get();
         }
 
         await().atMost(Duration.ofSeconds(40)).untilAsserted(() -> assertThat(receiver.count()).isEqualTo(1));
@@ -101,7 +101,7 @@ class NotificationPostgresKafkaIntegrationTest extends AbstractIntegrationTest {
 
         // El relay lleva webhook.entregado a Kafka (sin PII) y marca la fila del outbox como PUBLISHED.
         try (KafkaConsumer<String, String> c = consumer("it-" + UUID.randomUUID())) {
-            c.subscribe(List.of("notificaciones.eventos"));
+            c.subscribe(List.of("notification.events"));
             JsonNode entregado = null;
             long deadline = System.currentTimeMillis() + 30_000;
             while (entregado == null && System.currentTimeMillis() < deadline) {
@@ -126,7 +126,7 @@ class NotificationPostgresKafkaIntegrationTest extends AbstractIntegrationTest {
         migrator.migrate(TENANT);
         String bad = event("extraccion.aprobada", TENANT, UUID.randomUUID().toString(), "approvedBy", "NADIE");
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps())) {
-            producer.send(new ProducerRecord<>("documentos.eventos", "bad", bad)).get();
+            producer.send(new ProducerRecord<>("document.events", "bad", bad)).get();
         }
         try (KafkaConsumer<String, String> c = consumer("it-dlt-" + UUID.randomUUID())) {
             c.subscribe(Pattern.compile("(?i)documentos\\.eventos[.-]dlt"));

@@ -55,11 +55,11 @@ class RevocationListenersTest {
         TenantPoolEvictionKafkaListener evict = new TenantPoolEvictionKafkaListener(router, serde);
 
         verifier.hasRole(tenant.toString(), "u1", "R");
-        revoked.onMessage(event("acceso.revocado", ",\"subjectId\":\"u1\""), "documentos.eventos");
+        revoked.onMessage(event("acceso.revocado", ",\"subjectId\":\"u1\""), "document.events");
         verifier.hasRole(tenant.toString(), "u1", "R");
         verify(source, times(1)).hasRole(tenant.toString(), "u1", "R");
 
-        evict.onMessage(event("tenant.baja_iniciada", ""), "auditoria.eventos");
+        evict.onMessage(event("tenant.baja_iniciada", ""), "audit.events");
         verify(router, never()).evict(anyString());
     }
 

@@ -44,7 +44,7 @@ class ExtractionKafkaListenerTest {
         UUID doc = UUID.randomUUID();
         env.storage.putSinglePage(tenant, doc, ExtractionTestEnv.STANDARD_TEXT);
 
-        listener.onMessage(env.command(tenant, doc, "EC"), "extraccion.eventos");
+        listener.onMessage(env.command(tenant, doc, "EC"), "extraction.events");
 
         assertThat(llm.calls.get()).isZero();
     }

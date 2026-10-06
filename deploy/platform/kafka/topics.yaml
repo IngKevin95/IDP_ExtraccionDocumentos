@@ -5,7 +5,7 @@
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: documentos.eventos
+  name: document.events
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
@@ -19,7 +19,7 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: extraccion.eventos
+  name: extraction.events
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
@@ -33,7 +33,7 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: revision.eventos
+  name: review.events
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
@@ -47,7 +47,7 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: calidad.eventos
+  name: quality.events
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
@@ -61,7 +61,7 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: notificaciones.eventos
+  name: notification.events
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
@@ -75,7 +75,7 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: auditoria.eventos
+  name: audit.events
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
@@ -103,7 +103,7 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: documentos.eventos-dlt
+  name: document.events-dlt
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
@@ -117,7 +117,7 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: extraccion.eventos-dlt
+  name: extraction.events-dlt
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
@@ -131,7 +131,7 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: revision.eventos-dlt
+  name: review.events-dlt
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka
@@ -145,7 +145,7 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: calidad.eventos-dlt
+  name: quality.events-dlt
   namespace: idp-platform
   labels:
     strimzi.io/cluster: idp-kafka

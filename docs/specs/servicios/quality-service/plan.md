@@ -28,7 +28,7 @@
 * Roles de seguridad JWT configurados para requerir rol `DATA_STEWARD` en la API REST.
 
 ## Publicación de eventos (outbox)
-* `quality-service` publica `calidad.muestra_ciega_solicitada.v1` con `libs/events` (`OutboxRepository`, `JdbcOutboxPublisher`, `OutboxRelay`). Como no tiene silo por tenant, el outbox vive en la base de control (esquema `quality`) y `TenantOutboxAccess` opera siempre sobre esa base; el relay (`quality.relay.enabled`, `quality.relay.interval`) publica en `calidad.eventos` (tópico de su único productor, ADR 0029) con clave `documentId` y cabecera `tenantId`.
+* `quality-service` publica `calidad.muestra_ciega_solicitada.v1` con `libs/events` (`OutboxRepository`, `JdbcOutboxPublisher`, `OutboxRelay`). Como no tiene silo por tenant, el outbox vive en la base de control (esquema `quality`) y `TenantOutboxAccess` opera siempre sobre esa base; el relay (`quality.relay.enabled`, `quality.relay.interval`) publica en `quality.events` (tópico de su único productor, ADR 0029) con clave `documentId` y cabecera `tenantId`.
 * `MetricsIngestService` registra la selección (`qa_blind_sample.sample_id`) y publica en la misma transacción del consumidor idempotente.
 
 ## Migraciones Flyway

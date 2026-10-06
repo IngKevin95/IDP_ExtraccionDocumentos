@@ -42,14 +42,14 @@ class KafkaConfigTest {
         DefaultErrorHandler handler = new KafkaConfig().auditErrorHandler(metrics);
         Consumer consumer = mock(Consumer.class);
         MessageListenerContainer container = mock(MessageListenerContainer.class);
-        ConsumerRecord<String, String> record = new ConsumerRecord<>("auditoria.eventos", 3, 41L, "t", "{}");
+        ConsumerRecord<String, String> record = new ConsumerRecord<>("audit.events", 3, 41L, "t", "{}");
 
         RuntimeException retry = assertThrows(RuntimeException.class, () -> handler.handleRemaining(
                 new org.springframework.dao.DataAccessResourceFailureException("db caida"),
                 List.of((ConsumerRecord) record), consumer, container));
 
         assertEquals("RecordInRetryException", retry.getClass().getSimpleName());
-        verify(consumer).seek(eq(new TopicPartition("auditoria.eventos", 3)), eq(41L));
+        verify(consumer).seek(eq(new TopicPartition("audit.events", 3)), eq(41L));
     }
 
     @Test
