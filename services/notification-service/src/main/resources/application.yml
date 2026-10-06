@@ -3,6 +3,30 @@ server:
 spring:
   application:
     name: notification-service
+  flyway:
+    # El esquema del silo lo aplica TenantSchemaMigrator por tenant, no el arranque del servicio.
+    enabled: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${IDP_JWK_SET_URI}
+          # Obligatorio y sin default: el arranque falla si falta.
+          issuer-uri: ${IDP_JWT_ISSUER_URI}
+  kafka:
+    bootstrap-servers: ${IDP_KAFKA_BOOTSTRAP:localhost:9092}
+    security:
+      # mTLS (Strimzi KafkaUser): definir spring.kafka.ssl.bundle (SPRING_KAFKA_SSL_BUNDLE). PLAINTEXT solo con idp.security.dev-mode=true.
+      protocol: ${KAFKA_SECURITY_PROTOCOL:SSL}
+    consumer:
+      group-id: notification-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 management:
   endpoints:
     web:
@@ -12,3 +36,41 @@ management:
     health:
       probes:
         enabled: true
+  health:
+    db:
+      # El DataSource es enrutado por tenant: sin tenant en contexto no hay conexion que sondear.
+      enabled: false
+idp:
+  security:
+    audience: ${IDP_JWT_AUDIENCE:notification-service}
+  tenants: ${IDP_TENANTS:}
+  tenant-db:
+    jdbc-url-template: ${IDP_TENANT_DB_URL:}
+    username: ${IDP_TENANT_DB_USER:}
+    password: ${IDP_TENANT_DB_PASSWORD:}
+    max-pools: 50
+    pool-size: 5
+  notification:
+    kek-id: webhooks
+    migrate-on-startup: false
+    # Valores por defecto; cada tenant los sobreescribe en webhook_tenant_policy (PUT /v1/webhooks/policy).
+    default-max-attempts: 5
+    default-initial-backoff: 30s
+    default-backoff-multiplier: 2.0
+    default-max-backoff: 1h
+    # Ventana en la que conviven el secreto vigente y el anterior tras una rotacion.
+    secret-overlap: 7d
+    # Solo para desarrollo/pruebas: http en lugar de https (exige idp.security.dev-mode=true).
+    allow-insecure-http: false
+    http:
+      connect-timeout: 3s
+      read-timeout: 5s
+      total-timeout: 10s
+    worker:
+      enabled: true
+      interval: 1s
+      batch-size: 10
+      lease: 5m
+    relay:
+      enabled: true
+      interval: 1s

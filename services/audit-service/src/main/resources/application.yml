@@ -48,9 +48,8 @@ idp:
   security:
     audience: ${JWT_AUDIENCE:audit-service}
   audit:
-    # Todos los topicos de dominio mas el de seguridad (consumer group propio, reintento bloqueante).
-    topics: ${AUDIT_TOPICS:dominio.documentos,auditoria.eventos}
-    alerts-topic: auditoria.eventos
+    # Sin valor: consume todos los topicos de contracts/events/topology.yaml (consumer group propio, reintento
+    # bloqueante). AUDIT_TOPICS lo restringe (lista separada por comas).
     signing-key-id: ${AUDIT_SIGNING_KEY_ID:audit-signing}
     anchor:
       job-enabled: ${AUDIT_ANCHOR_JOB_ENABLED:true}

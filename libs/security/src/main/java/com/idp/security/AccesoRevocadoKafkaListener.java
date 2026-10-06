@@ -1,10 +1,13 @@
 package com.idp.security;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.idp.events.EventOriginGuard;
 import com.idp.events.EventSerde;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
 
 /**
  * Consume {@code acceso.revocado} y purga la cache de roles del servicio. Cada instancia usa un consumer group
@@ -17,18 +20,26 @@ public final class AccesoRevocadoKafkaListener {
 
     private final AccesoRevocadoHandler handler;
     private final EventSerde serde;
+    private final EventOriginGuard guard;
 
     public AccesoRevocadoKafkaListener(CachingRoleAssignmentVerifier verifier, EventSerde serde) {
-        this.handler = new AccesoRevocadoHandler(verifier);
-        this.serde = serde;
+        this(verifier, serde, EventOriginGuard.standalone());
     }
 
-    @KafkaListener(topics = "${idp.security.revocation-topic:idp.tenant.events}",
+    public AccesoRevocadoKafkaListener(CachingRoleAssignmentVerifier verifier, EventSerde serde,
+                                       EventOriginGuard guard) {
+        this.handler = new AccesoRevocadoHandler(verifier);
+        this.serde = serde;
+        this.guard = guard;
+    }
+
+    @KafkaListener(topics = "${idp.security.revocation-topic:#{T(com.idp.events.EventTopology).defaults().topicFor('acceso.revocado')}}",
             groupId = "${spring.application.name:svc}-acceso-revocado-${random.uuid}",
             properties = {"auto.offset.reset=latest"})
-    public void onMessage(String json) {
+    public void onMessage(String json, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic) {
         try {
-            if (AccesoRevocadoHandler.EVENT_TYPE.equals(serde.mapper().readTree(json).path("eventType").asText(""))) {
+            if (AccesoRevocadoHandler.EVENT_TYPE.equals(serde.mapper().readTree(json).path("eventType").asText(""))
+                && guard.accepts(topic, AccesoRevocadoHandler.EVENT_TYPE)) {
                 handler.accept(serde.fromJson(json));
             }
         } catch (JsonProcessingException | RuntimeException e) {

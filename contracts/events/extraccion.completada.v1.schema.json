@@ -41,6 +41,26 @@
     "documentId": {
       "type": "string",
       "format": "uuid"
+    },
+    "typology": {
+      "type": "string",
+      "pattern": "^[A-Z]{2,4}$",
+      "description": "Tipologia del oficio (opcional, metadato para quality-service)."
+    },
+    "modelPromptKey": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:/-]{1,120}$",
+      "description": "Par modelo+prompt usado (opcional)."
+    },
+    "latencyMs": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Latencia de la extraccion en milisegundos (opcional)."
+    },
+    "costMicros": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Costo de la extraccion en micros de la moneda de facturacion (opcional)."
     }
   },
   "additionalProperties": false

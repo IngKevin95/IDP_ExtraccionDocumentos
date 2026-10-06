@@ -1,0 +1,98 @@
+### Ejemplo ec-01 (oficio sintético, sin datos personales reales)
+--- TEXTO DEL OFICIO ---
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+OFICINA DE COBRO COACTIVO - OFICINA DE RENTAS DE BUCARAMANGA
+
+Bucaramanga, 16 de enero de 2025
+Oficio No. S-2025-6697906
+
+Señores
+Banco Andino Sintético S.A.
+
+Referencia: Embargo coactivo
+Radicado: 68001990101520233472601
+Resolución No.: RES-2025-587986
+
+La Oficina de Rentas de Bucaramanga, en ejercicio de la facultad de cobro coactivo, ha decretado el
+embargo y la retención de los dineros depositados o que se llegaren a depositar a cualquier título en
+esa entidad, en los siguientes productos: cuentas corrientes, de propiedad de las personas
+relacionadas a continuación, hasta por las sumas indicadas.
+
+Relación de demandados:
+
+Nombre / Razón social Tipo ID Número ID Monto ($) Productos
+
+Ixtaro Lumbrales Pedregaza CE 9994071158 19.114.000 Ahorro programado
+
+Pelagrina Bellaterra Fontemar CC 9918802738 9.183.000 Cuenta de ahorros
+
+Fabrizela Pedregaza Valdenavia CC 9920351289 34.304.000 Cuenta corriente
+
+Inversiones Ficticia Los Álamos NIT 999883577-0 10.776.000 Ahorro programado
+S.A.S.
+
+Valor total a embargar: $ 73.377.000 (SETENTA Y TRES MILLONES TRESCIENTOS SETENTA Y
+SIETE MIL PESOS M/CTE).
+Límite de inembargabilidad: $ 14.000.000.
+
+Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
+
+Atentamente,
+
+______________________________
+Jefe de la Oficina de Cobro Coactivo
+
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - ec-01 - pág. 1
+
+--- SALIDA ESPERADA (JSON) ---
+{
+  "campos": {
+    "radicado": "68001990101520233472601",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Oficina de Rentas de Bucaramanga",
+    "ciudad": "Bucaramanga",
+    "fecha_oficio": "2025-01-16",
+    "tipo_medida": "Embargo coactivo",
+    "banco_destinatario": "Banco Andino Sintético S.A.",
+    "monto_numeros": "73377000.00",
+    "monto_letras": "SETENTA Y TRES MILLONES TRESCIENTOS SETENTA Y SIETE MIL PESOS M/CTE",
+    "limite_inembargabilidad": "14000000.00",
+    "productos_o_cuentas": "cuentas corrientes",
+    "entidad_coactiva": "Oficina de Rentas de Bucaramanga",
+    "numero_resolucion": "RES-2025-587986"
+  },
+  "tablas": {
+    "demandados": [
+      {
+        "nombre": "Ixtaro Lumbrales Pedregaza",
+        "tipo_identificacion": "CE",
+        "numero_identificacion": "9994071158",
+        "monto": "19114000.00",
+        "productos": "Ahorro programado"
+      },
+      {
+        "nombre": "Pelagrina Bellaterra Fontemar",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9918802738",
+        "monto": "9183000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Fabrizela Pedregaza Valdenavia",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9920351289",
+        "monto": "34304000.00",
+        "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Inversiones Ficticia Los Álamos S.A.S.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999883577-0",
+        "monto": "10776000.00",
+        "productos": "Ahorro programado"
+      }
+    ]
+  }
+}

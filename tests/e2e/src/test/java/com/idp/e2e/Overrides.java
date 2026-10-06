@@ -142,6 +142,35 @@ final class Overrides {
         }
     }
 
+    @Configuration(proxyBeanMethods = false)
+    public static class QualityOverrides {
+        @Bean
+        @Primary
+        JwtDecoder e2eJwtDecoder() {
+            return decoder("quality-service");
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    public static class ReviewOverrides {
+        @Bean
+        @Primary
+        ObjectStore e2eObjectStore() {
+            return Shared.STORE;
+        }
+
+        @Bean
+        KeyService e2eKeyService() {
+            return Shared.KEYS;
+        }
+
+        @Bean
+        @Primary
+        JwtDecoder e2eJwtDecoder() {
+            return decoder("review-service");
+        }
+    }
+
     /** Decodificador con la llave del emisor de prueba y los mismos validadores (issuer y audiencia) de produccion. */
     static JwtDecoder decoder(String audience) {
         NimbusJwtDecoder d = NimbusJwtDecoder.withPublicKey(Shared.jwtPublicKey).build();

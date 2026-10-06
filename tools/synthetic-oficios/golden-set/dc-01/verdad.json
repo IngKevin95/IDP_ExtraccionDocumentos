@@ -1,0 +1,90 @@
+{
+  "esquema": "oficio-sintetico/1",
+  "id": "dc-01",
+  "tipologia": "embargos.v1.dc",
+  "codigo": "DC",
+  "semilla": 20260101,
+  "indice": 1,
+  "numero_oficio": "S-2026-9277500",
+  "campos": {
+    "radicado": "13001990402020244215701",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Oficina de Rentas de Cartagena",
+    "ciudad": "Cartagena",
+    "fecha_oficio": "2026-05-15",
+    "tipo_medida": "Desembargo coactivo",
+    "banco_destinatario": "Banco Altiplano Sintético S.A.",
+    "monto_numeros": "166573000.00",
+    "monto_letras": "CIENTO SESENTA Y SEIS MILLONES QUINIENTOS SETENTA Y TRES MIL PESOS M/CTE",
+    "limite_inembargabilidad": "5000000.00",
+    "productos_o_cuentas": "CDT y depósitos a término",
+    "entidad_coactiva": "Oficina de Rentas de Cartagena",
+    "numero_resolucion": "RES-2026-701885",
+    "referencia_oficio_original": "Oficio 2025-057829 del 13 de julio de 2025"
+  },
+  "campos_criticos": [
+    "radicado",
+    "tipo_medida",
+    "monto_numeros",
+    "productos_o_cuentas"
+  ],
+  "tablas": {
+    "demandados": [
+      {
+        "nombre": "Ovaldo Salmedora Valdenavia",
+        "tipo_identificacion": "CE",
+        "numero_identificacion": "9958982807",
+        "monto": "31508000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Mirtelo Torcuato Ventureño",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9981053618",
+        "monto": "27747000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Rivalda Valdenavia Ventureño",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9998101214",
+        "monto": "13593000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Alderan Ventureño Torcuato",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9956781029",
+        "monto": "21115000.00",
+        "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Jorlenia Arcanelo Salmedora",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9930614410",
+        "monto": "37531000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Jorlenia Fontemar Gualdrapa",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9920761974",
+        "monto": "35079000.00",
+        "productos": "Ahorro programado"
+      }
+    ]
+  },
+  "suma_filas_demandados": "166573000.00",
+  "defectos": [ ],
+  "inyeccion_prompt": {
+    "presente": false,
+    "regla_esperada": null
+  },
+  "validadores_esperados": {
+    "radicado_23_digitos": "PASS",
+    "fechas_coherentes": "PASS",
+    "monto_numeros_letras": "PASS",
+    "tipo_doc_valido": "PASS",
+    "cedula_nit_condicional": "PASS",
+    "suma_tabla": "PASS"
+  }
+}

@@ -3,6 +3,24 @@ server:
 spring:
   application:
     name: review-service
+  flyway:
+    enabled: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${IDP_JWK_SET_URI}
+          # Obligatorio y sin default: el arranque falla si falta.
+          issuer-uri: ${IDP_JWT_ISSUER_URI}
+  kafka:
+    bootstrap-servers: ${IDP_KAFKA_BOOTSTRAP:localhost:9092}
+    security:
+      # mTLS (Strimzi KafkaUser): definir spring.kafka.ssl.bundle (SPRING_KAFKA_SSL_BUNDLE). PLAINTEXT solo con idp.security.dev-mode=true.
+      protocol: ${KAFKA_SECURITY_PROTOCOL:SSL}
+    consumer:
+      group-id: review-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
 management:
   endpoints:
     web:
@@ -12,3 +30,34 @@ management:
     health:
       probes:
         enabled: true
+idp:
+  security:
+    audience: ${IDP_JWT_AUDIENCE:review-service}
+  tenants: ${IDP_TENANTS:}
+  tenant-db:
+    jdbc-url-template: ${IDP_TENANT_DB_URL:}
+    username: ${IDP_TENANT_DB_USER}
+    password: ${IDP_TENANT_DB_PASSWORD}
+    max-pools: 50
+    pool-size: 5
+  review:
+    kek-id: documents
+    # Obligatorio y sin default: https salvo idp.security.dev-mode=true; el arranque falla si falta.
+    public-base-url: ${IDP_PUBLIC_BASE_URL}
+    crop-secret: ${IDP_REVIEW_CROP_SECRET}
+    crop-ttl: 60s
+    crop-max-concurrent: 4
+    crop-rate-per-minute: 30
+    crop-max-pixels: 40000000
+    sla: 4h
+    escalation-interval: 1h
+    max-escalation-level: 3
+    critical-fields: monto,identificacion,cuenta,producto,tipo_medida,radicado
+    field-source: extraction-db
+    migrate-on-startup: false
+    relay:
+      enabled: true
+      interval: 1s
+    escalation:
+      enabled: true
+      interval: 1m

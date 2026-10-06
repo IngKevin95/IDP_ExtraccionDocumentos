@@ -38,7 +38,7 @@ El `audit-service` es el componente responsable de garantizar la inmutabilidad, 
 ## 5. Contrato
 
 * **Eventos Consumidos (Referencia `contracts/events/*.v1.schema.json`):**
-  * Todos los de dominio (`dominio.documentos`): `documento.recibido`, `extraccion.completada`, `extraccion.aprobada`, `revision.completada`, `documento.purgado`, etc.
+  * Todos los de dominio, en sus tópicos por productor (`documentos.eventos`, `extraccion.eventos`, `revision.eventos`, `calidad.eventos`, `notificaciones.eventos`, `idp.tenant.events`): `documento.recibido`, `extraccion.completada`, `extraccion.aprobada`, `revision.completada`, `documento.purgado`, etc. Un evento que llega por un tópico distinto al que `EventTopology` asigna a su `eventType` se ignora (SEC-052).
   * Tópico de Seguridad (`auditoria.eventos`): `seguridad.acceso_denegado`, `seguridad.prompt_injection_detectado`, `breakglass.otorgado`, `breakglass.expirado`, `legalhold.aplicado`.
 
 * **Eventos Publicados:**
@@ -134,6 +134,6 @@ La persistencia principal ocurre en la **Base de Control** (esquema compartido, 
 * Cero pérdida de eventos de dominio o seguridad (100% de fiabilidad en entrega y encadenamiento).
 
 ## 10. Dependencias
-* **Infraestructura:** CloudNativePG (Base de Control), Strimzi Kafka (Tópicos `dominio.documentos`, `auditoria.eventos`), ObjectStore compatible con WORM (S3 Object Lock / Azure Blob Immutability).
+* **Infraestructura:** CloudNativePG (Base de Control), Strimzi Kafka (todos los tópicos de `contracts/events/topology.yaml`; escribe solo `auditoria.eventos` para `auditoria.alerta_integridad` y `legalhold.*`), ObjectStore compatible con WORM (S3 Object Lock / Azure Blob Immutability).
 * **Servicios Externa/Plataforma:** OpenBao Transit (para firmas ed25519), `tenant-service` (para validación de estado de tenant/Legal Hold).
 * **Librerías Base:** `libs/security`, `libs/events`, `libs/kms-port`.

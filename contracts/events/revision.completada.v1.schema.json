@@ -71,6 +71,35 @@
     "criticalCorrection": {
       "type": "boolean",
       "description": "true si hubo correccion de un campo critico (regla de cuatro ojos, SEC-009)."
+    },
+    "typology": {
+      "type": "string",
+      "pattern": "^[A-Z]{2,4}$",
+      "description": "Tipologia del oficio (opcional, metadato para quality-service)."
+    },
+    "blindSample": {
+      "type": "boolean",
+      "description": "true si el oficio auto-aprobado fue forzado a revision ciega (muestreo ciego, quality-service)."
+    },
+    "correctedFields": {
+      "type": "array",
+      "maxItems": 64,
+      "description": "Campos corregidos por el revisor. Solo nombre y tipo de correccion: jamas el valor (SEC-050).",
+      "items": {
+        "type": "object",
+        "required": ["field", "correctionType"],
+        "properties": {
+          "field": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "correctionType": {
+            "type": "string",
+            "enum": ["VALOR", "FORMATO", "OMISION", "SOBRANTE"]
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": false

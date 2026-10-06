@@ -7,6 +7,8 @@ import com.idp.document.DocumentApplication;
 import com.idp.events.EventSchemaValidator;
 import com.idp.events.EventSerde;
 import com.idp.extraction.ExtractionApplication;
+import com.idp.quality.QualityApplication;
+import com.idp.review.ReviewApplication;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.RSASSASigner;
@@ -31,6 +33,9 @@ import java.util.UUID;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.boot.WebApplicationType;
@@ -47,8 +52,9 @@ import org.springframework.kafka.test.EmbeddedKafkaKraftBroker;
  */
 final class E2eEnvironment {
 
-    static final String TOPIC = "dominio.documentos";
-    static final String ALERTS_TOPIC = "auditoria.eventos";
+    static final com.idp.events.EventTopology TOPOLOGY = com.idp.events.EventTopology.defaults();
+    /** Topicos de la topologia (un topico por productor, ADR 0029); el broker embebido los crea todos. */
+    static final String[] TOPICS = TOPOLOGY.allTopics();
     static final String CONTROL_URL = "jdbc:h2:mem:e2e_control;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;"
         + "DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1;INIT=CREATE DOMAIN IF NOT EXISTS JSONB AS VARCHAR(100000)";
     static final ObjectMapper JSON = new ObjectMapper();
@@ -57,6 +63,13 @@ final class E2eEnvironment {
     static final String TENANT_B = UUID.randomUUID().toString();
     /** Tenant dedicado al shredding de KEK: deshabilitar su llave no afecta a las demas pruebas. */
     static final String TENANT_C = UUID.randomUUID().toString();
+    /** Tenant del lazo del muestreo ciego (quality-service y review-service). */
+    static final String TENANT_D = UUID.randomUUID().toString();
+    static final String REVISOR_D = "revisor-d";
+    /** Quien cargo el documento: tiene rol REVISOR pero no puede hacer la revision ciega. */
+    static final String UPLOADER_D = "operador-d";
+    static final String STEWARD_D = "steward-d";
+    static final String QUALITY_URL = "jdbc:h2:mem:e2e_quality;MODE=PostgreSQL;DB_CLOSE_DELAY=-1";
     static final String OPERATOR_A = "operador-a";
     static final String OPERATOR_B = "operador-b";
     static final String OPERATOR_C = "operador-c";
@@ -69,6 +82,8 @@ final class E2eEnvironment {
     private final List<ConfigurableApplicationContext> contexts = new ArrayList<>();
     final int documentPort;
     final int auditPort;
+    final int qualityPort;
+    final int reviewPort;
     final EventSchemaValidator validator = new EventSchemaValidator(new EventSerde());
 
     static synchronized E2eEnvironment get() {
@@ -87,7 +102,7 @@ final class E2eEnvironment {
             jwtKey = (RSAPrivateKey) pair.getPrivate();
             Overrides.Shared.jwtPublicKey = (RSAPublicKey) pair.getPublic();
 
-            kafka = new EmbeddedKafkaKraftBroker(1, 1, TOPIC, ALERTS_TOPIC);
+            kafka = new EmbeddedKafkaKraftBroker(1, 1, TOPICS);
             kafka.afterPropertiesSet();
 
             seedDatabases();
@@ -96,6 +111,10 @@ final class E2eEnvironment {
             start("extraction-service", ExtractionApplication.class, Overrides.ExtractionOverrides.class,
                 extractionProps());
             auditPort = start("audit-service", AuditApplication.class, Overrides.AuditOverrides.class, auditProps());
+            qualityPort = start("quality-service", QualityApplication.class, Overrides.QualityOverrides.class,
+                qualityProps());
+            reviewPort = start("review-service", ReviewApplication.class, Overrides.ReviewOverrides.class,
+                reviewProps());
         } catch (Exception e) {
             throw new IllegalStateException("No se pudo levantar el entorno e2e", e);
         }
@@ -113,7 +132,7 @@ final class E2eEnvironment {
             c.createStatement().execute("create table role_assignment (id uuid primary key, tenant_id uuid not null, "
                 + "user_id varchar(255) not null, role varchar(50) not null, expires_at timestamp with time zone, "
                 + "deleted_at timestamp with time zone)");
-            for (String t : List.of(TENANT_A, TENANT_B, TENANT_C)) {
+            for (String t : List.of(TENANT_A, TENANT_B, TENANT_C, TENANT_D)) {
                 c.createStatement().execute("insert into tenants values ('" + t + "', 'ACTIVE')");
                 c.createStatement().execute("insert into silo_location values ('" + t + "', 'idp-" + t
                     + "-docs')");
@@ -123,8 +142,32 @@ final class E2eEnvironment {
             grant(c, TENANT_B, OPERATOR_B, com.idp.security.Roles.OPERADOR);
             grant(c, TENANT_C, OPERATOR_C, com.idp.security.Roles.OPERADOR);
             grant(c, TENANT_A, AUDITOR_A, com.idp.security.Roles.AUDITOR);
+            grant(c, TENANT_D, REVISOR_D, com.idp.security.Roles.REVISOR);
+            grant(c, TENANT_D, UPLOADER_D, com.idp.security.Roles.REVISOR);
         }
-        for (String t : List.of(TENANT_A, TENANT_B, TENANT_C)) {
+        try (Connection c = DriverManager.getConnection(QUALITY_URL, "sa", "")) {
+            // Migraciones de quality-service por nombre: Flyway sobre classpath:db/migration colisiona con las de
+            // document-service (mismo V1) cuando comparten JVM.
+            ScriptUtils.executeSqlScript(c, new ClassPathResource("db/migration/V1__init_quality_schema.sql"));
+            ScriptUtils.executeSqlScript(c, new ClassPathResource("db/migration/V2__outbox_and_sample_id.sql"));
+            c.createStatement().execute("create table tenants (id uuid primary key, status varchar(20) not null)");
+            c.createStatement().execute("insert into tenants values ('" + TENANT_D + "', 'ACTIVE')");
+            c.createStatement().execute("create table role_assignment (id uuid primary key, tenant_id uuid not null, "
+                + "user_id varchar(255) not null, role varchar(50) not null, expires_at timestamp with time zone, "
+                + "deleted_at timestamp with time zone)");
+            grant(c, TENANT_D, STEWARD_D, com.idp.security.Roles.DATA_STEWARD);
+        }
+        for (String t : List.of(TENANT_A, TENANT_B, TENANT_C, TENANT_D)) {
+            // Silo del review-service: su esquema, las tablas del extraction-service que lee y el cargador del documento.
+            try (Connection c = DriverManager.getConnection(reviewUrl(t), "sa", "")) {
+                ScriptUtils.executeSqlScript(c, new ClassPathResource("db/migration/tenant/V1__init_review_schema.sql"));
+                ScriptUtils.executeSqlScript(c, new ClassPathResource("db/migration/tenant/V3__task_origin.sql"));
+                ScriptUtils.executeSqlScript(c, new ClassPathResource("extraction-silo-h2.sql"));
+                c.createStatement().execute("create table document (id uuid primary key, "
+                    + "uploaded_by varchar(128))");
+            }
+        }
+        for (String t : List.of(TENANT_A, TENANT_B, TENANT_C, TENANT_D)) {
             try (Connection c = DriverManager.getConnection(documentUrl(t), "sa", "")) {
                 ScriptUtils.executeSqlScript(c, new ClassPathResource("db/migration/V1__init_document_schema.sql"));
             }
@@ -137,6 +180,10 @@ final class E2eEnvironment {
     private static void grant(Connection c, String tenant, String user, String role) throws SQLException {
         c.createStatement().execute("insert into role_assignment (id, tenant_id, user_id, role) values ('"
             + UUID.randomUUID() + "', '" + tenant + "', '" + user + "', '" + role + "')");
+    }
+
+    static String reviewUrl(String tenantId) {
+        return "jdbc:h2:mem:rev_" + tenantId + ";MODE=PostgreSQL;DB_CLOSE_DELAY=-1";
     }
 
     static String documentUrl(String tenantId) {
@@ -209,11 +256,44 @@ final class E2eEnvironment {
         p.put("spring.flyway.baseline-on-migrate", "true");
         p.put("spring.flyway.baseline-version", "0");
         p.put("spring.flyway.locations", "classpath:db/migration/common,classpath:db/migration/{vendor}");
-        p.put("idp.audit.topics", TOPIC + "," + ALERTS_TOPIC);
-        p.put("idp.audit.alerts-topic", ALERTS_TOPIC);
         p.put("idp.audit.signing-key-id", "audit-signing");
         p.put("idp.audit.anchor.job-enabled", "false");
         p.put("idp.audit.worm.retention-days", "3650");
+        return p;
+    }
+
+    private Map<String, String> qualityProps() {
+        Map<String, String> p = common("quality-service");
+        p.put("spring.datasource.url", QUALITY_URL);
+        p.put("spring.datasource.username", "sa");
+        p.put("spring.datasource.password", "");
+        p.put("spring.flyway.enabled", "false");
+        p.put("spring.kafka.consumer.group-id", "quality-service");
+        p.put("quality.relay.enabled", "true");
+        p.put("quality.relay.interval", "200ms");
+        p.put("quality.scheduler.enabled", "false");
+        // Solo la tipologia ZZ (del lazo ciego) entra al muestreo: los oficios EC de las demas pruebas no se tocan.
+        p.put("quality.blind-sampling.rate", "0");
+        p.put("quality.blind-sampling.seed", "e2e-blind-seed");
+        p.put("quality.blind-sampling.rate-by-typology.ZZ", "1");
+        return p;
+    }
+
+    private Map<String, String> reviewProps() {
+        Map<String, String> p = common("review-service");
+        p.put("spring.flyway.enabled", "false");
+        p.put("spring.kafka.consumer.group-id", "review-service");
+        p.put("idp.control-db.url", CONTROL_URL);
+        p.put("idp.control-db.username", "sa");
+        p.put("idp.control-db.password", "");
+        p.put("idp.tenant-directory.ttl", "1s");
+        p.put("idp.tenant-db.jdbc-url-template", "jdbc:h2:mem:rev_{tenant};MODE=PostgreSQL;DB_CLOSE_DELAY=-1");
+        p.put("idp.tenant-db.username", "sa");
+        p.put("idp.tenant-db.password", "");
+        p.put("idp.review.public-base-url", "https://review.e2e.test");
+        p.put("idp.review.crop-secret", "e2e-crop-secret-that-is-at-least-32-bytes-long");
+        p.put("idp.review.relay.interval", "200ms");
+        p.put("idp.review.escalation.enabled", "false");
         return p;
     }
 
@@ -259,7 +339,38 @@ final class E2eEnvironment {
         }
     }
 
-    /** Todos los eventos publicados en el topico de dominio, en orden de topico. */
+    /**
+     * Publica un evento ya serializado en el topico que la topologia asigna a su eventType (lo que haria el
+     * productor de otro servicio).
+     */
+    void publish(String key, String json) {
+        try {
+            publishTo(TOPOLOGY.topicFor(JSON.readTree(json).path("eventType").asText()), key, json);
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** Publica en un topico concreto (pruebas de suplantacion: evento por un topico que no es el de su productor). */
+    void publishTo(String topic, String key, String json) {
+        Properties props = new Properties();
+        props.put(org.apache.kafka.clients.producer.ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+            kafka.getBrokersAsString());
+        props.put(org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+            StringSerializer.class.getName());
+        props.put(org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+            StringSerializer.class.getName());
+        try (KafkaProducer<String, String> producer = new KafkaProducer<>(props)) {
+            producer.send(new ProducerRecord<>(topic, key, json)).get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        } catch (java.util.concurrent.ExecutionException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** Todos los eventos publicados en los topicos de pipeline (no auditoria ni tenant), agrupados por topico. */
     List<JsonNode> events() {
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBrokersAsString());
@@ -267,20 +378,29 @@ final class E2eEnvironment {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
-        List<JsonNode> out = new ArrayList<>();
+        List<Object[]> timed = new ArrayList<>();
         try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props)) {
-            TopicPartition tp = new TopicPartition(TOPIC, 0);
-            consumer.assign(List.of(tp));
-            consumer.seekToBeginning(List.of(tp));
-            long end = consumer.endOffsets(List.of(tp)).get(tp);
-            while (consumer.position(tp) < end) {
-                for (ConsumerRecord<String, String> r : consumer.poll(Duration.ofMillis(500))) {
-                    out.add(JSON.readTree(r.value()));
+            for (String topic : TOPICS) {
+                if (topic.equals("auditoria.eventos") || topic.equals("idp.tenant.events")) {
+                    continue;
+                }
+                TopicPartition tp = new TopicPartition(topic, 0);
+                consumer.assign(List.of(tp));
+                consumer.seekToBeginning(List.of(tp));
+                long end = consumer.endOffsets(List.of(tp)).get(tp);
+                while (consumer.position(tp) < end) {
+                    for (ConsumerRecord<String, String> r : consumer.poll(Duration.ofMillis(500))) {
+                        timed.add(new Object[] {r.timestamp(), JSON.readTree(r.value())});
+                    }
                 }
             }
         } catch (java.io.IOException e) {
             throw new IllegalStateException(e);
         }
+        // Orden causal aproximado entre topicos: por timestamp del registro (estable dentro de cada topico).
+        timed.sort(java.util.Comparator.comparingLong(o -> (Long) o[0]));
+        List<JsonNode> out = new ArrayList<>();
+        timed.forEach(o -> out.add((JsonNode) o[1]));
         return out;
     }
 }

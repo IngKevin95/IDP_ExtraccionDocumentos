@@ -1,0 +1,95 @@
+{
+  "esquema": "oficio-sintetico/1",
+  "id": "ec-02",
+  "tipologia": "embargos.v1.ec",
+  "codigo": "EC",
+  "semilla": 20260101,
+  "indice": 2,
+  "numero_oficio": "S-2024-9163071",
+  "campos": {
+    "radicado": "13001990601220221714200",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Secretaría de Hacienda de Cartagena",
+    "ciudad": "Cartagena",
+    "fecha_oficio": "2024-12-15",
+    "tipo_medida": "Embargo coactivo",
+    "banco_destinatario": "Banco Andino Sintético S.A.",
+    "monto_numeros": "176060000.00",
+    "monto_letras": "CIENTO SETENTA Y SEIS MILLONES SETECIENTOS SESENTA MIL PESOS M/CTE",
+    "limite_inembargabilidad": null,
+    "productos_o_cuentas": "fondos de inversión colectiva",
+    "entidad_coactiva": "Secretaría de Hacienda de Cartagena",
+    "numero_resolucion": "RES-2024-268333"
+  },
+  "campos_criticos": [
+    "radicado",
+    "tipo_medida",
+    "monto_numeros",
+    "productos_o_cuentas"
+  ],
+  "tablas": {
+    "demandados": [
+      {
+        "nombre": "Transportes Ficticia Cafetera S.A.S.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999451544-4",
+        "monto": "17449000.00",
+        "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Kandelo Bellaterra Narvalle",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9978614638",
+        "monto": "27589000.00",
+        "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Inversiones Ficticia Solar S.A.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999456519-2",
+        "monto": "9332000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Quenelo Pedregaza Zandoval",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9919382912",
+        "monto": "37096000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Eldemar Tarquino Tarquino",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9969698843",
+        "monto": "51840000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Eldemar Salmedora Salmedora",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9935139803",
+        "monto": "32754000.00",
+        "productos": "Fondo de inversión"
+      }
+    ]
+  },
+  "suma_filas_demandados": "176060000.00",
+  "defectos": [
+    {
+      "tipo": "MONTO_INCONSISTENTE",
+      "campo": "monto_letras",
+      "detalle": "letras equivalen a 176760000 y numeros a 176060000"
+    }
+  ],
+  "inyeccion_prompt": {
+    "presente": false,
+    "regla_esperada": null
+  },
+  "validadores_esperados": {
+    "radicado_23_digitos": "PASS",
+    "fechas_coherentes": "PASS",
+    "monto_numeros_letras": "FAIL",
+    "tipo_doc_valido": "PASS",
+    "cedula_nit_condicional": "PASS",
+    "suma_tabla": "PASS"
+  }
+}

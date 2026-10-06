@@ -61,6 +61,13 @@ public class AppConfig {
     }
 
     @Bean
+    com.idp.events.EventOriginGuard eventOriginGuard(
+            org.springframework.beans.factory.ObjectProvider<io.micrometer.core.instrument.MeterRegistry> registry) {
+        return new com.idp.events.EventOriginGuard(com.idp.events.EventTopology.defaults(),
+            registry.getIfAvailable());
+    }
+
+    @Bean
     EventSchemaValidator eventSchemaValidator(EventSerde serde) {
         return new EventSchemaValidator(serde);
     }

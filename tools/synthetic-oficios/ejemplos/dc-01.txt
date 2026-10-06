@@ -1,0 +1,90 @@
+### Ejemplo dc-01 (oficio sintético, sin datos personales reales)
+--- TEXTO DEL OFICIO ---
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+OFICINA DE COBRO COACTIVO - SECRETARÍA DE HACIENDA DE CALI
+
+Cali, 31 de julio de 2024
+Oficio No. S-2024-4673372
+
+Señores
+Banco Altiplano Sintético S.A.
+
+Referencia: Desembargo coactivo
+Radicado: 76001990901120213965501
+Resolución No.: RES-2024-044800
+Oficio de embargo original: Oficio 2024-400359 del 20 de enero de 2024
+
+La Secretaría de Hacienda de Cali, en ejercicio de la facultad de cobro coactivo, ha ordenado el
+levantamiento de la medida de embargo comunicada previamente. En consecuencia, sírvase
+desembargar los dineros retenidos, en los siguientes productos: fondos de inversión colectiva, CDT y
+depósitos a término y cuentas de ahorro, de propiedad de las personas relacionadas a continuación,
+por las sumas indicadas.
+
+Relación de demandados:
+
+Nombre / Razón social Tipo ID Número ID Monto ($) Productos
+
+Dorvina Arcanelo Salmedora CC 9927922708 26.584.000 Ahorro programado
+
+Distribuciones Ficticia Horizonte S.A. NIT 999138969-1 17.574.000 Cuenta de ahorros
+
+Jorlenia Torcuato Valdenavia CC 9975169243 13.533.000 CDT
+
+Valor total a desembargar: $ 57.691.000 (CINCUENTA Y SIETE MILLONES SEISCIENTOS
+NOVENTA Y UN MIL PESOS M/CTE).
+
+Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
+
+Atentamente,
+
+______________________________
+Jefe de la Oficina de Cobro Coactivo
+
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - dc-01 - pág. 1
+
+--- SALIDA ESPERADA (JSON) ---
+{
+  "campos": {
+    "radicado": "76001990901120213965501",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Secretaría de Hacienda de Cali",
+    "ciudad": "Cali",
+    "fecha_oficio": "2024-07-31",
+    "tipo_medida": "Desembargo coactivo",
+    "banco_destinatario": "Banco Altiplano Sintético S.A.",
+    "monto_numeros": "57691000.00",
+    "monto_letras": "CINCUENTA Y SIETE MILLONES SEISCIENTOS NOVENTA Y UN MIL PESOS M/CTE",
+    "limite_inembargabilidad": null,
+    "productos_o_cuentas": "fondos de inversión colectiva, CDT y depósitos a término y cuentas de ahorro",
+    "entidad_coactiva": "Secretaría de Hacienda de Cali",
+    "numero_resolucion": "RES-2024-044800",
+    "referencia_oficio_original": "Oficio 2024-400359 del 20 de enero de 2024"
+  },
+  "tablas": {
+    "demandados": [
+      {
+        "nombre": "Dorvina Arcanelo Salmedora",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9927922708",
+        "monto": "26584000.00",
+        "productos": "Ahorro programado"
+      },
+      {
+        "nombre": "Distribuciones Ficticia Horizonte S.A.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999138969-1",
+        "monto": "17574000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Jorlenia Torcuato Valdenavia",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9975169243",
+        "monto": "13533000.00",
+        "productos": "CDT"
+      }
+    ]
+  }
+}

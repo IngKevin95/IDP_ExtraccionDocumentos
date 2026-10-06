@@ -103,6 +103,7 @@ paths:
                   $ref: '#/components/schemas/GoldenSetDocument'
     post:
       summary: Crear documento ficticio
+      description: Exige sintetico=true, igual que el import por archivo (RN-07); sin la marca responde 400. Se registra el origen API.
       security:
         - bearerAuth: []
       requestBody:
@@ -113,7 +114,9 @@ paths:
               $ref: '#/components/schemas/GoldenSetDocumentInput'
       responses:
         '201':
-          description: Documento creado.
+          description: Documento creado (origen API).
+        '400':
+          description: Documento invalido o sin la marca sintetico=true.
 
   /v1/quality/reports/golden-set/evaluate:
     post:
@@ -134,6 +137,214 @@ paths:
                     format: uuid
               example:
                 job_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+  /v1/quality/reports/golden-set/{id}:
+    get:
+      summary: Obtener un oficio ficticio del Golden Set
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Oficio ficticio.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoldenSetDocument'
+        '404':
+          description: No existe en el tenant del token.
+    delete:
+      summary: Eliminar un oficio ficticio del Golden Set
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Eliminado.
+        '404':
+          description: No existe en el tenant del token.
+
+  /v1/quality/reports/golden-set/import:
+    post:
+      summary: Importar verdad terreno generada por tools/synthetic-oficios
+      description: Lee los JSON del directorio configurado en el servidor (nunca una ruta del cliente). Cada archivo exige sintetico=true.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cantidad de oficios importados (idempotente por id externo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imported:
+                    type: integer
+        '400':
+          description: Archivo no sintetico o invalido; no se importa nada.
+
+  /v1/quality/reports/golden-set/replay:
+    post:
+      summary: Replay de un modelo o prompt candidato en paralelo con el vigente
+      description: Solo lee el Golden Set y no modifica metricas ni umbrales de produccion.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [candidate_model_prompt_key]
+              properties:
+                baseline_model_prompt_key:
+                  type: string
+                candidate_model_prompt_key:
+                  type: string
+      responses:
+        '202':
+          description: Replay encolado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                    format: uuid
+
+  /v1/quality/reports/golden-set/evaluations/{id}:
+    get:
+      summary: Estado y resultado de una evaluacion o replay
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Estado (QUEUED, RUNNING, DONE, FAILED) con accuracy, precision, recall, f1, ECE y detalle por campo.
+        '404':
+          description: No existe en el tenant del token.
+
+  /v1/quality/reports/fields:
+    get:
+      summary: Tasa de correccion humana por campo y precision/recall del Golden Set
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: tipologia
+          in: query
+          schema:
+            type: string
+            enum: [EC, EJ, DC, DJ]
+      responses:
+        '200':
+          description: Correcciones por campo (HITL y muestreo ciego).
+
+  /v1/quality/reports/performance:
+    get:
+      summary: Costo y latencia p95 con muestra minima
+      description: El p95 solo se publica si hay muestra minima (sufficient=true).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: tipologia
+          in: query
+          schema:
+            type: string
+            enum: [EC, EJ, DC, DJ]
+      responses:
+        '200':
+          description: Muestras, p95 de latencia y costo.
+
+  /v1/quality/calibration/thresholds:
+    get:
+      summary: Umbrales tau_auto y tau_revisar calibrados por par modelo+prompt
+      description: Calculados por precision objetivo sobre el Golden Set con calibracion isotonica. attainable=false significa nunca auto-aprobar.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: model_prompt_key
+          in: query
+          schema:
+            type: string
+        - name: tipologia
+          in: query
+          schema:
+            type: string
+            enum: [EC, EJ, DC, DJ]
+      responses:
+        '200':
+          description: Umbrales por tipologia y campo.
+
+  /v1/quality/blind-samples/pending:
+    get:
+      summary: Estado agregado de la cola de revision ciega
+      description: Solo conteos y antiguedad (SEC-051). Nunca devuelve identificadores de documento ni de muestra, para que el muestreo no sea predecible por operadores.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Conteos agregados.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pending:
+                    type: integer
+                  reviewed:
+                    type: integer
+                  pending_by_age:
+                    type: object
+                    properties:
+                      lt_1d:
+                        type: integer
+                      '1d_7d':
+                        type: integer
+                      gt_7d:
+                        type: integer
 
 components:
   securitySchemes:
@@ -212,8 +423,16 @@ components:
       required:
         - nombre
         - tipologia
+        - sintetico
         - payload_sintetico_json
       properties:
+        sintetico:
+          type: boolean
+          enum: [true]
+          description: Marca obligatoria de dato sintetico (RN-07).
+        id:
+          type: string
+          description: Id externo opcional (se genera uno si falta).
         nombre:
           type: string
           example: "Oficio Ficticio EC - Caso Base"

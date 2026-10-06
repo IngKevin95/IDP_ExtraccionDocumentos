@@ -1,5 +1,7 @@
 package com.idp.extraction;
 
+import com.idp.testsupport.Topics;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -17,7 +19,8 @@ class ExtractionKafkaListenerTest {
     private final FakeLlm llm = FakeLlm.cleanEc();
     private final ExtractionTestEnv env = ExtractionTestEnv.create(llm, FakeLlm.cleanEc());
     private final ExtractionKafkaListener listener =
-        new ExtractionKafkaListener(env.consumer, env.processor, env.mapper);
+        new ExtractionKafkaListener(env.consumer, env.processor, env.mapper,
+            com.idp.events.EventOriginGuard.standalone());
 
     @Test
     void ac09_procesaElComandoYIgnoraLaRedeliveryDelMismoEvento() {
@@ -26,9 +29,9 @@ class ExtractionKafkaListenerTest {
         env.storage.putSinglePage(tenant, doc, ExtractionTestEnv.STANDARD_TEXT);
         String cmd = env.command(tenant, doc, "EC");
 
-        listener.onMessage(cmd);
+        Topics.deliver(listener::onMessage, cmd);
         int calls = llm.calls.get();
-        listener.onMessage(cmd);
+        Topics.deliver(listener::onMessage, cmd);
 
         assertThat(llm.calls.get()).isEqualTo(calls).isPositive();
         assertThat(env.inTenant(tenant, () -> env.repository.findByDocument(tenant, doc)).orElseThrow().status())
@@ -36,15 +39,26 @@ class ExtractionKafkaListenerTest {
     }
 
     @Test
+    void sec052_unComandoPorUnTopicoAjenoSeIgnora() {
+        UUID tenant = UUID.randomUUID();
+        UUID doc = UUID.randomUUID();
+        env.storage.putSinglePage(tenant, doc, ExtractionTestEnv.STANDARD_TEXT);
+
+        listener.onMessage(env.command(tenant, doc, "EC"), "extraccion.eventos");
+
+        assertThat(llm.calls.get()).isZero();
+    }
+
+    @Test
     void ignoraEventosQueNoSonElComandoDeExtraccion() {
-        listener.onMessage("{\"eventType\":\"documento.recibido\",\"schemaVersion\":1}");
+        Topics.deliver(listener::onMessage, "{\"eventType\":\"documento.recibido\",\"schemaVersion\":1}");
 
         assertThat(llm.calls.get()).isZero();
     }
 
     @Test
     void unMensajeMalformadoEsUnErrorFatalParaElDlt() {
-        assertThatThrownBy(() -> listener.onMessage("no es json")).isInstanceOf(EventValidationException.class);
+        assertThatThrownBy(() -> Topics.deliver(listener::onMessage, "no es json")).isInstanceOf(EventValidationException.class);
     }
 
     @Test
@@ -52,6 +66,6 @@ class ExtractionKafkaListenerTest {
         UUID tenant = UUID.randomUUID();
         String invalid = env.command(tenant, UUID.randomUUID(), "ec-minusculas");
 
-        assertThatThrownBy(() -> listener.onMessage(invalid)).isInstanceOf(EventValidationException.class);
+        assertThatThrownBy(() -> Topics.deliver(listener::onMessage, invalid)).isInstanceOf(EventValidationException.class);
     }
 }

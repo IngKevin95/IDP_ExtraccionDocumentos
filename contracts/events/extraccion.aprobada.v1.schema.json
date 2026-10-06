@@ -50,6 +50,11 @@
         "HUMAN_REVIEWER",
         "DATA_STEWARD"
       ]
+    },
+    "typology": {
+      "type": "string",
+      "pattern": "^[A-Z]{2,4}$",
+      "description": "Tipologia del oficio (opcional, metadato para quality-service)."
     }
   },
   "additionalProperties": false

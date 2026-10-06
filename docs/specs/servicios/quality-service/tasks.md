@@ -16,6 +16,9 @@
 * **T-06:** Implementar lógica de Muestreo Ciego (*Blind Sampling*).
   * *Criterio de hecho:* (AC-03) Si el evento de revisión tiene el flag `blind_sample=true`, se incrementa la estadística exclusiva de `silent_error_count`.
 
+* **T-06b:** Cerrar el lazo del muestreo ciego: publicar `calidad.muestra_ciega_solicitada` por outbox al seleccionar la muestra.
+  * *Criterio de hecho:* (AC-09) evento válido contra su schema, una sola vez por documento; (AC-10) acuerdo y desacuerdo cambian el reporte de error silente.
+
 ## Fase 3: APIs y Detección de Deriva
 * **T-07:** Exponer API REST `GET /v1/quality/reports/stp` y `GET /v1/quality/reports/silent-error`.
   * *Criterio de hecho:* (AC-06) Un usuario autorizado recibe agregaciones temporales JSON correctamente formateadas.

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 class RevocationListenersTest {
 
+    private static final String TENANT_TOPIC = "idp.tenant.events";
     private final EventSerde serde = new EventSerde();
     private final UUID tenant = UUID.randomUUID();
 
@@ -34,14 +35,32 @@ class RevocationListenersTest {
         verifier.hasRole(tenant.toString(), "u1", "R");
         verify(source, times(1)).hasRole(tenant.toString(), "u1", "R");
 
-        listener.onMessage(event("otro.evento", ",\"subjectId\":\"u1\""));
+        listener.onMessage(event("otro.evento", ",\"subjectId\":\"u1\""), TENANT_TOPIC);
         verifier.hasRole(tenant.toString(), "u1", "R");
         verify(source, times(1)).hasRole(tenant.toString(), "u1", "R");
 
-        listener.onMessage(event("acceso.revocado", ",\"subjectId\":\"u1\""));
+        listener.onMessage(event("acceso.revocado", ",\"subjectId\":\"u1\""), TENANT_TOPIC);
         verifier.hasRole(tenant.toString(), "u1", "R");
         verify(source, times(2)).hasRole(tenant.toString(), "u1", "R");
-        listener.onMessage("no es json");
+        listener.onMessage("no es json", TENANT_TOPIC);
+    }
+
+    @Test
+    void sec052_eventoPorTopicoAjenoSeIgnora() {
+        RoleAssignmentSource source = mock(RoleAssignmentSource.class);
+        when(source.hasRole(anyString(), anyString(), anyString())).thenReturn(true);
+        CachingRoleAssignmentVerifier verifier = new CachingRoleAssignmentVerifier(source);
+        AccesoRevocadoKafkaListener revoked = new AccesoRevocadoKafkaListener(verifier, serde);
+        TenantDataSourceRouter router = mock(TenantDataSourceRouter.class);
+        TenantPoolEvictionKafkaListener evict = new TenantPoolEvictionKafkaListener(router, serde);
+
+        verifier.hasRole(tenant.toString(), "u1", "R");
+        revoked.onMessage(event("acceso.revocado", ",\"subjectId\":\"u1\""), "documentos.eventos");
+        verifier.hasRole(tenant.toString(), "u1", "R");
+        verify(source, times(1)).hasRole(tenant.toString(), "u1", "R");
+
+        evict.onMessage(event("tenant.baja_iniciada", ""), "auditoria.eventos");
+        verify(router, never()).evict(anyString());
     }
 
     @Test
@@ -49,11 +68,11 @@ class RevocationListenersTest {
         TenantDataSourceRouter router = mock(TenantDataSourceRouter.class);
         TenantPoolEvictionKafkaListener listener = new TenantPoolEvictionKafkaListener(router, serde);
 
-        listener.onMessage(event("tenant.aprovisionado", ""));
+        listener.onMessage(event("tenant.aprovisionado", ""), TENANT_TOPIC);
         verify(router, never()).evict(anyString());
 
-        listener.onMessage(event("tenant.baja_iniciada", ""));
+        listener.onMessage(event("tenant.baja_iniciada", ""), TENANT_TOPIC);
         verify(router).evict(tenant.toString());
-        listener.onMessage("{");
+        listener.onMessage("{", TENANT_TOPIC);
     }
 }

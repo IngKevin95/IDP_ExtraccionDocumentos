@@ -3,6 +3,7 @@ package com.idp.tenant.infrastructure.messaging;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.idp.events.EventEnvelope;
+import com.idp.events.EventTopology;
 import com.idp.events.OutboxPublisher;
 import com.idp.tenant.infrastructure.persistence.JsonSupport;
 import java.time.Clock;
@@ -24,7 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 public class JdbcOutbox implements OutboxPublisher {
-    public record Pending(UUID id, String partitionKey, String payload) {}
+    public record Pending(UUID id, String partitionKey, String type, String payload) {}
+
+    static final String PRODUCER = "tenant-service";
 
     private final JdbcClient jdbc;
     private final Clock clock;
@@ -37,6 +40,7 @@ public class JdbcOutbox implements OutboxPublisher {
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public void publish(String partitionKey, EventEnvelope event) {
+        EventTopology.defaults().allowedTopicFor(PRODUCER, event.eventType());
         ObjectNode flat = JsonSupport.MAPPER.createObjectNode();
         flat.put("eventId", event.eventId().toString());
         flat.put("eventType", event.eventType());
@@ -65,11 +69,11 @@ public class JdbcOutbox implements OutboxPublisher {
     }
 
     public List<Pending> findPending(int limit) {
-        return jdbc.sql("SELECT id, partition_key, CAST(payload AS VARCHAR) AS payload_text FROM outbox "
+        return jdbc.sql("SELECT id, partition_key, type, CAST(payload AS VARCHAR) AS payload_text FROM outbox "
                         + "WHERE published_at IS NULL ORDER BY seq LIMIT :l")
                 .param("l", limit)
                 .query((rs, i) -> new Pending(rs.getObject("id", UUID.class), rs.getString("partition_key"),
-                        rs.getString("payload_text")))
+                        rs.getString("type"), rs.getString("payload_text")))
                 .list();
     }
 

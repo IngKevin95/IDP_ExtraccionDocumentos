@@ -1,8 +1,13 @@
 openapi: 3.1.0
 info:
   title: Review Service API
-  description: API para la gestión de revisión humana (HITL) de oficios extraídos.
-  version: 1.0.0
+  description: |
+    Cola de revision humana (HITL) por campo, cuatro ojos en campos criticos (SEC-009), asignacion sin doble
+    asignacion, SLA con escalamiento y recorte de pagina con enlace firmado de corta vida.
+    El tenant y el revisor salen siempre del JWT; el rol REVISOR se revalida contra role_assignment en cada peticion.
+    Los estados de la tarea (PENDING, PENDING_SECOND_APPROVAL, APPROVED, REJECTED) son propios y distintos de los
+    estados canonicos del documento (document-service).
+  version: 1.1.0
 servers:
   - url: https://api.idp.example
     description: API Gateway (Route)
@@ -11,16 +16,28 @@ security:
 paths:
   /v1/review/tasks:
     get:
-      summary: Lista tareas de revisión
+      summary: Lista tareas de revision
       operationId: listReviewTasks
+      description: Roles REVISOR o TENANT_ADMIN. Escaladas y mas proximas a vencer primero.
       parameters:
         - name: status
           in: query
           description: Filtrar por estado de la tarea
           required: false
           schema:
-            type: string
-            enum: [PENDING, PENDING_SECOND_APPROVAL, APPROVED, REJECTED]
+            $ref: '#/components/schemas/TaskStatus'
+        - name: mine
+          in: query
+          description: Solo las tareas asignadas al usuario del token
+          schema:
+            type: boolean
+            default: false
+        - name: escalated
+          in: query
+          description: Solo tareas con SLA vencido y escaladas
+          schema:
+            type: boolean
+            default: false
         - name: page
           in: query
           schema:
@@ -31,6 +48,7 @@ paths:
           schema:
             type: integer
             default: 20
+            maximum: 100
       responses:
         '200':
           description: Lista paginada de tareas
@@ -38,17 +56,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TaskPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /v1/review/tasks/{taskId}:
     get:
-      summary: Detalle de la tarea de revisión
+      summary: Detalle de la tarea de revision
       operationId: getReviewTask
       parameters:
-        - name: taskId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/TaskId'
       responses:
         '200':
           description: Tarea encontrada
@@ -57,22 +74,249 @@ paths:
               schema:
                 $ref: '#/components/schemas/ReviewTask'
         '404':
-          description: Tarea no encontrada o pertenece a otro tenant
+          $ref: '#/components/responses/NotFound'
+  /v1/review/queue:
+    get:
+      summary: Cola de revision por campo
+      operationId: getReviewQueue
+      description: |
+        Cada elemento es un campo dudoso pendiente (no un documento). No incluye el valor del campo: el revisor ve el
+        recorte de la pagina. Orden: tareas escaladas primero, luego las mas proximas a vencer.
+      parameters:
+        - name: scope
+          in: query
+          schema:
+            type: string
+            enum: [ALL, MINE, UNASSIGNED]
+            default: ALL
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Pagina de campos pendientes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueuePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/review/metrics:
+    get:
+      summary: Metricas de la cola del tenant
+      operationId: getReviewMetrics
+      description: Tareas por estado, sin asignar, con SLA vencido, escaladas y tiempo promedio en cola (segundos).
+      responses:
+        '200':
+          description: Metricas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metrics'
+  /v1/review/tasks/{taskId}/fields:
+    get:
+      summary: Campos dudosos de la tarea
+      operationId: getTaskFields
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Campos de la tarea
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReviewField'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/review/tasks/{taskId}/fields/{fieldId}/crop-link:
+    get:
+      summary: Enlace firmado de corta vida al recorte de pagina del campo
+      operationId: getFieldCropLink
+      description: |
+        Solo rol REVISOR, sobre tareas abiertas y no asignadas a otro revisor. Las paginas estan cifradas en el bucket
+        del tenant, por lo que el enlace apunta al endpoint de recorte de este servicio, con vencimiento
+        (idp.review.crop-ttl, 60 s por defecto) y firma HMAC ligada a tenant, tarea, campo y revisor. Nunca se sirve
+        la pagina completa.
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - $ref: '#/components/parameters/FieldId'
+      responses:
+        '200':
+          description: Enlace de recorte
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CropLink'
+        '400':
+          description: La tarea ya esta cerrada
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Tarea asignada a otro revisor, o campo sin evidencia (REVIEW_NO_EVIDENCE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/review/tasks/{taskId}/fields/{fieldId}/crop:
+    get:
+      summary: Recorte PNG del campo (destino del enlace firmado)
+      operationId: getFieldCrop
+      description: No se invoca directamente; se obtiene de crop-link. Requiere el mismo JWT del revisor que pidio el enlace.
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - $ref: '#/components/parameters/FieldId'
+        - name: exp
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: sig
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Recorte de la pagina (Cache-Control no-store)
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: Firma invalida, enlace vencido o emitido a otro revisor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Sin evidencia o pagina no disponible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Limite de recortes por usuario excedido (REVIEW_RATE_LIMITED); incluye Retry-After
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Capacidad de decodificacion simultanea agotada (REVIEW_BUSY); incluye Retry-After
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/review/tasks/{taskId}/claim:
+    post:
+      summary: Toma la tarea (asignacion)
+      operationId: claimTask
+      description: Operacion atomica, solo un revisor gana. Idempotente para el mismo revisor. El primer revisor no toma la segunda aprobacion.
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Tarea asignada al revisor del token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewTask'
+        '400':
+          $ref: '#/components/responses/InvalidState'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AssignmentConflict'
+  /v1/review/tasks/{taskId}/release:
+    post:
+      summary: Devuelve la tarea a la cola
+      operationId: releaseTask
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Tarea sin asignar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewTask'
+        '400':
+          $ref: '#/components/responses/InvalidState'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AssignmentConflict'
+  /v1/review/tasks/{taskId}/reassign:
+    post:
+      summary: Reasigna la tarea a otro revisor (supervisor)
+      operationId: reassignTask
+      description: |
+        Rol TENANT_ADMIN. El destino debe tener el rol REVISOR vigente; en PENDING_SECOND_APPROVAL no puede ser el
+        primer revisor (SEC-009).
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assigneeId]
+              properties:
+                assigneeId:
+                  type: string
+                  maxLength: 255
+      responses:
+        '200':
+          description: Tarea reasignada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewTask'
+        '400':
+          description: Destino sin rol REVISOR, solicitud invalida o tarea cerrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /v1/review/tasks/{taskId}/corrections:
     get:
       summary: Obtiene la lista de correcciones de la tarea
       operationId: getCorrections
+      description: Roles REVISOR o TENANT_ADMIN (lectura para extraction-service via claim-check).
       parameters:
-        - name: taskId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/TaskId'
       responses:
         '200':
           description: Lista de correcciones
@@ -82,67 +326,80 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Correction'
+        '404':
+          $ref: '#/components/responses/NotFound'
     post:
-      summary: Envía una lista de correcciones a la tarea
+      summary: Envia una lista de correcciones a la tarea
       operationId: addCorrections
+      description: |
+        Solo mientras la tarea esta PENDING. Quien corrige toma la tarea de forma atomica. Corregir de nuevo el mismo
+        campo sobrescribe la correccion. isCritical lo calcula el servidor (monto, identificacion, cuenta, producto,
+        tipo_medida, radicado), nunca el cliente.
       parameters:
-        - name: taskId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/TaskId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: array
+              minItems: 1
+              maxItems: 200
               items:
                 $ref: '#/components/schemas/CorrectionRequest'
       responses:
         '200':
-          description: Correcciones guardadas
+          description: Correcciones guardadas (lista completa de la tarea)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Correction'
         '400':
-          description: Estado inválido de la tarea para agregar correcciones
+          description: Estado invalido de la tarea para agregar correcciones o solicitud invalida
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AssignmentConflict'
   /v1/review/tasks/{taskId}/approve:
     post:
       summary: Aprobar tarea por el primer revisor
       operationId: approveTask
       description: |
-        Marca la tarea como aprobada. Si se realizaron correcciones a campos críticos,
-        transiciona al estado PENDING_SECOND_APPROVAL.
+        Sin correcciones criticas la tarea pasa a APPROVED y se emite revision.completada. Con al menos una correccion
+        critica pasa a PENDING_SECOND_APPROVAL, se libera la asignacion y no se emite evento. Solo el revisor asignado
+        puede aprobar: sin tomar la tarea responde 409 REVIEW_NOT_ASSIGNEE. La lectura de correcciones y la
+        transicion ocurren bajo bloqueo de la fila de la tarea (una correccion critica concurrente no se pierde).
       parameters:
-        - name: taskId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/TaskId'
       responses:
         '200':
-          description: Tarea aprobada o derivada a segunda revisión
+          description: Tarea aprobada o derivada a segunda revision
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReviewTask'
         '400':
-          description: Estado inválido para aprobación
+          $ref: '#/components/responses/InvalidState'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AssignmentConflict'
   /v1/review/tasks/{taskId}/approve-secondary:
     post:
-      summary: Segunda aprobación por regla de 4 ojos (SEC-009)
+      summary: Segunda aprobacion por regla de 4 ojos (SEC-009)
       operationId: approveSecondaryTask
+      description: |
+        Revisor distinto del primero; ambos con rol REVISOR vigente al momento de la aprobacion. Emite
+        revision.completada con reviewerId (primer revisor), secondReviewerId y criticalCorrection=true. El segundo
+        aprobador no puede ser autor de ninguna correccion de la tarea (403).
       parameters:
-        - name: taskId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/TaskId'
       responses:
         '200':
           description: Tarea aprobada definitivamente
@@ -150,33 +407,104 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReviewTask'
+        '400':
+          $ref: '#/components/responses/InvalidState'
         '403':
-          description: El usuario actual es el mismo que el primer revisor (Violación SEC-009)
+          description: El usuario actual es el mismo que el primer revisor (violacion SEC-009) o no tiene rol REVISOR
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Tarea asignada a otro revisor, carrera perdida o el primer revisor ya no tiene rol vigente
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
   /v1/review/tasks/{taskId}/reject:
     post:
-      summary: Rechaza la tarea (documento ilegible o inválido)
+      summary: Rechaza la tarea (documento ilegible o invalido)
       operationId: rejectTask
+      description: |
+        Cualquier revisor, en primera o segunda instancia. Emite revision.completada con action RECHAZADO,
+        criticalCorrection=false y sin segundo aprobador (el rechazo descarta las correcciones). En primera instancia
+        solo rechaza el revisor asignado (409 REVIEW_NOT_ASSIGNEE si no tomo la tarea).
       parameters:
-        - name: taskId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+        - $ref: '#/components/parameters/TaskId'
       responses:
         '200':
           description: Tarea rechazada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewTask'
+        '400':
+          $ref: '#/components/responses/InvalidState'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/AssignmentConflict'
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+  parameters:
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    FieldId:
+      name: fieldId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    BadRequest:
+      description: Solicitud invalida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Rol insuficiente o violacion de la regla de cuatro ojos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Tarea no encontrada o pertenece a otro tenant (error generico, SEC-003)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InvalidState:
+      description: Estado invalido de la tarea para la operacion (REVIEW_INVALID_STATE)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    AssignmentConflict:
+      description: La tarea esta asignada a otro revisor (REVIEW_TASK_ASSIGNED) o cambio de estado (REVIEW_CONFLICT)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   schemas:
+    TaskStatus:
+      type: string
+      enum: [PENDING, PENDING_SECOND_APPROVAL, APPROVED, REJECTED]
+    FieldStatus:
+      type: string
+      enum: [PENDING, CORRECTED, CONFIRMED]
     ReviewTask:
       type: object
       properties:
@@ -187,12 +515,31 @@ components:
           type: string
           format: uuid
         status:
-          type: string
-          enum: [PENDING, PENDING_SECOND_APPROVAL, APPROVED, REJECTED]
+          $ref: '#/components/schemas/TaskStatus'
+        assigneeId:
+          type: [string, 'null']
+          description: Revisor que tiene la tarea; nulo si esta en la cola
         firstReviewerId:
-          type: string
+          type: [string, 'null']
         secondReviewerId:
+          type: [string, 'null']
+        criticalCorrection:
+          type: boolean
+        slaDueAt:
           type: string
+          format: date-time
+        escalationLevel:
+          type: integer
+          description: Veces que se escalo por SLA vencido
+        overdue:
+          type: boolean
+        blindSample:
+          type: boolean
+          description: >-
+            true en una revision ciega de un oficio ya auto-aprobado (muestreo de calidad). Solo se devuelve a roles
+            de gestion (TENANT_ADMIN); para el rol REVISOR siempre es false, para no romper la ceguera. En esas
+            tareas confidence y originalValue se devuelven nulos, no hay segunda aprobacion ni rechazo, y el revisor
+            debe ser independiente de quien intervino en el documento.
         createdAt:
           type: string
           format: date-time
@@ -206,10 +553,108 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ReviewTask'
+        page:
+          type: integer
+        size:
+          type: integer
         totalPages:
           type: integer
         totalElements:
           type: integer
+    ReviewField:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        taskId:
+          type: string
+          format: uuid
+        fieldName:
+          type: string
+        page:
+          type: [integer, 'null']
+        confidence:
+          type: [number, 'null']
+        critical:
+          type: boolean
+        status:
+          $ref: '#/components/schemas/FieldStatus'
+        hasEvidence:
+          type: boolean
+          description: Tiene pagina y caja de evidencia, por lo que admite recorte
+    QueueItem:
+      type: object
+      properties:
+        fieldId:
+          type: string
+          format: uuid
+        taskId:
+          type: string
+          format: uuid
+        documentId:
+          type: string
+          format: uuid
+        fieldName:
+          type: string
+        critical:
+          type: boolean
+        page:
+          type: [integer, 'null']
+        confidence:
+          type: [number, 'null']
+        taskStatus:
+          $ref: '#/components/schemas/TaskStatus'
+        assigneeId:
+          type: [string, 'null']
+        slaDueAt:
+          type: string
+          format: date-time
+        escalationLevel:
+          type: integer
+    QueuePage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueueItem'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalPages:
+          type: integer
+        totalElements:
+          type: integer
+    CropLink:
+      type: object
+      properties:
+        url:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    Metrics:
+      type: object
+      properties:
+        tasksByStatus:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        unassigned:
+          type: integer
+          format: int64
+        overdue:
+          type: integer
+          format: int64
+        escalated:
+          type: integer
+          format: int64
+        avgQueueSeconds:
+          type: [number, 'null']
+          description: Tiempo promedio entre creacion y cierre de las tareas completadas
     CorrectionRequest:
       type: object
       required:
@@ -218,10 +663,15 @@ components:
       properties:
         fieldName:
           type: string
+          maxLength: 200
         originalValue:
           type: string
+          description: >-
+            Ignorado si el campo existe en la tarea: el original es siempre el valor guardado del campo. Solo se usa
+            para un campo inexistente (tarea normal).
         correctedValue:
           type: string
+          maxLength: 10000
     Correction:
       allOf:
         - $ref: '#/components/schemas/CorrectionRequest'

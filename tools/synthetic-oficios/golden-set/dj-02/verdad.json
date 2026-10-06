@@ -1,0 +1,98 @@
+{
+  "esquema": "oficio-sintetico/1",
+  "id": "dj-02",
+  "tipologia": "embargos.v1.dj",
+  "codigo": "DJ",
+  "semilla": 20260101,
+  "indice": 2,
+  "numero_oficio": "S-2024-2516300",
+  "campos": {
+    "radicado": "66001990402020224615601",
+    "autoridad_emisora": "Juzgado Primero Promiscuo Municipal de Pereira",
+    "ciudad": "Pereira",
+    "fecha_oficio": "2024-09-23",
+    "tipo_medida": "Desembargo judicial",
+    "banco_destinatario": "Banco Cafetero Demo S.A.",
+    "monto_numeros": "266749000.00",
+    "monto_letras": "DOSCIENTOS SESENTA Y SEIS MILLONES OCHOCIENTOS CUARENTA Y NUEVE MIL PESOS M/CTE",
+    "limite_inembargabilidad": "4000000.00",
+    "productos_o_cuentas": "fondos de inversión colectiva y cuentas corrientes",
+    "juzgado": "Juzgado Primero Promiscuo Municipal de Pereira",
+    "clase_proceso": "Ejecución de sentencia",
+    "demandante": "Gundelo Zandoval Torcuato",
+    "referencia_oficio_original": "Oficio 2024-395655 del 27 de febrero de 2024"
+  },
+  "campos_criticos": [
+    "radicado",
+    "tipo_medida",
+    "monto_numeros",
+    "productos_o_cuentas"
+  ],
+  "tablas": {
+    "demandados": [
+      {
+        "nombre": "Pelagrina Lumbrales Bellaterra",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9933203833",
+        "monto": "27772000.00",
+        "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Quenelo Mirabeque Quintanaro",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9989203164",
+        "monto": "52198000.00",
+        "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Rivalda Orquillo Rosalinda",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9904938158",
+        "monto": "56351000.00",
+        "productos": "Ahorro programado"
+      },
+      {
+        "nombre": "Agroindustrias Ficticia Altiplano S.A.S.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999269405-1",
+        "monto": "46447000.00",
+        "productos": "Ahorro programado"
+      },
+      {
+        "nombre": "Transportes Ficticia Andina Ltda.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999226799-1",
+        "monto": "46180000.00",
+        "productos": "Fondo de inversión"
+      },
+      {
+        "nombre": "Kandelo Gualdrapa Cordellera",
+        "tipo_identificacion": "CE",
+        "numero_identificacion": "9972284210",
+        "monto": "37801000.00",
+        "productos": "Ahorro programado"
+      }
+    ]
+  },
+  "suma_filas_demandados": "266749000.00",
+  "defectos": [
+    {
+      "tipo": "MONTO_INCONSISTENTE",
+      "campo": "monto_letras",
+      "detalle": "letras equivalen a 266849000 y numeros a 266749000"
+    }
+  ],
+  "inyeccion_prompt": {
+    "presente": false,
+    "regla_esperada": null
+  },
+  "validadores_esperados": {
+    "radicado_23_digitos": "PASS",
+    "fechas_coherentes": "PASS",
+    "monto_numeros_letras": "FAIL",
+    "juzgado_catalogo": "PASS",
+    "tipo_doc_valido": "PASS",
+    "cedula_nit_condicional": "PASS",
+    "suma_tabla": "PASS"
+  }
+}

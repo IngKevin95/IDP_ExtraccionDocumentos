@@ -5,7 +5,8 @@
 * **Parent:** Proyecto base Spring Boot 3.x con Java 21 LTS.
 * **Dependencias Principales:**
   * `spring-boot-starter-web` (API de gestión)
-  * `spring-boot-starter-webflux` (WebClient para envío asíncrono no bloqueante)
+  * `httpclient5` (Apache HttpClient 5: cliente saliente con `DnsResolver` propio, ver ADR 0027; sustituye a WebClient)
+  * `spring-boot-starter-jdbc` (JDBC por silo, como document-service; sustituye a JPA)
   * `spring-boot-starter-data-jpa` e `hibernate-core`
   * `spring-kafka`
   * `flyway-core` y `flyway-database-postgresql`
@@ -20,18 +21,18 @@
   * `WebhookDelivery` (Entity JPA): Registro histórico de intentos por documento.
   * `WebhookEvent` (Enum): Tipos de eventos soportados.
 * **`com.idp.notification.event`**
-  * `DocumentEventConsumer`: `@KafkaListener` idempotente para `dominio.documentos`.
+  * `DocumentEventConsumer`: `@KafkaListener` idempotente para `documentos.eventos` y `revision.eventos` (valida el tópico de origen, SEC-052).
   * `OutboxEventPublisher`: Interfaz para guardar eventos `webhook.entregado` y `webhook.fallido` en la tabla outbox (transactional).
 * **`com.idp.notification.infrastructure.http`**
-  * `WebhookDispatcher`: Orquesta el WebClient.
-  * `SsrfProtectionFilter` / `DnsPinningResolver`: Implementa lógica SEC-027. Reemplaza el resolvedor DNS de Netty/WebClient para bloquear RFC1918, 169.254/16, etc. Deshabilita auto-redirect.
+  * `WebhookDispatcher`: Revalida la URL, firma y clasifica el resultado del envío (`ApacheWebhookTransport` es el transporte seguro).
+  * `net.SsrfGuard` (DnsResolver) + `net.AddressPolicy` + `net.WebhookUrlPolicy`: lógica SEC-027. El resolvedor valida y fija las IP (RFC1918, CGNAT, link-local, IPv6, etc.); sin redirects ni reutilización de conexiones.
   * `HmacSignatureService`: Clase utilitaria para firmar payload (SEC-028).
 * **`com.idp.notification.infrastructure.persistence`**
   * `WebhookSubscriptionRepository`, `WebhookDeliveryRepository`.
 
 ## 3. Configuración Spring
 * **`application.yml`**:
-  * Configuración del pool `WebClient` con timeouts de conexión estrictos (ej. 3s connect, 5s read) para mitigar tarpitting.
+  * Configuración del cliente HTTP con timeouts de conexión estrictos (ej. 3s connect, 5s read) para mitigar tarpitting.
   * Propiedades de Kafka (Consumer group específico: `notification-service-cg`).
   * Integración con la librería `idp-tenant-context` para proveer los pools dinámicos (HikariCP) según la llave del tenant en el ThreadLocal.
 

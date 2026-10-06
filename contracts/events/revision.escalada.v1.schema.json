@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.idp.example/events/revision.escalada/v1.json",
+  "title": "Revision Escalada Event",
+  "description": "Evento emitido cuando una tarea de revision humana vence su SLA y sube de nivel de escalamiento. Sin PII (SEC-050): solo identificadores y marcas de tiempo.",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "tenantId",
+    "correlationId",
+    "documentId",
+    "taskId",
+    "level",
+    "slaBreachedAt"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "revision.escalada"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "documentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "taskId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "level": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Nuevo nivel de escalamiento de la tarea."
+    },
+    "slaBreachedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Instante de vencimiento del SLA que origino el escalamiento."
+    }
+  },
+  "additionalProperties": false
+}

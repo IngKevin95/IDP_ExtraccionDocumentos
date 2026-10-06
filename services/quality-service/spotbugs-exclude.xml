@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Colaboradores inyectados por constructor (JdbcTemplate, puertos) y records con listas internas que no salen
+     del servicio. Mismo criterio que document-service. -->
+<FindBugsFilter>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+</FindBugsFilter>

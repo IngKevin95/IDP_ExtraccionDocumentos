@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Herramienta de linea de comandos: records inmutables por convencion que exponen mapas/listas propias,
+     System.exit en el main del CLI y Random con semilla (la reproducibilidad es el objetivo). -->
+<FindBugsFilter>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2,DM_EXIT,DMI_RANDOM_USED_ONLY_ONCE"/>
+    </Match>
+</FindBugsFilter>

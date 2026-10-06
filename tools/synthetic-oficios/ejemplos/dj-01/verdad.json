@@ -1,0 +1,71 @@
+{
+  "esquema": "oficio-sintetico/1",
+  "id": "dj-01",
+  "tipologia": "embargos.v1.dj",
+  "codigo": "DJ",
+  "semilla": 7001,
+  "indice": 1,
+  "numero_oficio": "S-2025-1881369",
+  "campos": {
+    "radicado": "68001990600420224785901",
+    "autoridad_emisora": "Juzgado Segundo Laboral del Circuito de Bucaramanga",
+    "ciudad": "Bucaramanga",
+    "fecha_oficio": "2025-02-26",
+    "tipo_medida": "Desembargo judicial",
+    "banco_destinatario": "Banco Cafetero Demo S.A.",
+    "monto_numeros": "81299000.00",
+    "monto_letras": "OCHENTA Y UN MILLONES DOSCIENTOS NOVENTA Y NUEVE MIL PESOS M/CTE",
+    "limite_inembargabilidad": "15000000.00",
+    "productos_o_cuentas": "productos de depósito en general, cuentas de ahorro programado y fondos de inversión colectiva",
+    "juzgado": "Juzgado Segundo Laboral del Circuito de Bucaramanga",
+    "clase_proceso": "Ejecutivo hipotecario",
+    "demandante": "Lunaria Rosalinda Quintanaro",
+    "referencia_oficio_original": "Oficio 2024-476917 del 9 de noviembre de 2024"
+  },
+  "campos_criticos": [
+    "radicado",
+    "tipo_medida",
+    "monto_numeros",
+    "productos_o_cuentas"
+  ],
+  "tablas": {
+    "demandados": [
+      {
+        "nombre": "Kandelo Gualdrapa Valdenavia",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9982468000",
+        "monto": "24927000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Tamarisca Orquillo Pedregaza",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9905628398",
+        "monto": "53254000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Kandelo Vistamar Vistamar",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9927083915",
+        "monto": "3118000.00",
+        "productos": "CDT"
+      }
+    ]
+  },
+  "suma_filas_demandados": "81299000.00",
+  "defectos": [ ],
+  "inyeccion_prompt": {
+    "presente": false,
+    "regla_esperada": null
+  },
+  "validadores_esperados": {
+    "radicado_23_digitos": "PASS",
+    "fechas_coherentes": "PASS",
+    "monto_numeros_letras": "PASS",
+    "juzgado_catalogo": "PASS",
+    "tipo_doc_valido": "PASS",
+    "cedula_nit_condicional": "PASS",
+    "suma_tabla": "PASS"
+  }
+}

@@ -1,0 +1,127 @@
+package com.idp.review.config;
+
+import com.idp.events.EventErrorHandlers;
+import com.idp.events.EventSchemaValidator;
+import com.idp.events.EventTopology;
+import com.idp.events.EventSerde;
+import com.idp.events.IdempotentEventConsumer;
+import com.idp.events.JdbcOutboxPublisher;
+import com.idp.events.JdbcTenantOutboxAccess;
+import com.idp.events.OutboxPublisher;
+import com.idp.events.OutboxRelay;
+import com.idp.events.OutboxRepository;
+import com.idp.events.TenantOutboxAccess;
+import com.idp.review.service.SlaEscalationService;
+import com.idp.tenant.context.TenantDirectory;
+import java.time.Clock;
+import java.time.Duration;
+import javax.sql.DataSource;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.CommonErrorHandler;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.support.TransactionTemplate;
+
+/** Outbox transaccional, relay a Kafka y consumidor idempotente (libs/events). */
+@Configuration
+@EnableScheduling
+public class EventsConfig {
+
+    static final String PRODUCER = "review-service";
+
+    @Bean
+    Clock clock() {
+        return Clock.systemUTC();
+    }
+
+    @Bean
+    EventSerde eventSerde() {
+        return new EventSerde();
+    }
+
+    @Bean
+    EventSchemaValidator eventSchemaValidator(EventSerde serde) {
+        return new EventSchemaValidator(serde);
+    }
+
+    @Bean
+    com.idp.events.EventOriginGuard eventOriginGuard(
+            org.springframework.beans.factory.ObjectProvider<io.micrometer.core.instrument.MeterRegistry> registry) {
+        return new com.idp.events.EventOriginGuard(com.idp.events.EventTopology.defaults(),
+                registry.getIfAvailable());
+    }
+
+    @Bean
+    OutboxRepository outboxRepository(JdbcTemplate jdbc) {
+        return new OutboxRepository(jdbc);
+    }
+
+    @Bean
+    OutboxPublisher outboxPublisher(OutboxRepository repo, EventSchemaValidator validator, EventSerde serde) {
+        return new JdbcOutboxPublisher(repo, validator, serde, EventTopology.defaults(), PRODUCER);
+    }
+
+    @Bean
+    IdempotentEventConsumer idempotentEventConsumer(JdbcTemplate jdbc, TransactionTemplate tx,
+                                                    EventSchemaValidator validator, EventSerde serde) {
+        return new IdempotentEventConsumer(jdbc, tx, validator, serde);
+    }
+
+    @Bean
+    TenantOutboxAccess tenantOutboxAccess(DataSource routedDataSource) {
+        return new JdbcTenantOutboxAccess(routedDataSource);
+    }
+
+    /** 3 reintentos con backoff exponencial y luego DLT; los mensajes fuera de contrato van directo a DLT. */
+    @Bean
+    CommonErrorHandler kafkaErrorHandler(KafkaTemplate<String, String> template) {
+        return EventErrorHandlers.deadLetter(template);
+    }
+
+    @Bean
+    @ConditionalOnProperty(value = "idp.review.relay.enabled", matchIfMissing = true)
+    OutboxRelayJob outboxRelayJob(TenantOutboxAccess access, KafkaTemplate<String, String> kafka,
+                                  TenantDirectory tenants) {
+        OutboxRelay relay = new OutboxRelay(access, tenants::activeTenants, kafka, EventTopology.defaults(),
+                PRODUCER, 100, Duration.ofSeconds(10));
+        return new OutboxRelayJob(relay);
+    }
+
+    /** Planifica el relay del outbox de los tenants activos del directorio. */
+    public static final class OutboxRelayJob {
+        private final OutboxRelay relay;
+
+        OutboxRelayJob(OutboxRelay relay) {
+            this.relay = relay;
+        }
+
+        @Scheduled(fixedDelayString = "${idp.review.relay.interval:1s}")
+        public void run() {
+            relay.relayAll();
+        }
+    }
+
+    /** Escalamiento periodico de tareas con SLA vencido (todos los tenants activos). */
+    @Bean
+    @ConditionalOnProperty(value = "idp.review.escalation.enabled", matchIfMissing = true)
+    SlaEscalationJob slaEscalationJob(SlaEscalationService escalation) {
+        return new SlaEscalationJob(escalation);
+    }
+
+    public static final class SlaEscalationJob {
+        private final SlaEscalationService escalation;
+
+        SlaEscalationJob(SlaEscalationService escalation) {
+            this.escalation = escalation;
+        }
+
+        @Scheduled(fixedDelayString = "${idp.review.escalation.interval:1m}")
+        public void run() {
+            escalation.escalateAll();
+        }
+    }
+}

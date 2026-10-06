@@ -1,9 +1,9 @@
 package com.idp.tenant.infrastructure.messaging;
 
 import java.util.concurrent.TimeUnit;
+import com.idp.events.EventTopology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,13 +17,11 @@ public class OutboxRelay {
 
     private final JdbcOutbox outbox;
     private final KafkaTemplate<String, String> kafka;
-    private final String topic;
+    private final EventTopology topology = EventTopology.defaults();
 
-    public OutboxRelay(JdbcOutbox outbox, KafkaTemplate<String, String> kafka,
-                       @Value("${idp.outbox.topic:idp.tenant.events}") String topic) {
+    public OutboxRelay(JdbcOutbox outbox, KafkaTemplate<String, String> kafka) {
         this.outbox = outbox;
         this.kafka = kafka;
-        this.topic = topic;
     }
 
     @Scheduled(fixedDelayString = "${idp.outbox.interval-ms:1000}")
@@ -31,6 +29,9 @@ public class OutboxRelay {
         int sent = 0;
         for (JdbcOutbox.Pending p : outbox.findPending(100)) {
             try {
+                // Topico por eventType (EventTopology): tenant.* y acceso.* en idp.tenant.events; consumo.registrado y
+                // legalhold.* en auditoria.eventos (senales con varios productores).
+                String topic = topology.allowedTopicFor(JdbcOutbox.PRODUCER, p.type());
                 kafka.send(topic, p.partitionKey(), p.payload()).get(5, TimeUnit.SECONDS);
                 outbox.markPublished(p.id());
                 sent++;

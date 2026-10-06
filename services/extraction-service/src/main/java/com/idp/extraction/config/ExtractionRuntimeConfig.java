@@ -83,8 +83,9 @@ public class ExtractionRuntimeConfig {
     /** tenant.baja_iniciada / rotacion de credenciales desalojan el pool con drenado (H7). */
     @Bean
     com.idp.security.TenantPoolEvictionKafkaListener tenantPoolEvictionListener(TenantDataSourceRouter router,
-                                                                              EventSerde serde) {
-        return new com.idp.security.TenantPoolEvictionKafkaListener(router, serde);
+                                                                              EventSerde serde,
+            com.idp.events.EventOriginGuard guard) {
+        return new com.idp.security.TenantPoolEvictionKafkaListener(router, serde, guard);
     }
 
     @Bean
@@ -103,8 +104,16 @@ public class ExtractionRuntimeConfig {
     }
 
     @Bean
+    com.idp.events.EventOriginGuard eventOriginGuard(
+            org.springframework.beans.factory.ObjectProvider<io.micrometer.core.instrument.MeterRegistry> registry) {
+        return new com.idp.events.EventOriginGuard(com.idp.events.EventTopology.defaults(),
+            registry.getIfAvailable());
+    }
+
+    @Bean
     OutboxPublisher outboxPublisher(JdbcTemplate jdbc, EventSchemaValidator validator, EventSerde serde) {
-        return new JdbcOutboxPublisher(new OutboxRepository(jdbc), validator, serde);
+        return new JdbcOutboxPublisher(new OutboxRepository(jdbc), validator, serde,
+            com.idp.events.EventTopology.defaults(), "extraction-service");
     }
 
     @Bean

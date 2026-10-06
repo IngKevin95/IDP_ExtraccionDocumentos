@@ -1,0 +1,89 @@
+{
+  "esquema": "oficio-sintetico/1",
+  "id": "ec-01",
+  "tipologia": "embargos.v1.ec",
+  "codigo": "EC",
+  "semilla": 20260101,
+  "indice": 1,
+  "numero_oficio": "S-2024-4061309",
+  "campos": {
+    "radicado": "05001990100220232837001",
+    "autoridad_emisora": "Oficina de Cobro Coactivo - Tesorería General de Medellín",
+    "ciudad": "Medellín",
+    "fecha_oficio": "2024-12-30",
+    "tipo_medida": "Embargo coactivo",
+    "banco_destinatario": "Banca Horizonte de Prueba S.A.",
+    "monto_numeros": "223543000.00",
+    "monto_letras": "DOSCIENTOS VEINTITRÉS MILLONES QUINIENTOS CUARENTA Y TRES MIL PESOS M/CTE",
+    "limite_inembargabilidad": null,
+    "productos_o_cuentas": "cuentas de ahorro programado y CDT y depósitos a término",
+    "entidad_coactiva": "Tesorería General de Medellín",
+    "numero_resolucion": "RES-2024-878951"
+  },
+  "campos_criticos": [
+    "radicado",
+    "tipo_medida",
+    "monto_numeros",
+    "productos_o_cuentas"
+  ],
+  "tablas": {
+    "demandados": [
+      {
+        "nombre": "Comercializadora Ficticia Solar S.A.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999121929-0",
+        "monto": "32247000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Cantelo Ibarreta Ventureño",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9919613069",
+        "monto": "59365000.00",
+        "productos": "Fondo de inversión"
+      },
+      {
+        "nombre": "Ovaldo Rosalinda Salmedora",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9985976220",
+        "monto": "50780000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Distribuciones Ficticia Solar Ltda.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999859388-4",
+        "monto": "22637000.00",
+        "productos": "Cuenta corriente"
+      },
+      {
+        "nombre": "Agroindustrias Ficticia Pacífico S.A.S.",
+        "tipo_identificacion": "NIT",
+        "numero_identificacion": "999918401-6",
+        "monto": "18321000.00",
+        "productos": "Cuenta de ahorros"
+      },
+      {
+        "nombre": "Tamarisca Arcanelo Torcuato",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9994706873",
+        "monto": "40193000.00",
+        "productos": "CDT"
+      }
+    ]
+  },
+  "suma_filas_demandados": "223543000.00",
+  "defectos": [ ],
+  "inyeccion_prompt": {
+    "presente": false,
+    "regla_esperada": null
+  },
+  "validadores_esperados": {
+    "radicado_23_digitos": "PASS",
+    "fechas_coherentes": "PASS",
+    "monto_numeros_letras": "PASS",
+    "tipo_doc_valido": "PASS",
+    "cedula_nit_condicional": "PASS",
+    "suma_tabla": "PASS"
+  }
+}

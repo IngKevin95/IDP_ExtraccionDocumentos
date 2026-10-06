@@ -46,6 +46,15 @@
     "taskId": {
       "type": "string",
       "format": "uuid"
+    },
+    "typology": {
+      "type": "string",
+      "pattern": "^[A-Z]{2,4}$",
+      "description": "Tipologia del oficio (opcional, metadato para review-service y quality-service)."
+    },
+    "blindSample": {
+      "type": "boolean",
+      "description": "true si la tarea proviene de muestreo ciego de un oficio auto-aprobado (opcional)."
     }
   },
   "additionalProperties": false

@@ -6,10 +6,12 @@ Gestionar las suscripciones de webhooks por tenant y orquestar la notificación 
 ## 2. Alcance y No Alcance
 **Alcance:**
 * API REST para CRUD de suscripciones de webhooks.
-* Consumo asíncrono y bloqueante de eventos de dominio (`extraccion.aprobada`, `documento.rechazado`).
+* Consumo asíncrono e idempotente de eventos de dominio (`extraccion.aprobada`, `documento.rechazado`, `revision.completada`).
 * Despacho HTTP seguro a endpoints de terceros con estricta prevención SSRF y firmado criptográfico (HMAC).
-* Manejo de reintentos (retry policy) y Dead Letter Topic (DLT) para webhooks fallidos.
-* Registro de entregas y fallos en la base de datos de tenant y publicación de eventos de resultado.
+* Manejo de reintentos con backoff exponencial configurable por tenant y DLT (entregas `FALLIDO` con reintento manual).
+* Allowlist de hosts receptores y parámetros de reintento por tenant (`/v1/webhooks/policy`).
+* Rotación de secretos HMAC con dos secretos activos concurrentes.
+* Registro de entregas (historial consultable) y fallos en la base de datos de tenant y publicación de eventos de resultado.
 
 **No Alcance:**
 * Orquestación directa de correos electrónicos o SMS (solo webhooks HTTP).
@@ -29,11 +31,12 @@ Gestionar las suscripciones de webhooks por tenant y orquestar la notificación 
 ## 5. Contrato
 * **API REST:** `contracts/openapi/notification-service.yaml` (Rutas bajo `/v1/webhooks`)
 * **Eventos Consumidos:**
-  * `extraccion.aprobada` (desde `dominio.documentos`)
-  * `documento.rechazado` (desde `dominio.documentos`)
+  * `extraccion.aprobada` (desde `documentos.eventos`)
+  * `documento.rechazado` (desde `documentos.eventos`)
+  * `revision.completada` (desde `revision.eventos`; se notifica solo el resultado `APROBADO`/`RECHAZADO`, nunca revisor ni tarea)
 * **Eventos Publicados:**
-  * `webhook.entregado` (hacia `dominio.documentos` mediante outbox)
-  * `webhook.fallido` (hacia `dominio.documentos` mediante outbox)
+  * `webhook.entregado` (hacia `notificaciones.eventos` mediante outbox)
+  * `webhook.fallido` (hacia `notificaciones.eventos` mediante outbox; `reasonCode` `SECRET_UNAVAILABLE` cuando el secreto no se puede descifrar)
   * Referencia: `contracts/events/webhook.entregado.v1.schema.json`, `contracts/events/webhook.fallido.v1.schema.json`.
 
 ## 6. Modelo de Datos
@@ -41,12 +44,13 @@ La persistencia reside en la base de datos lógica o física por tenant (aislada
 
 | Tabla | Propósito | Columnas Clave | Índices | Base de datos |
 |---|---|---|---|---|
-| `webhook_subscription` | Configuración de la URL y secretos | `id`, `url`, `events`, `secret`, `secondary_secret`, `active` | `idx_wh_active` | Tenant |
-| `webhook_delivery` | Registro de intentos y estados | `id`, `webhook_id`, `document_id`, `event_type`, `status`, `attempts`, `last_attempt_at`, `error_msg` | `idx_wh_delivery_doc`, `idx_wh_status` | Tenant |
-| `outbox` | Bandeja de salida transaccional (Kafka) | `id`, `topic`, `payload`, `created_at` | `idx_outbox_created` | Tenant |
+| `webhook_subscription` | Configuración de la URL y secretos (cifrados en sobre con la KEK del tenant) | `id`, `url`, `events`, `secret_current`, `secret_previous`, `secret_previous_expires_at`, `active` | `idx_wh_active` | Tenant |
+| `webhook_tenant_policy` | Allowlist de hosts y reintentos del tenant | `tenant_id`, `allowed_hosts`, `max_attempts`, `initial_backoff_ms`, `backoff_multiplier`, `max_backoff_ms` | PK | Tenant |
+| `webhook_delivery` | Historial de entregas (FALLIDO = DLT) | `id`, `webhook_id`, `document_id`, `source_event_id`, `event_type`, `payload` (claim-check), `status`, `attempts`, `next_attempt_at`, `last_http_status`, `error_code` | `idx_wh_delivery_doc`, `idx_wh_status`, único `(webhook_id, source_event_id)` | Tenant |
+| `outbox` / `processed_event` | Bandeja de salida transaccional (Kafka) e idempotencia del consumidor (libs/events) | ver libs/events | `idx_outbox_pending` | Tenant |
 
 ## 7. Controles de Seguridad
-* **SEC-027 (Prevención SSRF/TOCTOU):** El servicio valida la resolución DNS de la URL destino previo al envío, fijando la IP (DNS pinning). Se aborta si la IP pertenece a RFC1918 (privadas), loopback, 169.254/16 (metadata cloud), 100.64/10 o IPv6 ULA/link-local. Las redirecciones HTTP están explícitamente deshabilitadas en el WebClient.
+* **SEC-027 (Prevención SSRF/TOCTOU):** El servicio valida la resolución DNS de la URL destino previo al envío, fijando la IP (DNS pinning). Se aborta si la IP pertenece a RFC1918 (privadas), loopback, 169.254/16 (metadata cloud), 100.64/10 o IPv6 ULA/link-local. Las redirecciones HTTP están explícitamente deshabilitadas en el cliente HTTP (ADR 0027).
 * **SEC-028 (Firmas HMAC):** Se calcula `HMAC-SHA256(secret, timestamp + payload)`. El receptor puede validar la ventana de tiempo (anti-replay). La concurrencia de dos secretos facilita la rotación sin downtime.
 * **SEC-050 (Sin PII en Eventos - Claim-Check):** Ni el payload enviado al webhook externo ni los eventos publicados en Kafka (`webhook.entregado`, etc.) contienen datos del documento extraído (PII). Solo viajan identificadores y estados.
 
@@ -88,9 +92,54 @@ La persistencia reside en la base de datos lógica o física por tenant (aislada
 * **Then** el `AbstractRoutingDataSource` selecciona el silo de A, lee la suscripción de A, envía el webhook de A e ignora completamente la configuración de B.
 
 **AC-08: Ausencia de PII en eventos publicados (SEC-050)**
-* **Given** que se publica el evento `webhook.entregado` al tópico `dominio.documentos`
+* **Given** que se publica el evento `webhook.entregado` al tópico `notificaciones.eventos`
 * **When** el auditor revisa el JSON enviado
 * **Then** se verifica que solo contiene `webhookId`, `documentId`, `tenantId`, sin datos extraídos de la persona.
+
+**AC-09: Rotación de secretos con dos secretos activos (SEC-028)**
+* **Given** un webhook con secreto S1 y una rotación iniciada que genera S2 (S1 queda activo hasta `previousSecretExpiresAt`)
+* **When** se despacha una entrega durante la rotación
+* **Then** `X-Hub-Signature-256` lleva dos firmas (S2 y S1) y un receptor con cualquiera de los dos secretos valida; al cerrar la rotación (`DELETE .../secret/previous`) o vencer el solapamiento solo se firma con S2, y una rotación ya en curso devuelve 409.
+
+**AC-10: HTTPS y allowlist por tenant**
+* **Given** un tenant con `allowedHosts` en su política (sin política no se admite ningún destino)
+* **When** registra un webhook con `http://`, con un host fuera de la allowlist, con IP literal/nombre interno o con credenciales embebidas
+* **Then** se responde 400 con código estable (`WEBHOOK_URL_INSECURE_SCHEME`, `WEBHOOK_URL_HOST_NOT_ALLOWED`, `WEBHOOK_URL_BLOCKED_*`, `WEBHOOK_URL_INVALID_URL`); la misma validación se repite antes de cada envío (un cambio de política bloquea entregas pendientes).
+
+**AC-11: Secreto mostrado una sola vez y cifrado en reposo**
+* **Given** un webhook recién creado
+* **When** se consulta la base de datos y la API
+* **Then** el secreto solo aparece en la respuesta de creación/rotación (`Cache-Control: no-store`), se almacena cifrado en sobre ligado a tenant y webhook, y si la KEK del tenant se destruye la entrega no se envía.
+
+**AC-12: Historial, DLT y reintento manual**
+* **Given** una entrega `FALLIDO` (DLT)
+* **When** el administrador consulta `GET .../deliveries` y llama `POST .../deliveries/{id}/retry`
+* **Then** el historial muestra estado, intentos, código HTTP y error sin payload; el reintento la devuelve a `PENDIENTE` con contador en cero conservando el mismo `X-Hub-Event-Id`; solo se reintentan entregas `FALLIDO` del propio webhook y tenant (409/404 en otro caso).
+
+**AC-13: Consumo idempotente**
+* **Given** un evento ya procesado o fuera de contrato
+* **When** llega de nuevo al consumidor
+* **Then** un `eventId` repetido no duplica la entrega (`processed_event` y unicidad `(webhook_id, source_event_id)`), un evento fuera de JSON Schema va directo al DLT de Kafka sin reintentos y un tipo ajeno se ignora.
+
+**AC-14: Anti-SSRF exhaustivo (SEC-027)**
+* **Given** un resolvedor DNS falso
+* **When** el host resuelve a RFC1918, loopback, link-local/metadata, CGNAT, IPv6 ULA/link-local/multicast, NAT64 o 6to4 con IPv4 privada, o a registros mixtos público/privado, o cambia de público a privado entre dos resoluciones (DNS rebinding), o el receptor responde con un redirect
+* **Then** no se abre conexión (el nombre se resuelve una vez por intento y se conecta a esa IP), el bloqueo es definitivo (`SSRF_BLOCKED`, sin reintentos) y los redirects (301/302/307/308) no se siguen.
+
+**AC-15: Otros eventos notificables**
+* **Given** una suscripción a `revision.completada` o `documento.rechazado`
+* **When** se consume el evento
+* **Then** se notifica como claim-check (`status` `REVISION_APROBADO`/`REVISION_RECHAZADO` o `RECHAZADO` + `reasonCode`) sin identidad del revisor ni tarea.
+
+**AC-16: Backoff configurable por tenant**
+* **Given** una política de tenant con `maxAttempts`, `initialBackoffSeconds`, `backoffMultiplier` y `maxBackoffSeconds`
+* **When** el receptor falla con errores reintentables
+* **Then** la espera es `min(max, inicial x multiplicador^(n-1))` y la entrega pasa a `FALLIDO` al agotar `maxAttempts`; los parámetros fuera de rango se rechazan con 400.
+
+**AC-17: Anti-replay**
+* **Given** un receptor que valida firma y ventana de tiempo
+* **When** recibe un envío (o un reintento)
+* **Then** `X-Hub-Timestamp` es el instante del intento, `X-Hub-Event-Id` e `id` del cuerpo son estables entre reintentos (deduplicación) y la firma cubre `timestamp + cuerpo`, de modo que un envío repetido fuera de ventana o con cuerpo alterado no valida.
 
 ## 9. Métricas y SLO
 * **Latencia de entrega de Webhooks:** P95 < 2 segundos (excluyendo tiempo de respuesta del receptor externo).

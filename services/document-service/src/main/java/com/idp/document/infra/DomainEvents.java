@@ -63,6 +63,9 @@ public class DomainEvents {
         ObjectNode p = MAPPER.createObjectNode();
         p.put("documentId", d.id().toString());
         p.put("approvedBy", approvedBy);
+        if (d.typology() != null) {
+            p.put("typology", d.typology());
+        }
         emit("extraccion.aprobada", d, p);
     }
 

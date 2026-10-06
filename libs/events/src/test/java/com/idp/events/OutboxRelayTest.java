@@ -77,6 +77,40 @@ class OutboxRelayTest {
     }
 
     @Test
+    void sec052_relayDeProductorPublicaCadaEventTypeEnSuTopico() {
+        UUID tenant = UUID.randomUUID();
+        OutboxRecord a = new OutboxRecord(UUID.randomUUID(), "d1", "extraccion.completada", tenant, "{}", 0);
+        OutboxRecord b = new OutboxRecord(UUID.randomUUID(), "d1", "ia.ejecucion_registrada", tenant, "{}", 0);
+        OutboxRecord c = new OutboxRecord(UUID.randomUUID(), "t", "consumo.registrado", tenant, "{}", 0);
+        when(repo.lockPending(100)).thenReturn(List.of(a, b, c));
+        when(kafka.send(any(ProducerRecord.class)))
+            .thenReturn(CompletableFuture.<SendResult<String, String>>completedFuture(null));
+
+        int n = new OutboxRelay(access, () -> List.of("t1"), kafka, EventTopology.defaults(), "extraction-service",
+            100, java.time.Duration.ofSeconds(1)).relayTenant("t1");
+
+        assertEquals(3, n);
+        ArgumentCaptor<ProducerRecord<String, String>> cap = ArgumentCaptor.forClass(ProducerRecord.class);
+        verify(kafka, times(3)).send(cap.capture());
+        assertEquals(List.of("extraccion.eventos", "extraccion.eventos", "auditoria.eventos"),
+            cap.getAllValues().stream().map(ProducerRecord::topic).toList());
+    }
+
+    @Test
+    void sec052_eventTypeAjenoAlProductorFallaYNoSePublica() {
+        UUID tenant = UUID.randomUUID();
+        OutboxRecord foreign = new OutboxRecord(UUID.randomUUID(), "d1", "revision.completada", tenant, "{}", 0);
+        when(repo.lockPending(100)).thenReturn(List.of(foreign));
+
+        int n = new OutboxRelay(access, () -> List.of("t1"), kafka, EventTopology.defaults(), "quality-service",
+            100, java.time.Duration.ofSeconds(1)).relayTenant("t1");
+
+        assertEquals(0, n);
+        verify(kafka, never()).send(any(ProducerRecord.class));
+        verify(repo).markFailed(foreign.id(), "IllegalStateException");
+    }
+
+    @Test
     void fallaDePublicacionDetieneElLoteYRegistraElIntento() {
         UUID tenant = UUID.randomUUID();
         OutboxRecord r1 = row(tenant, "k1");

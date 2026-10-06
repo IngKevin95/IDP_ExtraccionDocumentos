@@ -13,7 +13,7 @@
 * **Validación:** Repositorio JPA guarda y lee la entidad correctamente con cascada de `field_value`.
 
 ## T-04: Listener de Kafka y Comando Inicial
-* **Criterio de hecho:** `ExtractionKafkaListener` consume el comando `extraccion.solicitada` del tópico `dominio.documentos`. Configuración de idempotencia básica y deserialización correcta del payload.
+* **Criterio de hecho:** `ExtractionKafkaListener` consume el comando `extraccion.solicitada` del tópico `documentos.eventos` (valida que llegó por el tópico de su productor, SEC-052); publica en `extraccion.eventos` según `EventTopology`. Configuración de idempotencia básica y deserialización correcta del payload.
 * **Validación:** Inyectar un mensaje de prueba con KafkaTemplate y verificar que el log de recepción y parseo del comando es exitoso. (Cubre AC-09).
 
 ## T-05: Adaptador de Storage y Extracción de Contexto

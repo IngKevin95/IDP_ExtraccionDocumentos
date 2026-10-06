@@ -1,0 +1,93 @@
+### Ejemplo dj-01 (oficio sintético, sin datos personales reales)
+--- TEXTO DEL OFICIO ---
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+JUZGADO SEGUNDO LABORAL DEL CIRCUITO DE BUCARAMANGA
+
+Bucaramanga, 26 de febrero de 2025
+Oficio No. S-2025-1881369
+
+Señores
+Banco Cafetero Demo S.A.
+
+Referencia: Desembargo judicial
+Radicado: 68001990600420224785901
+Clase de proceso: Ejecutivo hipotecario
+Demandante: Lunaria Rosalinda Quintanaro
+Oficio de embargo original: Oficio 2024-476917 del 9 de noviembre de 2024
+
+El Juzgado Segundo Laboral del Circuito de Bucaramanga, dentro del proceso de la referencia, ha
+ordenado el levantamiento de la medida de embargo comunicada previamente. En consecuencia,
+sírvase desembargar los dineros retenidos, en los siguientes productos: productos de depósito en
+general, cuentas de ahorro programado y fondos de inversión colectiva, de propiedad de las personas
+relacionadas a continuación, por las sumas indicadas.
+
+Relación de demandados:
+
+Nombre / Razón social Tipo ID Número ID Monto ($) Productos
+
+Kandelo Gualdrapa Valdenavia CC 9982468000 24.927.000 CDT
+
+Tamarisca Orquillo Pedregaza CC 9905628398 53.254.000 CDT
+
+Kandelo Vistamar Vistamar CC 9927083915 3.118.000 CDT
+
+Valor total a desembargar: $ 81.299.000 (OCHENTA Y UN MILLONES DOSCIENTOS NOVENTA Y
+NUEVE MIL PESOS M/CTE).
+Límite de inembargabilidad: $ 15.000.000.
+
+Sírvase dar cumplimiento a lo ordenado e informar el resultado dentro de los términos de ley.
+
+Atentamente,
+
+______________________________
+Secretaría del despacho
+
+*** DOCUMENTO SINTÉTICO, SIN VALOR LEGAL - DATOS FICTICIOS ***
+
+DOCUMENTO SINTÉTICO DE PRUEBA - SIN VALOR LEGAL - dj-01 - pág. 1
+
+--- SALIDA ESPERADA (JSON) ---
+{
+  "campos": {
+    "radicado": "68001990600420224785901",
+    "autoridad_emisora": "Juzgado Segundo Laboral del Circuito de Bucaramanga",
+    "ciudad": "Bucaramanga",
+    "fecha_oficio": "2025-02-26",
+    "tipo_medida": "Desembargo judicial",
+    "banco_destinatario": "Banco Cafetero Demo S.A.",
+    "monto_numeros": "81299000.00",
+    "monto_letras": "OCHENTA Y UN MILLONES DOSCIENTOS NOVENTA Y NUEVE MIL PESOS M/CTE",
+    "limite_inembargabilidad": "15000000.00",
+    "productos_o_cuentas": "productos de depósito en general, cuentas de ahorro programado y fondos de inversión colectiva",
+    "juzgado": "Juzgado Segundo Laboral del Circuito de Bucaramanga",
+    "clase_proceso": "Ejecutivo hipotecario",
+    "demandante": "Lunaria Rosalinda Quintanaro",
+    "referencia_oficio_original": "Oficio 2024-476917 del 9 de noviembre de 2024"
+  },
+  "tablas": {
+    "demandados": [
+      {
+        "nombre": "Kandelo Gualdrapa Valdenavia",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9982468000",
+        "monto": "24927000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Tamarisca Orquillo Pedregaza",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9905628398",
+        "monto": "53254000.00",
+        "productos": "CDT"
+      },
+      {
+        "nombre": "Kandelo Vistamar Vistamar",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "9927083915",
+        "monto": "3118000.00",
+        "productos": "CDT"
+      }
+    ]
+  }
+}

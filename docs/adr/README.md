@@ -30,3 +30,6 @@ Este directorio contiene el registro de decisiones fundamentales del IDP Bancari
 | [0024](0024-retencion-legal-hold-habeas-data-offboarding.md) | Retención, legal hold, habeas data y offboarding |
 | [0025](0025-dr-por-tenant.md) | DR por tenant |
 | [0026](0026-break-glass-y-certificacion-de-accesos.md) | Break-glass y certificación de accesos |
+| [0027](0027-cliente-http-webhooks-httpclient5.md) | Cliente HTTP saliente de webhooks: Apache HttpClient 5 |
+| [0028](0028-lazo-muestreo-ciego-quality-review.md) | Lazo del muestreo ciego: quality solicita, review mide |
+| [0029](0029-topico-por-productor-y-validacion-de-origen.md) | Tópico por productor y validación de origen de eventos |
