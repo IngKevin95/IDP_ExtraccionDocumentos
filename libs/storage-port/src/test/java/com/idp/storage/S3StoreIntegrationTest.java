@@ -3,15 +3,14 @@ package com.idp.storage;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.idp.storage.contract.ImmutableStoreContract;
 import com.idp.tenant.TenantId;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.util.HexFormat;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Container;
@@ -26,7 +25,7 @@ import software.amazon.awssdk.services.s3.model.ObjectLockMode;
 
 /** Object Lock real contra LocalStack. */
 @Testcontainers(disabledWithoutDocker = true)
-class S3StoreIntegrationTest {
+class S3StoreIntegrationTest extends ImmutableStoreContract {
 
     @Container
     static final LocalStackContainer LOCALSTACK =
@@ -34,6 +33,54 @@ class S3StoreIntegrationTest {
 
     private static S3Client s3;
     private final TenantId tenant = new TenantId("t1");
+    private final TenantId tenantB = new TenantId("t2");
+    private S3ImmutableStore storeInstance;
+
+    @Override
+    protected ImmutableStore getStore() {
+        if (storeInstance == null) {
+            storeInstance = new S3ImmutableStore(s3, "idp-it");
+        }
+        return storeInstance;
+    }
+
+    @Override
+    protected TenantId getTenantA() {
+        return tenant;
+    }
+
+    @Override
+    protected TenantId getTenantB() {
+        return tenantB;
+    }
+
+    @Override
+    protected void advancePastRetention() throws InterruptedException {
+        Thread.sleep(1500); // retencion de 1s
+    }
+
+    @Override
+    protected void hardDelete(TenantId tenantId, String path) {
+        String key = tenantId.value() + "/" + path;
+        var version = oldestVersion(key);
+        s3.deleteObject(b -> b.bucket("idp-it").key(key).versionId(version.versionId()));
+    }
+
+    private static software.amazon.awssdk.services.s3.model.ObjectVersion oldestVersion(String key) {
+        return s3.listObjectVersions(b -> b.bucket("idp-it").prefix(key)).versions().stream()
+            .filter(v -> v.key().equals(key))
+            .reduce((masReciente, anterior) -> anterior) // la lista viene de la mas reciente a la mas antigua
+            .orElseThrow();
+    }
+
+    @Override
+    protected byte[] retainedContent(TenantId tenantId, String path) throws IOException {
+        String key = tenantId.value() + "/" + path;
+        var version = oldestVersion(key);
+        try (var in = s3.getObject(b -> b.bucket("idp-it").key(key).versionId(version.versionId()))) {
+            return in.readAllBytes();
+        }
+    }
 
     @BeforeAll
     static void bucket() {
@@ -42,21 +89,6 @@ class S3StoreIntegrationTest {
         s3.createBucket(b -> b.bucket("idp-it").objectLockEnabledForBucket(true));
     }
 
-    private static ObjectMetadata meta(byte[] data) throws NoSuchAlgorithmException {
-        return new ObjectMetadata(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(data)),
-            data.length, "text/plain");
-    }
-
-    @Test
-    void putYGetRoundTripBajoPrefijoDelTenant() throws Exception {
-        byte[] data = "contenido".getBytes(StandardCharsets.UTF_8);
-        S3ObjectStore store = new S3ObjectStore(s3, "idp-it");
-        store.put(tenant, "docs/a.txt", new ByteArrayInputStream(data), meta(data));
-        try (var in = store.get(tenant, "docs/a.txt")) {
-            assertArrayEquals(data, in.readAllBytes());
-        }
-        s3.headObject(HeadObjectRequest.builder().bucket("idp-it").key("t1/docs/a.txt").build());
-    }
 
     @Test
     void retencionYLegalHoldQuedanAplicados() throws NoSuchAlgorithmException, IOException {

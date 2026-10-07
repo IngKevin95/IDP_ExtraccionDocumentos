@@ -10,15 +10,37 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.idp.tenant.TenantId;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import com.idp.kms.contract.KeyServiceContract;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-class InMemoryKeyServiceTest {
+class InMemoryKeyServiceTest extends KeyServiceContract {
 
     private final InMemoryKeyService kms = new InMemoryKeyService();
     private final TenantId t1 = new TenantId("t1");
     private final TenantId t2 = new TenantId("t2");
     private final Map<String, String> aad = Map.of("tenant", "t1", "doc", "d-1");
+
+    @Override
+    protected KeyService getKms() {
+        return kms;
+    }
+
+    @Override
+    protected TenantId getTenantA() {
+        return t1;
+    }
+
+    @Override
+    protected TenantId getTenantB() {
+        return t2;
+    }
+
+    @Override
+    protected void createKeyIfNeeded(com.idp.tenant.TenantId tenant, String keyId) {
+        if (SIGNING_KEY.equals(keyId)) kms.sign(tenant, new byte[]{1}, keyId);
+        else kms.wrapDek(tenant, new byte[32], keyId, Map.of());
+    }
 
     @Test
     void wrapYUnwrapDevuelvenLaDekOriginal() {
@@ -26,19 +48,6 @@ class InMemoryKeyServiceTest {
         byte[] wrapped = kms.wrapDek(t1, dek, "datos", aad).getData();
         assertFalse(Arrays.equals(dek, wrapped));
         assertArrayEquals(dek, kms.unwrapDek(t1, wrapped, "datos", aad).getData());
-    }
-
-    @Test
-    void unwrapConAadDistintoFalla() {
-        byte[] wrapped = kms.wrapDek(t1, AesGcm.newKey(), "datos", aad).getData();
-        assertThrows(IllegalArgumentException.class,
-            () -> kms.unwrapDek(t1, wrapped, "datos", Map.of("tenant", "t1", "doc", "otro")));
-    }
-
-    @Test
-    void kekDeOtroTenantNoDescifra() {
-        byte[] wrapped = kms.wrapDek(t1, AesGcm.newKey(), "datos", aad).getData();
-        assertThrows(KeyService.KeyNotFoundException.class, () -> kms.unwrapDek(t2, wrapped, "datos", aad));
     }
 
     @Test

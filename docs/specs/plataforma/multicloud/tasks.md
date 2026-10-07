@@ -9,6 +9,7 @@
 * **Descripción:** Crear `ObjectStoreContract`, `ImmutableStoreContract` y `KeyServiceContract` (test-jar). Migrar S3, `InMemoryKeyService` y OpenBao para que los hereden.
 * **Criterio de hecho:** Los adaptadores existentes pasan las suites sin cambiar su comportamiento.
 * **Validación:** Tests de S3, InMemory y OpenBao en verde (valida AC-04, AC-05, AC-10, AC-11, AC-14).
+* **Nota para T-04..T-08:** consumir los contratos como `test-jar` (`<type>test-jar</type>`, `<scope>test</scope>`); cada adaptador debe sobrescribir `providerFailure()` (AC-06, AC-13), `hardDelete` y `retainedContent` (WORM), y probar por su cuenta AC-09 (arranque fallido sin modo inmutable).
 
 ## T-02: Algoritmo de firma declarado
 * **Descripción:** Agregar `SignatureAlgorithm` y `KeyService.signatureAlgorithm`. Actualizar los cuatro firmantes y los dos verificadores de `audit-service` según plan sección 4. Test de downgrade.
