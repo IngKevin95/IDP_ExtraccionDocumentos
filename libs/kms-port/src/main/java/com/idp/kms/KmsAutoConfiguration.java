@@ -1,6 +1,7 @@
 package com.idp.kms;
 
 import java.util.List;
+import java.util.Map;
 import javax.net.ssl.SSLContext;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,6 +13,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.ssl.SslBundles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
+import org.springframework.util.ClassUtils;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -22,7 +24,17 @@ import org.springframework.web.client.RestClient;
 public class KmsAutoConfiguration {
 
     static final List<String> PROVEEDORES = List.of("openbao", "aws-kms", "gcp-kms", "azure-keyvault");
-    private static final List<String> IMPLEMENTADOS = List.of("openbao");
+    /** Clase marcadora de cada adaptador que vive en su propio modulo; un proveedor esta implementado si esta en el classpath. */
+    private static final Map<String, String> ADAPTADORES = Map.of(
+        "aws-kms", "com.idp.kms.aws.AwsKmsKeyService",
+        "gcp-kms", "com.idp.kms.gcp.GcpKmsKeyService",
+        "azure-keyvault", "com.idp.kms.azure.AzureKeyVaultKeyService");
+
+    private static List<String> implementados() {
+        return PROVEEDORES.stream()
+            .filter(p -> !ADAPTADORES.containsKey(p) || ClassUtils.isPresent(ADAPTADORES.get(p), null))
+            .toList();
+    }
 
     /** Falla el arranque (AC-02) antes de crear beans, con un mensaje que lista los valores validos. */
     @Bean
@@ -43,9 +55,9 @@ public class KmsAutoConfiguration {
             throw new IllegalStateException("idp.kms.provider desconocido: '" + provider + "'."
                 + " Valores validos: " + String.join("|", PROVEEDORES));
         }
-        if (!IMPLEMENTADOS.contains(provider)) {
+        if (!implementados().contains(provider)) {
             throw new IllegalStateException("idp.kms.provider='" + provider + "': proveedor no implementado todavia."
-                + " Implementados: " + String.join("|", IMPLEMENTADOS));
+                + " Implementados: " + String.join("|", implementados()));
         }
     }
 

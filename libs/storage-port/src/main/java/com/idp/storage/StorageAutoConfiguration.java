@@ -3,6 +3,7 @@ package com.idp.storage;
 import com.idp.tenant.context.TenantBucketResolver;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -11,6 +12,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.util.ClassUtils;
 import software.amazon.awssdk.services.s3.S3Client;
 
 /** Selecciona el {@link ObjectStore} por {@code idp.storage.provider} (ADR 0032). */
@@ -18,7 +20,16 @@ import software.amazon.awssdk.services.s3.S3Client;
 public class StorageAutoConfiguration {
 
     static final List<String> PROVEEDORES = List.of("s3", "gcs", "azure-blob");
-    private static final List<String> IMPLEMENTADOS = List.of("s3");
+    /** Clase marcadora de cada adaptador que vive en su propio modulo; un proveedor esta implementado si esta en el classpath. */
+    private static final Map<String, String> ADAPTADORES = Map.of(
+        "gcs", "com.idp.storage.gcs.GcsObjectStore",
+        "azure-blob", "com.idp.storage.azure.AzureBlobObjectStore");
+
+    private static List<String> implementados() {
+        return PROVEEDORES.stream()
+            .filter(p -> !ADAPTADORES.containsKey(p) || ClassUtils.isPresent(ADAPTADORES.get(p), null))
+            .toList();
+    }
 
     /** Falla el arranque (AC-02) antes de crear beans, con un mensaje que lista los valores validos. */
     @Bean
@@ -39,9 +50,9 @@ public class StorageAutoConfiguration {
             throw new IllegalStateException("idp.storage.provider desconocido: '" + provider + "'."
                 + " Valores validos: " + String.join("|", PROVEEDORES));
         }
-        if (!IMPLEMENTADOS.contains(provider)) {
+        if (!implementados().contains(provider)) {
             throw new IllegalStateException("idp.storage.provider='" + provider + "': proveedor no implementado"
-                + " todavia. Implementados: " + String.join("|", IMPLEMENTADOS));
+                + " todavia. Implementados: " + String.join("|", implementados()));
         }
     }
 
