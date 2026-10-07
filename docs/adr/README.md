@@ -33,3 +33,4 @@ Este directorio contiene el registro de decisiones fundamentales del IDP Bancari
 | [0027](0027-cliente-http-webhooks-httpclient5.md) | Cliente HTTP saliente de webhooks: Apache HttpClient 5 |
 | [0028](0028-lazo-muestreo-ciego-quality-review.md) | Lazo del muestreo ciego: quality solicita, review mide |
 | [0031](0031-topicos-segregados-por-productor.md) | Tópico por productor y validación de origen de eventos |
+| [0032](0032-adaptadores-nativos-por-nube.md) | Adaptadores nativos por nube y algoritmo de firma declarado |
