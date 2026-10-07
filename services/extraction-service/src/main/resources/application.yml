@@ -50,3 +50,20 @@ extraction:
   storage:
     access-key: ${EXTRACTION_S3_ACCESS_KEY:}
     secret-key: ${EXTRACTION_S3_SECRET_KEY:}
+# Las autoconfiguraciones de libs/storage-port y libs/kms-port leen idp.*; aqui se alimentan de las propiedades
+# extraction.* existentes. El proveedor (idp.storage.provider, idp.kms.provider) llega por IDP_STORAGE_PROVIDER e
+# IDP_KMS_PROVIDER y es obligatorio con base de control definida.
+idp:
+  control-db:
+    url: ${extraction.control.url:}
+  storage:
+    endpoint: ${extraction.storage.endpoint:}
+    region: ${extraction.storage.region:us-east-1}
+    access-key: ${extraction.storage.access-key:}
+    secret-key: ${extraction.storage.secret-key:}
+    path-style: ${extraction.storage.path-style:true}
+  openbao:
+    address: ${extraction.openbao.address:http://openbao:8200}
+    token: ${extraction.openbao.token:}
+    transit-mount: ${extraction.openbao.transit-mount:transit}
+    ssl-bundle: ${extraction.openbao.ssl-bundle:}

@@ -22,6 +22,12 @@ global:
   # dev-mode de seguridad: SOLO values-local.yaml puede ponerlo en true (lo verifica tools/ci/check_dev_mode.sh).
   devMode: false
 
+  # Proveedores de almacenamiento y KMS (ADR 0032): se inyectan como IDP_STORAGE_PROVIDER e IDP_KMS_PROVIDER.
+  # Por defecto s3 + openbao (staging, prod, onprem); los values por nube lo sobreescriben.
+  adapters:
+    storage: s3
+    kms: openbao
+
   # Nombres de Secret y ExternalSecret (sincronizados desde OpenBao). Los valores sensibles nunca van en values.
   externalSecrets:
     enabled: true

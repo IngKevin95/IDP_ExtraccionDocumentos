@@ -1,6 +1,6 @@
 global:
   adapters:
-    storage: blob
-    kms: azurekeyvault
+    storage: azure-blob
+    kms: azure-keyvault
     llm: azureopenai
     postgres: flexible-server

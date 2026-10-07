@@ -55,6 +55,13 @@ Argumento: dict "root" <contexto raiz> "key" <clave del servicio en values> "val
 {{- $vols = append $vols (dict "name" "openbao-ca" "secret" (dict "secretName" $p.openbao.caSecret)) -}}
 {{- $mounts = append $mounts (dict "name" "openbao-ca" "mountPath" "/etc/idp/openbao" "readOnly" true) -}}
 {{- end -}}
+{{- /* Proveedores de almacenamiento y KMS: selector de las autoconfiguraciones de storage-port y kms-port (ADR 0032) */ -}}
+{{- if has $app (list "document-service" "extraction-service" "audit-service" "chat-service" "review-service") -}}
+{{- $env = append $env (dict "name" "IDP_STORAGE_PROVIDER" "value" $g.adapters.storage) -}}
+{{- end -}}
+{{- if has $app (list "document-service" "extraction-service" "audit-service" "chat-service" "review-service" "notification-service") -}}
+{{- $env = append $env (dict "name" "IDP_KMS_PROVIDER" "value" $g.adapters.kms) -}}
+{{- end -}}
 {{- /* Base de control (directorio de tenants) */ -}}
 {{- if or (has $app $tenantApps) (has $app (list "extraction-service" "audit-service")) -}}
 {{- $cp := ternary "EXTRACTION_CONTROL" "IDP_CONTROL_DB" (eq $app "extraction-service") -}}

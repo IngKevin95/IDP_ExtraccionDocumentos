@@ -1,6 +1,6 @@
 global:
   adapters:
-    storage: minio
-    kms: thales
+    storage: s3
+    kms: openbao
     llm: onprem-llm
     postgres: cnpg-dedicated

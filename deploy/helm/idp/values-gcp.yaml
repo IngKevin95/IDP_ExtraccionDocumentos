@@ -1,6 +1,6 @@
 global:
   adapters:
     storage: gcs
-    kms: gcpkms
+    kms: gcp-kms
     llm: vertexai
     postgres: cloudsql

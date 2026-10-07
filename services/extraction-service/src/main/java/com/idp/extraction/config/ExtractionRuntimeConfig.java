@@ -26,17 +26,13 @@ import com.idp.extraction.typology.TypologyRegistry;
 import com.idp.extraction.validation.ValidatorRegistry;
 import com.idp.kms.EnvelopeCrypto;
 import com.idp.kms.KeyService;
-import com.idp.kms.OpenBaoTransitKeyService;
 import com.idp.llm.LlmProvider;
 import com.idp.storage.EncryptedArtifactStore;
 import com.idp.storage.ObjectStore;
-import com.idp.storage.S3Clients;
-import com.idp.storage.S3ObjectStore;
 import com.idp.tenant.context.OpenBaoTenantCredentialProvider;
 import com.idp.tenant.context.TenantCredentialProvider;
 import com.idp.tenant.context.TenantDataSourceRouter;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.net.URI;
 import java.time.Clock;
 import java.time.ZoneId;
 import javax.sql.DataSource;
@@ -55,7 +51,7 @@ import org.springframework.web.client.RestClient;
 
 /**
  * Cableado de infraestructura: silo por tenant (DataSource enrutado), outbox/consumidor idempotente,
- * storage S3, KMS OpenBao, LLM (Spring AI) con bulkhead por tenant y el procesador de extraccion.
+ * LLM (Spring AI) con bulkhead por tenant y el procesador de extraccion.
  * Se desactiva con {@code extraction.runtime.enabled=false} (tests de arranque sin infraestructura).
  */
 @Configuration(proxyBeanMethods = false)
@@ -127,15 +123,6 @@ public class ExtractionRuntimeConfig {
         return EventErrorHandlers.deadLetter(kafka);
     }
 
-    @Bean
-    ObjectStore objectStore(ExtractionProperties props, com.idp.tenant.context.TenantBucketResolver buckets) {
-        ExtractionProperties.Storage s = props.storage();
-        URI endpoint = s.endpoint().isBlank() ? null : URI.create(s.endpoint());
-        String access = s.accessKey().isBlank() ? null : s.accessKey();
-        return new S3ObjectStore(S3Clients.create(endpoint, s.region(), access, s.secretKey(), s.pathStyle()),
-            buckets);
-    }
-
     /** Bucket por tenant desde silo_location; sin base de control, bucket compartido de desarrollo. */
     @Bean
     com.idp.tenant.context.TenantBucketResolver tenantBucketResolver(ExtractionProperties props, Clock clock) {
@@ -176,18 +163,6 @@ public class ExtractionRuntimeConfig {
         ExtractionProperties.Storage s = props.storage();
         return new EncryptedDocumentStorageAdapter(
             new EncryptedArtifactStore(store, new EnvelopeCrypto(keys), keyResolver), idpObjectMapper, s.maxPages());
-    }
-
-    @Bean
-    KeyService keyService(RestClient.Builder builder, ExtractionProperties props,
-                          @org.springframework.beans.factory.annotation.Value("${idp.security.dev-mode:false}") boolean devMode,
-                          ObjectProvider<org.springframework.boot.ssl.SslBundles> bundles) {
-        ExtractionProperties.Openbao o = props.openbao();
-        javax.net.ssl.SSLContext ssl = null;
-        if (o.sslBundle() != null && !o.sslBundle().isBlank()) {
-            ssl = bundles.getObject().getBundle(o.sslBundle()).createSslContext();
-        }
-        return new OpenBaoTransitKeyService(builder, o.address(), o::token, o.transitMount(), devMode, ssl);
     }
 
     @Bean

@@ -1,0 +1,2 @@
+com.idp.kms.KmsAutoConfiguration
+com.idp.kms.EnvelopeCryptoAutoConfiguration

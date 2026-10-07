@@ -5,7 +5,7 @@ global:
     # Sin External Secrets Operator en kind: los Secret se crean a mano.
     enabled: false
   adapters:
-    storage: minio
+    storage: s3
     kms: openbao
     llm: ollama
     postgres: cnpg-local
