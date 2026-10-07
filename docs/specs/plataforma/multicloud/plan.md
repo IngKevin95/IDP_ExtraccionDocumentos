@@ -47,6 +47,7 @@ Cada módulo depende solo de `storage-port` o `kms-port`, nunca de otro adaptado
 - Test de render Helm por destino (AC-03, AC-21).
 
 ## 8. Riesgos
+- Limitación abierta de S3 (`S3ImmutableStore`): tras un `delete`, que solo agrega un delete marker, `applyLegalHold` y `removeLegalHold` apuntan a esa versión y fallan. Corregirlo exige listar versiones (`s3:ListBucketVersions`), que ampliaría los privilegios del rol de `audit-service` (SEC-011). Las anclas WORM no se borran en la práctica; GCS y Blob no tienen la limitación. El contrato WORM no depende de ese caso: usa `hardDelete` y `retainedContent`.
 - Superficie de CVE por tres SDKs adicionales: Trivy y Dependabot ya cubren; revisar tamaño de imagen.
 - Emuladores sin soporte WORM o KMS: mitigado con fake de interfaz fina y runbook.
 - RSA-OAEP-256 limita el tamaño de la carga envuelta: DEK de 32 bytes más hash de 32 bytes es 64, cabe con llave RSA de 3072 bits.
