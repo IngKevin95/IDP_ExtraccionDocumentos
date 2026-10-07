@@ -46,6 +46,24 @@ Cada módulo depende solo de `storage-port` o `kms-port`, nunca de otro adaptado
 - Test de downgrade de algoritmo en `audit-service` (AC-17) y de los cuatro firmantes con un `KeyService` ES256 en memoria (AC-18).
 - Test de render Helm por destino (AC-03, AC-21).
 
+### Resultado del spike T-00 (2026-10-07)
+Ejecutado con Testcontainers (`localstack/localstack:3.2.0`, `fsouza/fake-gcs-server`, Azurite). Los resultados marcados "no concluyente" no tienen evidencia de test que los respalde y se resuelven en la tarea del adaptador correspondiente.
+
+| Capacidad | Emulador | Resultado | Decisión |
+|---|---|---|---|
+| S3 Object Lock COMPLIANCE y legal hold | LocalStack | Confirmado | Emulador real (T-01) |
+| KMS Encrypt/Decrypt con `EncryptionContext` distinto falla | LocalStack | Confirmado | Emulador real (T-06) |
+| KMS `DisableKey` y `ScheduleKeyDeletion` | LocalStack | Confirmado | Emulador real (T-06) |
+| KMS Ed25519 `Sign`/`Verify` | LocalStack | No concluyente: el spike usó el SDK 2.25.16, el repo usa 2.55.11 | Reintentar en T-06 con el SDK del repo; si falla, fake de interfaz fina |
+| GCS put/get/delete y retención de bucket | fake-gcs-server | Confirmado | Emulador para `ObjectStoreContract` (T-04) |
+| GCS retención por objeto y holds | fake-gcs-server | No concluyente, sin evidencia | Fake de interfaz fina para WORM (T-04) |
+| Blob put/get/delete | Azurite | Confirmado | Emulador para `ObjectStoreContract` (T-05) |
+| Blob immutability por versión y legal hold | Azurite | No concluyente, sin evidencia de test | Fake de interfaz fina para WORM (T-05) |
+| Cloud KMS | Ninguno | Sin imagen verificable | Fake de interfaz fina (T-07) |
+| Key Vault | `nagyesta/lowkey-vault` | No probado: conflicto de dependencias en el spike | Fake de interfaz fina (T-08); reintentar lowkey-vault si cuesta poco |
+
+Los adaptadores sin cobertura de emulador para WORM o KMS se prueban con un fake de la interfaz fina interna; la semántica real queda en el runbook de smoke (T-12).
+
 ## 8. Riesgos
 - Superficie de CVE por tres SDKs adicionales: Trivy y Dependabot ya cubren; revisar tamaño de imagen.
 - Emuladores sin soporte WORM o KMS: mitigado con fake de interfaz fina y runbook.
