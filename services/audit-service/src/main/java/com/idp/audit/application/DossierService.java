@@ -103,11 +103,12 @@ public class DossierService {
         }
         d.put("unanchoredEvents", entries.stream().filter(e -> !e.wormAnchored()).count());
 
+        TenantId tenant = new TenantId(tenantId.toString());
         String signingKeyId = keyResolver.resolve(tenantId.toString()).auditKekId();
-        byte[] signature = keys.sign(new TenantId(tenantId.toString()), CanonicalJson.bytes(d), signingKeyId)
+        byte[] signature = keys.sign(tenant, CanonicalJson.bytes(d), signingKeyId)
                 .getData();
         ObjectNode sig = d.putObject("signature");
-        sig.put("algorithm", WormAnchorService.SIGNATURE_ALGORITHM);
+        sig.put("algorithm", keys.signatureAlgorithm(tenant, signingKeyId).wireName());
         sig.put("keyId", signingKeyId);
         sig.put("signatureValue", Base64.getEncoder().encodeToString(signature));
         try {
@@ -186,9 +187,11 @@ public class DossierService {
 
     private boolean signatureValid(UUID tenantId, JsonNode dossier) {
         JsonNode sig = dossier.path("signature");
+        TenantId tenant = new TenantId(tenantId.toString());
         String signingKeyId = keyResolver.resolve(tenantId.toString()).auditKekId();
+        com.idp.kms.SignatureAlgorithm expectedAlgorithm = keys.signatureAlgorithm(tenant, signingKeyId);
         if (!signingKeyId.equals(sig.path("keyId").asText())
-                || !WormAnchorService.SIGNATURE_ALGORITHM.equals(sig.path("algorithm").asText())) {
+                || !expectedAlgorithm.wireName().equals(sig.path("algorithm").asText())) {
             decoyVerification(dossier);
             return false;
         }
@@ -196,11 +199,13 @@ public class DossierService {
         unsigned.remove("signature");
         byte[] value = Base64.getDecoder().decode(sig.path("signatureValue").asText());
         byte[] data = CanonicalJson.bytes(unsigned);
-        TenantId tenant = new TenantId(tenantId.toString());
-        Optional<Map<Integer, byte[]>> pub = publicKeyCache.get(tenantId + "|" + signingKeyId,
-                k -> keys.publicKeys(tenant, signingKeyId));
-        if (pub.isPresent()) {
-            return Ed25519Verifier.verify(pub.get(), data, value);
+
+        if (expectedAlgorithm == com.idp.kms.SignatureAlgorithm.ED25519) {
+            Optional<Map<Integer, byte[]>> pub = publicKeyCache.get(tenantId + "|" + signingKeyId,
+                    k -> keys.publicKeys(tenant, signingKeyId));
+            if (pub.isPresent()) {
+                return Ed25519Verifier.verify(pub.get(), data, value);
+            }
         }
         return keys.verify(tenant, data, value, signingKeyId);
     }

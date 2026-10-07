@@ -28,6 +28,8 @@ Brechas de contrato entre proveedores (verificadas contra documentación oficial
 ## Consecuencias
 - Positivas: una imagen para todos los destinos; el verificador no se puede degradar por datos hostiles; la duplicación de wiring desaparece.
 - Negativas: la imagen carga los SDKs de las tres nubes (más superficie de CVE, cubierta por Trivy y SCA del ADR 0022); la verificación pública offline de firmas ES256 depende del proveedor hasta que se agregue un verificador local.
+- Rotación de algoritmo: si una llave cambia de algoritmo, las anclas y expedientes firmados con el anterior quedan inválidos para el verificador (consecuencia del anti-downgrade). Un cambio de algoritmo exige llave nueva con identificador nuevo y conservar la anterior para verificar lo histórico; el runbook de rotación lo debe recoger.
+- Un adaptador ES256 debe sobrescribir `signatureAlgorithm`; el default `ED25519` firmaría con la etiqueta equivocada. Lo cubre `KeyServiceContract` (T-01, T-08).
 - Riesgo abierto: soporte real de WORM y KMS en emuladores sin confirmar; el spike T-00 lo decide antes de fijar la estrategia de pruebas.
 
 ## Controles relacionados

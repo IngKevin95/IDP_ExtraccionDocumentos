@@ -10,12 +10,15 @@ import com.idp.audit.domain.AuditEntry;
 import com.idp.audit.domain.WormAnchor;
 import com.idp.audit.infrastructure.AuditRepository;
 import com.idp.audit.support.AuditTestSupport;
+import com.idp.kms.KeyService;
+import com.idp.kms.SignatureAlgorithm;
 import com.idp.storage.ObjectStore.StorageException;
 import com.idp.tenant.TenantId;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,12 +26,15 @@ import java.util.zip.GZIPInputStream;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.util.AopTestUtils;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /** AC-03: consolidacion de lotes en WORM con firma asimetrica, politica por tamano o antiguedad. */
 @TestPropertySource(properties = "idp.audit.anchor.batch-size=3")
 class WormAnchorServiceTest extends AuditTestSupport {
     @Autowired WormAnchorService anchors;
     @Autowired AuditRepository repo;
+    @Autowired AuditVerificationService verification;
 
     private void ingest(UUID t, int n) {
         for (int i = 0; i < n; i++) {
@@ -72,6 +78,101 @@ class WormAnchorServiceTest extends AuditTestSupport {
         assertTrue(keys.verify(new TenantId(t.toString()), CanonicalJson.bytes(manifest), signature,
                 "audit-signing"), "firma ed25519 valida con la llave de auditoria");
         assertEquals("ed25519", doc.get("signature").get("algorithm").asText());
+    }
+
+    /** KeyService que firma y verifica con el delegado pero declara otro algoritmo y cuenta las verificaciones. */
+    private static final class DeclaringKeys implements KeyService {
+        private final KeyService delegate;
+        private final SignatureAlgorithm algorithm;
+        int verifyCalls;
+
+        DeclaringKeys(KeyService delegate, SignatureAlgorithm algorithm) {
+            this.delegate = delegate;
+            this.algorithm = algorithm;
+        }
+
+        public SignatureAlgorithm signatureAlgorithm(TenantId tenantId, String keyId) {
+            return algorithm;
+        }
+        public CryptoResult wrapDek(TenantId tenantId, byte[] dek, String kekId, Map<String, String> aad) {
+            return delegate.wrapDek(tenantId, dek, kekId, aad);
+        }
+        public CryptoResult unwrapDek(TenantId tenantId, byte[] dek, String kekId, Map<String, String> aad) {
+            return delegate.unwrapDek(tenantId, dek, kekId, aad);
+        }
+        public CryptoResult sign(TenantId tenantId, byte[] data, String keyId) {
+            return delegate.sign(tenantId, data, keyId);
+        }
+        public boolean verify(TenantId tenantId, byte[] data, byte[] signature, String keyId) {
+            verifyCalls++;
+            return delegate.verify(tenantId, data, signature, keyId);
+        }
+        public void disableKek(TenantId tenantId, String kekId) {
+            delegate.disableKek(tenantId, kekId);
+        }
+    }
+
+    /** Cambia el KeyService de los servicios bajo prueba y lo restaura al terminar (los singletons son compartidos). */
+    private void withKeys(KeyService replacement, Runnable body) {
+        AuditVerificationService verifier = AopTestUtils.getTargetObject(verification);
+        WormAnchorService signer = AopTestUtils.getTargetObject(anchors);
+        KeyService originalVerifier = (KeyService) ReflectionTestUtils.getField(verifier, "keys");
+        KeyService originalSigner = (KeyService) ReflectionTestUtils.getField(signer, "keys");
+        try {
+            ReflectionTestUtils.setField(verifier, "keys", replacement);
+            ReflectionTestUtils.setField(signer, "keys", replacement);
+            body.run();
+        } finally {
+            ReflectionTestUtils.setField(verifier, "keys", originalVerifier);
+            ReflectionTestUtils.setField(signer, "keys", originalSigner);
+        }
+    }
+
+    /** AC-18: un ancla firmada con una llave que declara ES256 lo registra y se verifica con el proveedor. */
+    @Test
+    void ac18_anclaFirmadaConEs256SeVerificaConElProveedor() {
+        UUID t = newTenant();
+        ingest(t, 3);
+        DeclaringKeys es256 = new DeclaringKeys(keys, SignatureAlgorithm.ES256);
+        withKeys(es256, () -> {
+            WormAnchor a = anchors.anchorIfDue(t).orElseThrow();
+            try {
+                assertEquals("es256", storedDoc(t, a).get("signature").get("algorithm").asText());
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+            assertTrue(verification.verify(t, null, null).isChainIntact());
+            assertTrue(es256.verifyCalls > 0);
+        });
+    }
+
+    /** SEC-055: el algoritmo del ancla debe coincidir con el que declara la llave; no se verifica con el recibido. */
+    @Test
+    void sec055_anclaEd25519ConLlaveQueDeclaraEs256EsInvalida() {
+        UUID t = newTenant();
+        ingest(t, 3);
+        anchors.anchorIfDue(t).orElseThrow();
+        assertTrue(verification.verify(t, null, null).isChainIntact(), "ancla ed25519 valida con llave ed25519");
+
+        DeclaringKeys es256 = new DeclaringKeys(keys, SignatureAlgorithm.ES256);
+        withKeys(es256, () -> {
+            assertFalse(verification.verify(t, null, null).isChainIntact());
+            assertEquals(0, es256.verifyCalls, "no se invoca verify con un algoritmo que la llave no declara");
+        });
+    }
+
+    /** SEC-055, sentido inverso: ancla es256 y llave que declara ED25519. */
+    @Test
+    void sec055_anclaEs256ConLlaveQueDeclaraEd25519EsInvalida() {
+        UUID t = newTenant();
+        ingest(t, 3);
+        withKeys(new DeclaringKeys(keys, SignatureAlgorithm.ES256), () -> anchors.anchorIfDue(t).orElseThrow());
+
+        DeclaringKeys ed = new DeclaringKeys(keys, SignatureAlgorithm.ED25519);
+        withKeys(ed, () -> {
+            assertFalse(verification.verify(t, null, null).isChainIntact());
+            assertEquals(0, ed.verifyCalls);
+        });
     }
 
     @Test

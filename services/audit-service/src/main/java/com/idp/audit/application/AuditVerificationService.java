@@ -165,7 +165,13 @@ public class AuditVerificationService {
                 }
                 byte[] sig = Base64.getDecoder().decode(doc.path("signature").path("value").asText());
                 String keyId = doc.path("signature").path("keyId").asText(signingKeyId);
-                if (!keyId.equals(signingKeyId) || !keys.verify(tenant, manifestBytes, sig, keyId)) {
+                String algorithm = doc.path("signature").path("algorithm").asText("");
+                com.idp.kms.SignatureAlgorithm expectedAlgorithm = keys.signatureAlgorithm(tenant, signingKeyId);
+                if (!keyId.equals(signingKeyId) || !expectedAlgorithm.wireName().equals(algorithm)) {
+                    errors.add(anchorError(a, "La firma del ancla WORM es invalida"));
+                    continue;
+                }
+                if (!keys.verify(tenant, manifestBytes, sig, keyId)) {
                     errors.add(anchorError(a, "La firma del ancla WORM es invalida"));
                     continue;
                 }
