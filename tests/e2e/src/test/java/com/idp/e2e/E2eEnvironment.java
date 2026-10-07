@@ -216,6 +216,9 @@ final class E2eEnvironment {
         }
         p.put("management.endpoints.web.exposure.include", "health");
         p.put("idp.security.dev-mode", "true");
+        // ObjectStore y KeyService los aportan los dobles de Overrides; sin proveedor, las autoconfiguraciones de
+        // libs/storage-port y libs/kms-port exigirian idp.storage.provider e idp.kms.provider (AC-02).
+        p.put("spring.autoconfigure.exclude", "com.idp.kms.KmsAutoConfiguration,com.idp.storage.StorageAutoConfiguration");
         return p;
     }
 

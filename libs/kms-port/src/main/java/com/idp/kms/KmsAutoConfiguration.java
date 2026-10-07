@@ -1,0 +1,91 @@
+package com.idp.kms;
+
+import java.util.List;
+import java.util.Map;
+import javax.net.ssl.SSLContext;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.ssl.SslBundles;
+import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
+import org.springframework.util.ClassUtils;
+import org.springframework.web.client.RestClient;
+
+/**
+ * Selecciona el {@link KeyService} por {@code idp.kms.provider} (ADR 0032). El respaldo en memoria solo existe
+ * con {@code idp.security.dev-mode=true} y sin proveedor: fuera de dev-mode nunca se cae a el.
+ */
+@AutoConfiguration
+public class KmsAutoConfiguration {
+
+    static final List<String> PROVEEDORES = List.of("openbao", "aws-kms", "gcp-kms", "azure-keyvault");
+    /** Clase marcadora de cada adaptador que vive en su propio modulo; un proveedor esta implementado si esta en el classpath. */
+    private static final Map<String, String> ADAPTADORES = Map.of(
+        "aws-kms", "com.idp.kms.aws.AwsKmsKeyService",
+        "gcp-kms", "com.idp.kms.gcp.GcpKmsKeyService",
+        "azure-keyvault", "com.idp.kms.azure.AzureKeyVaultKeyService");
+
+    private static List<String> implementados() {
+        return PROVEEDORES.stream()
+            .filter(p -> !ADAPTADORES.containsKey(p) || ClassUtils.isPresent(ADAPTADORES.get(p), null))
+            .toList();
+    }
+
+    /** Falla el arranque (AC-02) antes de crear beans, con un mensaje que lista los valores validos. */
+    @Bean
+    static BeanFactoryPostProcessor kmsProviderValidator(Environment env) {
+        return beanFactory -> validar(env.getProperty("idp.kms.provider", ""),
+            !env.getProperty("idp.control-db.url", "").isBlank());
+    }
+
+    static void validar(String provider, boolean controlDbDefinida) {
+        if (provider.isBlank()) {
+            if (controlDbDefinida) {
+                throw new IllegalStateException("idp.kms.provider es obligatorio cuando idp.control-db.url esta definido."
+                    + " Valores validos: " + String.join("|", PROVEEDORES));
+            }
+            return;
+        }
+        if (!PROVEEDORES.contains(provider)) {
+            throw new IllegalStateException("idp.kms.provider desconocido: '" + provider + "'."
+                + " Valores validos: " + String.join("|", PROVEEDORES));
+        }
+        if (!implementados().contains(provider)) {
+            throw new IllegalStateException("idp.kms.provider='" + provider + "': proveedor no implementado todavia."
+                + " Implementados: " + String.join("|", implementados()));
+        }
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "idp.kms.provider", havingValue = "openbao")
+    @ConditionalOnMissingBean(KeyService.class)
+    KeyService openBaoKeyService(ObjectProvider<RestClient.Builder> builder,
+                                 @Value("${idp.openbao.address:}") String address,
+                                 @Value("${idp.openbao.token}") String token,
+                                 @Value("${idp.openbao.transit-mount:transit}") String mount,
+                                 @Value("${idp.security.dev-mode:false}") boolean devMode,
+                                 @Value("${idp.openbao.ssl-bundle:}") String sslBundleName,
+                                 ObjectProvider<SslBundles> bundles) {
+        if (address.isBlank()) {
+            throw new IllegalStateException("idp.openbao.address es obligatorio con idp.kms.provider=openbao");
+        }
+        SSLContext ssl = null;
+        if (!sslBundleName.isBlank()) {
+            ssl = bundles.getObject().getBundle(sslBundleName).createSslContext();
+        }
+        return new OpenBaoTransitKeyService(builder.getIfAvailable(RestClient::builder), address, () -> token, mount,
+            devMode, ssl);
+    }
+
+    @Bean
+    @ConditionalOnExpression("'${idp.kms.provider:}'.isEmpty() && ${idp.security.dev-mode:false}")
+    @ConditionalOnMissingBean(KeyService.class)
+    KeyService inMemoryKeyService() {
+        return new InMemoryKeyService();
+    }
+}

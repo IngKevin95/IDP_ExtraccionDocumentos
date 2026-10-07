@@ -1,8 +1,5 @@
 package com.idp.notification.config;
 
-import com.idp.kms.EnvelopeCrypto;
-import com.idp.kms.KeyService;
-import com.idp.kms.OpenBaoTransitKeyService;
 import com.idp.security.CachingRoleAssignmentVerifier;
 import com.idp.security.JdbcRoleAssignmentSource;
 import com.idp.security.RoleAssignmentSource;
@@ -15,41 +12,17 @@ import com.idp.tenant.context.TenantKeyResolver;
 import com.zaxxer.hikari.HikariDataSource;
 import java.time.Clock;
 import java.time.Duration;
-import javax.net.ssl.SSLContext;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.ssl.SslBundles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.web.client.RestClient;
 
-/** Adaptadores de proveedor (KeyService), base de control, autorizacion y directorio de tenants. */
+/** Base de control, autorizacion y directorio de tenants (KeyService: autoconfiguracion de libs). */
 @Configuration
 public class InfraConfig {
-
-    @Bean
-    @ConditionalOnExpression("!'${idp.openbao.address:}'.isEmpty()")
-    KeyService keyService(RestClient.Builder builder, @Value("${idp.openbao.address}") String address,
-                          @Value("${idp.openbao.token}") String token,
-                          @Value("${idp.openbao.transit-mount:transit}") String mount,
-                          @Value("${idp.security.dev-mode:false}") boolean devMode,
-                          @Value("${idp.openbao.ssl-bundle:}") String sslBundleName,
-                          ObjectProvider<SslBundles> bundles) {
-        SSLContext ssl = null;
-        if (sslBundleName != null && !sslBundleName.isBlank()) {
-            ssl = bundles.getObject().getBundle(sslBundleName).createSslContext();
-        }
-        return new OpenBaoTransitKeyService(builder, address, () -> token, mount, devMode, ssl);
-    }
-
-    @Bean
-    EnvelopeCrypto envelopeCrypto(KeyService keys) {
-        return new EnvelopeCrypto(keys);
-    }
 
     /** Pool pequeno hacia la base de control de la plataforma (role_assignment, tenants). */
     @Bean(destroyMethod = "close")

@@ -7,7 +7,9 @@ variable no arranca. Este verificador:
      fail-fast conocidas (FAILFAST: variables con default vacio que el codigo exige) y el cableado Kafka mTLS;
   2. renderiza el chart (helm template) para cada values-*.yaml y lee env/envFrom del primer contenedor;
   3. falla con `servicio X: falta VAR` por cada variable no inyectada, y con `servicio X: secret S no declarado`
-     si un secretKeyRef/volumen apunta a un Secret que ningun ExternalSecret, values o KafkaUser declara.
+     si un secretKeyRef/volumen apunta a un Secret que ningun ExternalSecret, values o KafkaUser declara;
+  4. exige IDP_STORAGE_PROVIDER e IDP_KMS_PROVIDER en los Deployments que usan almacenamiento o KMS, con un valor
+     del conjunto permitido (ADR 0032) igual a global.adapters.*, y que values-onprem.yaml no nombre minio ni thales.
 
 Uso: python tools/ci/check_helm_env.py [--self-test]. Ruta de helm: variable HELM_BIN (default: helm en PATH).
 Dependencia: PyYAML.
@@ -41,6 +43,18 @@ FAILFAST = {
     "extraction-service": ["EXTRACTION_CONTROL_URL", "EXTRACTION_OPENBAO_ADDRESS", "OPENBAO_TOKEN"],
     "audit-service": ["OPENBAO_ADDR", "OPENBAO_TOKEN", "AUDIT_WORM_BUCKET", "AUDIT_WORM_ENDPOINT"],
 }
+
+
+# Selector de proveedor (ADR 0032): variable de entorno -> (clave de global.adapters, valores permitidos, servicios).
+_KMS_APPS = ["document-service", "extraction-service", "audit-service", "chat-service", "review-service",
+             "notification-service"]
+PROVIDER_ENV = {
+    "IDP_STORAGE_PROVIDER": ("storage", {"s3", "gcs", "azure-blob"},
+                             [a for a in _KMS_APPS if a != "notification-service"]),
+    "IDP_KMS_PROVIDER": ("kms", {"openbao", "aws-kms", "gcp-kms", "azure-keyvault"}, _KMS_APPS),
+}
+# values-onprem.yaml usa solo s3 y openbao (ADR 0020): minio y thales contradicen la decision.
+ONPREM_FORBIDDEN = re.compile(r"minio|thales", re.IGNORECASE)
 
 
 def helm_bin():
@@ -150,12 +164,39 @@ def check(docs, values, requirements):
         for var, why in sorted(req.items()):
             if var not in injected:
                 errors.append(f"servicio {svc}: falta {var} ({why})")
+        errors += provider_errors(svc, env, values)
         refs = {e["valueFrom"]["secretKeyRef"]["name"] for e in env if "secretKeyRef" in e.get("valueFrom", {})}
         refs |= {ef["secretRef"]["name"] for ef in container.get("envFrom", []) if "secretRef" in ef}
         refs |= {v["secret"]["secretName"] for v in pod.get("volumes", []) if "secret" in v}
         for ref in sorted(refs - secrets):
             errors.append(f"servicio {svc}: secret {ref} no declarado (ni ExternalSecret, ni values, ni KafkaUser)")
     return errors
+
+
+def provider_errors(svc, env, values):
+    """Valida IDP_STORAGE_PROVIDER / IDP_KMS_PROVIDER del servicio contra el conjunto permitido y global.adapters."""
+    errors = []
+    literal = {e["name"]: e.get("value") for e in env}
+    adapters = values.get("global", {}).get("adapters", {})
+    for var, (key, allowed, apps) in sorted(PROVIDER_ENV.items()):
+        if svc not in apps:
+            continue
+        if var not in literal:
+            errors.append(f"servicio {svc}: falta {var} (proveedor {key}, ADR 0032)")
+        elif literal[var] not in allowed:
+            errors.append(f"servicio {svc}: {var}={literal[var]!r} valor no permitido ({'|'.join(sorted(allowed))})")
+        elif literal[var] != adapters.get(key):
+            errors.append(f"servicio {svc}: {var}={literal[var]!r} no coincide con global.adapters.{key}="
+                          f"{adapters.get(key)!r}")
+    return errors
+
+
+def onprem_errors(label, text):
+    """values-onprem.yaml no puede nombrar minio ni thales (AC-03)."""
+    if not label.startswith("values-onprem"):
+        return []
+    return [f"{label}: nombra {m.group(0).lower()} (usar s3 y openbao, ADR 0020)"
+            for m in sorted(set(ONPREM_FORBIDDEN.finditer(text)), key=lambda m: m.group(0).lower())]
 
 
 def all_requirements():
@@ -177,6 +218,8 @@ def run():
     for vf in values_files():
         label = os.path.basename(vf)
         errors = check(render(vf), load_values(vf), reqs)
+        with open(vf, encoding="utf-8") as f:
+            errors += onprem_errors(label, f.read())
         for e in errors:
             print(f"[{label}] {e}")
         failed |= bool(errors)
@@ -222,14 +265,43 @@ def self_test():
         c["env"] = [e for e in c["env"] if e["name"] != "QUALITY_BLIND_SEED"]
         return "falta QUALITY_BLIND_SEED"
 
+    def drop_provider(ds):
+        c = dep(ds, "chat-service")["spec"]["template"]["spec"]["containers"][0]
+        c["env"] = [e for e in c["env"] if e["name"] != "IDP_STORAGE_PROVIDER"]
+        return "falta IDP_STORAGE_PROVIDER"
+
+    def unknown_provider(ds):
+        c = dep(ds, "notification-service")["spec"]["template"]["spec"]["containers"][0]
+        for e in c["env"]:
+            if e["name"] == "IDP_KMS_PROVIDER":
+                e["value"] = "thales"
+        return "valor no permitido"
+
+    def incoherent_provider(ds):
+        c = dep(ds, "document-service")["spec"]["template"]["spec"]["containers"][0]
+        for e in c["env"]:
+            if e["name"] == "IDP_STORAGE_PROVIDER":
+                e["value"] = "gcs"
+        return "no coincide con global.adapters.storage"
+
     ok = True
-    for mutation in (drop_var, bad_secret, drop_deployment, drop_failfast):
+    for mutation in (drop_var, bad_secret, drop_deployment, drop_failfast, drop_provider, unknown_provider,
+                     incoherent_provider):
         mutated = copy.deepcopy(docs)
         expected = mutation(mutated)
         errors = check(mutated, values, reqs)
         hit = any(expected in e for e in errors)
         print(f"self-test {mutation.__name__}: {'OK (detectado)' if hit else 'FALLO (no detectado)'}")
         ok &= hit
+    with open(os.path.join(CHART, "values-onprem.yaml"), encoding="utf-8") as f:
+        clean = onprem_errors("values-onprem.yaml", f.read())
+    for name, text in (("minio", "storage: minio"), ("thales", "kms: Thales")):
+        hit = any(name in e for e in onprem_errors("values-onprem.yaml", text))
+        print(f"self-test onprem_{name}: {'OK (detectado)' if hit else 'FALLO (no detectado)'}")
+        ok &= hit
+    if clean:
+        print("self-test: values-onprem.yaml real ya falla: " + "; ".join(clean))
+        ok = False
     return 0 if ok else 1
 
 

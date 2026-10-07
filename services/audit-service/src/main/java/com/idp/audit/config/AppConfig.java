@@ -4,15 +4,11 @@ import com.idp.events.EventSchemaValidator;
 import com.idp.events.EventSerde;
 import com.idp.events.IdempotentEventConsumer;
 import com.idp.kms.KeyService;
-import com.idp.kms.OpenBaoTransitKeyService;
 import com.idp.storage.ImmutableStore;
 import com.idp.storage.ObjectMetadata;
 import com.idp.storage.ObjectStore;
-import com.idp.storage.S3Clients;
-import com.idp.storage.S3ImmutableStore;
 import com.idp.tenant.TenantId;
 import java.io.InputStream;
-import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Map;
@@ -25,7 +21,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.client.RestClient;
 
 @Configuration
 @EnableScheduling
@@ -78,25 +73,12 @@ public class AppConfig {
         return new IdempotentEventConsumer(jdbc, tx, validator, serde);
     }
 
-    /** Adaptador OpenBao Transit (ed25519 de auditoria, separado de las KEK) cuando hay direccion configurada. */
+    /**
+     * Respaldo sin proveedor KMS (idp.kms.provider vacio): toda operacion falla de forma explicita (nunca firma en
+     * local). Con proveedor, el KeyService lo crea la autoconfiguracion de kms-port.
+     */
     @Bean
-    @ConditionalOnExpression("!'${idp.audit.kms.openbao.address:}'.isEmpty()")
-    KeyService openBaoKeyService(RestClient.Builder builder,
-                                 @Value("${idp.audit.kms.openbao.address}") String address,
-                                 @Value("${idp.audit.kms.openbao.token:}") String token,
-                                 @Value("${idp.audit.kms.openbao.transit-mount:transit}") String mount,
-                                 @Value("${idp.security.dev-mode:false}") boolean devMode,
-                                 @Value("${idp.audit.kms.openbao.ssl-bundle:}") String sslBundleName,
-                                 org.springframework.beans.factory.ObjectProvider<org.springframework.boot.ssl.SslBundles> bundles) {
-        javax.net.ssl.SSLContext ssl = null;
-        if (sslBundleName != null && !sslBundleName.isBlank()) {
-            ssl = bundles.getObject().getBundle(sslBundleName).createSslContext();
-        }
-        return new OpenBaoTransitKeyService(builder, address, () -> token, mount, devMode, ssl);
-    }
-
-    /** Respaldo sin KMS configurado: toda operacion falla de forma explicita (nunca firma en local). */
-    @Bean
+    @ConditionalOnExpression("'${idp.kms.provider:}'.isEmpty()")
     @ConditionalOnMissingBean(KeyService.class)
     KeyService unconfiguredKeyService() {
         return new KeyService() {
@@ -131,21 +113,12 @@ public class AppConfig {
         };
     }
 
-    /** Bucket WORM (S3 Object Lock, modo COMPLIANCE) cuando hay bucket configurado. */
+    /**
+     * Respaldo sin proveedor de almacenamiento (idp.storage.provider vacio): el anclaje falla de forma explicita
+     * (no hay anclaje silencioso). Con proveedor, el ImmutableStore lo crea la autoconfiguracion de storage-port.
+     */
     @Bean
-    @ConditionalOnProperty(name = "idp.audit.worm.bucket")
-    ImmutableStore s3ImmutableStore(@Value("${idp.audit.worm.bucket}") String bucket,
-                                    @Value("${idp.audit.worm.endpoint:}") String endpoint,
-                                    @Value("${idp.audit.worm.region:us-east-1}") String region,
-                                    @Value("${idp.audit.worm.access-key:}") String accessKey,
-                                    @Value("${idp.audit.worm.secret-key:}") String secretKey,
-                                    @Value("${idp.audit.worm.path-style:true}") boolean pathStyle) {
-        return new S3ImmutableStore(S3Clients.create(endpoint.isBlank() ? null : URI.create(endpoint), region,
-                accessKey.isBlank() ? null : accessKey, secretKey, pathStyle), bucket);
-    }
-
-    /** Respaldo sin bucket WORM configurado: el anclaje falla de forma explicita (no hay anclaje silencioso). */
-    @Bean
+    @ConditionalOnExpression("'${idp.storage.provider:}'.isEmpty()")
     @ConditionalOnMissingBean(ImmutableStore.class)
     ImmutableStore unconfiguredImmutableStore() {
         return new ImmutableStore() {

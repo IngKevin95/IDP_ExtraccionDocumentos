@@ -2,17 +2,11 @@ package com.idp.document.config;
 
 import com.idp.document.infra.HttpRendererClient;
 import com.idp.document.infra.RendererClient;
-import com.idp.kms.EnvelopeCrypto;
-import com.idp.kms.KeyService;
-import com.idp.kms.OpenBaoTransitKeyService;
 import com.idp.security.CachingRoleAssignmentVerifier;
 import com.idp.security.JdbcRoleAssignmentSource;
 import com.idp.security.RoleAssignmentSource;
 import com.idp.security.RoleAssignmentVerifier;
 import com.idp.security.TenantAuthorizer;
-import com.idp.storage.ObjectStore;
-import com.idp.storage.S3Clients;
-import com.idp.storage.S3ObjectStore;
 import com.idp.tenant.context.JdbcLegalHoldGate;
 import com.idp.tenant.context.JdbcTenantDirectory;
 import com.idp.tenant.context.LegalHoldGate;
@@ -20,7 +14,6 @@ import com.idp.tenant.context.TenantBucketResolver;
 import com.idp.tenant.context.StaticTenantDirectory;
 import com.idp.tenant.context.TenantDirectory;
 import com.zaxxer.hikari.HikariDataSource;
-import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
 import javax.net.ssl.SSLContext;
@@ -33,23 +26,10 @@ import org.springframework.boot.ssl.SslBundles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.web.client.RestClient;
 
-/** Adaptadores de proveedor (puertos ObjectStore, KeyService), autorizacion y cliente del renderer. */
+/** Resolvers de silo, base de control, autorizacion y cliente del renderer (ObjectStore y KeyService: autoconfiguracion de libs). */
 @Configuration
 public class InfraConfig {
-
-    @Bean
-    @ConditionalOnExpression("!'${idp.storage.bucket:}'.isEmpty() || !'${idp.control-db.url:}'.isEmpty()")
-    ObjectStore objectStore(@Value("${idp.storage.endpoint:}") String endpoint,
-                            @Value("${idp.storage.region:us-east-1}") String region,
-                            @Value("${idp.storage.access-key:}") String accessKey,
-                            @Value("${idp.storage.secret-key:}") String secretKey,
-                            @Value("${idp.storage.path-style:false}") boolean pathStyle,
-                            TenantBucketResolver buckets) {
-        return new S3ObjectStore(S3Clients.create(endpoint.isBlank() ? null : URI.create(endpoint), region,
-                accessKey.isBlank() ? null : accessKey, secretKey, pathStyle), buckets);
-    }
 
     /** Bucket por tenant desde silo_location (base de control). */
     @Bean
@@ -77,26 +57,6 @@ public class InfraConfig {
     @ConditionalOnExpression("'${idp.control-db.url:}'.isEmpty()")
     LegalHoldGate noLegalHoldGate() {
         return LegalHoldGate.NONE;
-    }
-
-    @Bean
-    @ConditionalOnExpression("!'${idp.openbao.address:}'.isEmpty()")
-    KeyService keyService(RestClient.Builder builder, @Value("${idp.openbao.address}") String address,
-                          @Value("${idp.openbao.token}") String token,
-                          @Value("${idp.openbao.transit-mount:transit}") String mount,
-                          @Value("${idp.security.dev-mode:false}") boolean devMode,
-                          @Value("${idp.openbao.ssl-bundle:}") String sslBundleName,
-                          ObjectProvider<SslBundles> bundles) {
-        SSLContext ssl = null;
-        if (sslBundleName != null && !sslBundleName.isBlank()) {
-            ssl = bundles.getObject().getBundle(sslBundleName).createSslContext();
-        }
-        return new OpenBaoTransitKeyService(builder, address, () -> token, mount, devMode, ssl);
-    }
-
-    @Bean
-    EnvelopeCrypto envelopeCrypto(KeyService keys) {
-        return new EnvelopeCrypto(keys);
     }
 
     /** Pool pequeno hacia la base de control de la plataforma (role_assignment, tenants). */
