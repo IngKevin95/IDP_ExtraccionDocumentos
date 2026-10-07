@@ -13,6 +13,7 @@
         <module>events</module>
         <module>security</module>
         <module>storage-port</module>
+        <module>storage-gcs</module>
         <module>kms-port</module>
         <module>llm-port</module>
         <module>observability</module>
