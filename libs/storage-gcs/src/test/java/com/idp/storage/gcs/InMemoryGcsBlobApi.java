@@ -10,7 +10,8 @@ import java.util.Set;
 
 /**
  * Fake de {@link GcsBlobApi} con la semantica WORM de GCS: no se sobrescribe ni se borra un objeto con retencion
- * vigente o hold temporal. El reloj es controlable para avanzar mas alla de la retencion.
+ * vigente o hold temporal; un bucket desconocido responde 404; la retencion exige bucket con retencion por objeto y
+ * fecha futura. El reloj es controlable para avanzar mas alla de la retencion.
  */
 class InMemoryGcsBlobApi implements GcsBlobApi {
 
@@ -46,20 +47,29 @@ class InMemoryGcsBlobApi implements GcsBlobApi {
     final MutableClock clock = new MutableClock();
     boolean failing;
     private final Map<String, Blob> blobs = new HashMap<>();
+    private final Set<String> knownBuckets = new HashSet<>();
     private final Set<String> bucketsWithRetention = new HashSet<>();
+
+    InMemoryGcsBlobApi withBucket(String bucket) {
+        knownBuckets.add(bucket);
+        return this;
+    }
 
     InMemoryGcsBlobApi withObjectRetention(String bucket) {
         bucketsWithRetention.add(bucket);
-        return this;
+        return withBucket(bucket);
     }
 
     private static String id(String bucket, String key) {
         return bucket + "/" + key;
     }
 
-    private void checkUp() {
+    private void checkUp(String bucket) {
         if (failing) {
             throw new BlobApiException("error del proveedor (codigo 503)");
+        }
+        if (!knownBuckets.contains(bucket)) {
+            throw new BlobNotFoundException();
         }
     }
 
@@ -69,7 +79,11 @@ class InMemoryGcsBlobApi implements GcsBlobApi {
 
     @Override
     public void write(String bucket, String key, byte[] data, String contentType, Instant retainUntil) {
-        checkUp();
+        checkUp(bucket);
+        if (retainUntil != null
+            && (!bucketsWithRetention.contains(bucket) || !retainUntil.isAfter(clock.instant()))) {
+            throw new BlobApiException("error del proveedor (codigo 400)");
+        }
         Blob current = blobs.get(id(bucket, key));
         if (current != null && locked(current)) {
             throw new BlobApiException("error del proveedor (codigo 403)");
@@ -82,7 +96,7 @@ class InMemoryGcsBlobApi implements GcsBlobApi {
 
     @Override
     public byte[] read(String bucket, String key) {
-        checkUp();
+        checkUp(bucket);
         Blob b = blobs.get(id(bucket, key));
         if (b == null) {
             throw new BlobNotFoundException();
@@ -92,7 +106,7 @@ class InMemoryGcsBlobApi implements GcsBlobApi {
 
     @Override
     public void delete(String bucket, String key) {
-        checkUp();
+        checkUp(bucket);
         Blob b = blobs.get(id(bucket, key));
         if (b == null) {
             return;
@@ -105,7 +119,7 @@ class InMemoryGcsBlobApi implements GcsBlobApi {
 
     @Override
     public void setTemporaryHold(String bucket, String key, boolean hold) {
-        checkUp();
+        checkUp(bucket);
         Blob b = blobs.get(id(bucket, key));
         if (b == null) {
             throw new BlobNotFoundException();
@@ -115,7 +129,9 @@ class InMemoryGcsBlobApi implements GcsBlobApi {
 
     @Override
     public boolean objectRetentionEnabled(String bucket) {
-        checkUp();
+        if (failing) {
+            throw new BlobApiException("error del proveedor (codigo 503)");
+        }
         return bucketsWithRetention.contains(bucket);
     }
 

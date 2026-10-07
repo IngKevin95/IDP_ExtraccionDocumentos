@@ -9,15 +9,16 @@ import java.time.Instant;
  */
 public interface GcsBlobApi {
 
-    class BlobNotFoundException extends RuntimeException {
-        public BlobNotFoundException() {
-            super("Objeto no encontrado");
-        }
-    }
-
     class BlobApiException extends RuntimeException {
         public BlobApiException(String message) {
             super(message);
+        }
+    }
+
+    /** Objeto o bucket inexistente (404). Es un {@link BlobApiException}: cualquier fallo del proveedor es uno. */
+    class BlobNotFoundException extends BlobApiException {
+        public BlobNotFoundException() {
+            super("recurso no encontrado");
         }
     }
 

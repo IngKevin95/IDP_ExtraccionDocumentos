@@ -11,7 +11,7 @@ class GcsImmutableStoreStartupTest {
 
     @Test
     void bucketSinRetencionPorObjetoImpideElArranque() {
-        InMemoryGcsBlobApi api = new InMemoryGcsBlobApi();
+        InMemoryGcsBlobApi api = new InMemoryGcsBlobApi().withBucket("sin-lock");
         IllegalStateException ex = assertThrows(IllegalStateException.class,
             () -> new GcsImmutableStore(api, "sin-lock"));
         assertTrue(ex.getMessage().contains("retencion por objeto"));
@@ -21,7 +21,14 @@ class GcsImmutableStoreStartupTest {
     void fallaDelProveedorAlValidarImpideElArranque() {
         InMemoryGcsBlobApi api = new InMemoryGcsBlobApi().withObjectRetention("worm");
         api.failing = true;
-        assertThrows(IllegalStateException.class, () -> new GcsImmutableStore(api, "worm"));
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> new GcsImmutableStore(api, "worm"));
+        assertTrue(ex.getCause() instanceof GcsBlobApi.BlobApiException);
+    }
+
+    @Test
+    void bucketInexistenteImpideElArranque() {
+        assertThrows(IllegalStateException.class, () -> new GcsImmutableStore(new InMemoryGcsBlobApi(), "no-existe"));
     }
 
     @Test

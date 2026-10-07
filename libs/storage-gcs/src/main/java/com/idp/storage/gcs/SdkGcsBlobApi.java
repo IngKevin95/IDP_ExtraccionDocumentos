@@ -12,7 +12,7 @@ import java.time.ZoneOffset;
 import java.util.function.Supplier;
 
 /** {@link GcsBlobApi} sobre el cliente oficial {@code com.google.cloud.storage.Storage}. */
-public class SdkGcsBlobApi implements GcsBlobApi {
+public class SdkGcsBlobApi implements GcsBlobApi, AutoCloseable {
 
     private final Storage storage;
 
@@ -54,6 +54,16 @@ public class SdkGcsBlobApi implements GcsBlobApi {
         Bucket found = call(() -> storage.get(bucket));
         BucketInfo.ObjectRetention retention = found == null ? null : found.getObjectRetention();
         return retention != null && BucketInfo.ObjectRetention.Mode.ENABLED.equals(retention.getMode());
+    }
+
+    /** Libera los recursos del cliente (conexiones, hilos) al apagar el contexto. */
+    @Override
+    public void close() {
+        try {
+            storage.close();
+        } catch (Exception e) {
+            throw new BlobApiException(e.getClass().getSimpleName());
+        }
     }
 
     /** Traduce los errores del SDK a excepciones propias sin el mensaje original (puede traer la ruta del objeto). */

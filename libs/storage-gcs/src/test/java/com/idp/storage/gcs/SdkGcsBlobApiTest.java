@@ -71,6 +71,12 @@ class SdkGcsBlobApiTest {
     }
 
     @Test
+    void closeCierraElCliente() throws Exception {
+        api.close();
+        verify(storage).close();
+    }
+
+    @Test
     void erroresDelSdkSeTraducenSinElMensajeOriginal() {
         when(storage.readAllBytes(any(BlobId.class))).thenThrow(new StorageException(404, "tenant-secreto/ruta"))
             .thenThrow(new StorageException(503, "tenant-secreto/ruta"));

@@ -2,6 +2,8 @@ package com.idp.storage.gcs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.cloud.NoCredentials;
+import com.google.cloud.storage.StorageOptions;
 import com.idp.storage.ImmutableStore;
 import com.idp.storage.ObjectStore;
 import com.idp.storage.StorageAutoConfiguration;
@@ -71,12 +73,40 @@ class GcsStorageAutoConfigurationTest {
                 GcsStorageAutoConfiguration.class))
             .withBean(TenantBucketResolver.class, () -> TenantBucketResolver.fixed("bucket"))
             .withPropertyValues("idp.storage.provider=gcs", "idp.storage.gcs.project-id=p",
-                "idp.storage.gcs.endpoint=http://localhost:9")
+                "idp.storage.gcs.endpoint=http://localhost:9", "idp.storage.gcs.emulator=true")
             .run(ctx -> {
                 assertThat(ctx).hasNotFailed();
                 assertThat(ctx.getBean(GcsBlobApi.class)).isInstanceOf(SdkGcsBlobApi.class);
                 assertThat(ctx.getBean(ObjectStore.class)).isInstanceOf(GcsObjectStore.class);
             });
+    }
+
+    @Test
+    void emulatorExplicitoUsaNoCredentialsYElEndpoint() {
+        StorageOptions o = GcsStorageAutoConfiguration.storageOptions("p", "http://localhost:9", true);
+        assertThat(o.getCredentials()).isInstanceOf(NoCredentials.class);
+        assertThat(o.getHost()).isEqualTo("http://localhost:9");
+    }
+
+    @Test
+    void conEndpointSinEmulatorNoSeAnulanLasCredencialesPorDefecto() {
+        StorageOptions o = GcsStorageAutoConfiguration.storageOptions("p", "http://localhost:9", false);
+        assertThat(o.getHost()).isEqualTo("http://localhost:9");
+        // Sin ADC en el entorno el SDK resuelve NoCredentials por su cuenta; con ADC no puede serlo. El adaptador
+        // nunca fuerza NoCredentials: se compara con lo que resuelve el SDK sin ninguna configuracion nuestra.
+        assertThat(o.getCredentials().getClass())
+            .isEqualTo(StorageOptions.newBuilder().setProjectId("p").build().getCredentials().getClass());
+    }
+
+    @Test
+    void elClienteSeCierraAlApagarElContexto() {
+        new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(GcsStorageAutoConfiguration.class))
+            .withBean(TenantBucketResolver.class, () -> TenantBucketResolver.fixed("bucket"))
+            .withPropertyValues("idp.storage.provider=gcs", "idp.storage.gcs.project-id=p",
+                "idp.storage.gcs.endpoint=http://localhost:9", "idp.storage.gcs.emulator=true")
+            .run(ctx -> assertThat(ctx.getBeanFactory().getBeanDefinition("gcsBlobApi").getDestroyMethodName())
+                .isEqualTo("close"));
     }
 
     @Test

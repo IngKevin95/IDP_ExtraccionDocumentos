@@ -18,23 +18,32 @@ public final class GcsImmutableStore extends GcsObjectStore implements Immutable
     private final Clock clock;
 
     public GcsImmutableStore(GcsBlobApi api, String bucket) {
-        this(api, bucket, Clock.systemUTC());
+        this(api, bucket, Clock.systemUTC(), DEFAULT_MAX_OBJECT_BYTES);
     }
 
     public GcsImmutableStore(GcsBlobApi api, String bucket, Clock clock) {
-        super(api, TenantBucketResolver.fixed(bucket));
+        this(api, bucket, clock, DEFAULT_MAX_OBJECT_BYTES);
+    }
+
+    public GcsImmutableStore(GcsBlobApi api, String bucket, Clock clock, long maxObjectBytes) {
+        super(requireWorm(api, bucket), TenantBucketResolver.fixed(bucket), maxObjectBytes);
         this.clock = clock;
+    }
+
+    /** Falla al arrancar, antes de construir el objeto, si el bucket no admite retencion por objeto. */
+    private static GcsBlobApi requireWorm(GcsBlobApi api, String bucket) {
         boolean enabled;
         try {
             enabled = api.objectRetentionEnabled(bucket);
         } catch (GcsBlobApi.BlobApiException e) {
             throw new IllegalStateException("No se pudo verificar la retencion por objeto del bucket WORM '"
-                + bucket + "': " + e.getMessage());
+                + bucket + "'", e);
         }
         if (!enabled) {
             throw new IllegalStateException("El bucket WORM '" + bucket
                 + "' no existe o no tiene habilitada la retencion por objeto");
         }
+        return api;
     }
 
     @Override
