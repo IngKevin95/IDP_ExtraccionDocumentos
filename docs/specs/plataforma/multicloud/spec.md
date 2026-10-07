@@ -35,7 +35,7 @@ La plataforma corre hoy con almacenamiento S3-compatible y llaves en OpenBao Tra
 - **AC-15** Given AWS KMS o Cloud KMS, When se firma, Then `signatureAlgorithm` devuelve `ED25519` y `publicKeys` permite verificar localmente.
 - **AC-16** Given Azure Key Vault, When se firma, Then `signatureAlgorithm` devuelve `ES256`, `publicKeys` devuelve vacío y `verify` valida con el proveedor.
 - **AC-17** Given un expediente o ancla con `algorithm` distinto al que declara el `KeyService` para esa llave, When `audit-service` verifica, Then el resultado es inválido sin intentar verificar con el algoritmo recibido.
-- **AC-18** Given los cuatro firmantes existentes (anclas, expediente, `AiExecutionRegistry`, certificación de accesos), When firman con un `KeyService` ES256, Then escriben `algorithm=ES256` y la verificación posterior pasa.
+- **AC-18** Given los documentos firmados que llevan bloque de firma (anclas WORM y expediente de `audit-service`), When firman con un `KeyService` ES256, Then escriben `algorithm=es256` y la verificación posterior pasa. `AiExecutionRegistry` y `AccessCertificationService` guardan llave y firma en columnas sin campo `algorithm` y verifican con `KeyService.verify`; no se agrega campo.
 
 ### 6. Despliegue por destino
 - **AC-19** Given `infra/opentofu/gcp` y `infra/opentofu/azure`, When se ejecuta `tofu init -backend=false` y `tofu validate`, Then ambos pasan, y cada módulo declara: red privada, clúster con identidad de workload, bucket o contenedor con modo inmutable y llave KMS por entorno.

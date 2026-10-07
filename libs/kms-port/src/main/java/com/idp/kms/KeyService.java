@@ -45,6 +45,13 @@ public interface KeyService {
     }
 
     /**
+     * Algoritmo de firma que usa la llave.
+     */
+    default SignatureAlgorithm signatureAlgorithm(TenantId tenantId, String keyId) {
+        return SignatureAlgorithm.ED25519;
+    }
+
+    /**
      * Disable a KEK immediately and schedule it for deletion.
      */
     void disableKek(TenantId tenantId, String kekId);

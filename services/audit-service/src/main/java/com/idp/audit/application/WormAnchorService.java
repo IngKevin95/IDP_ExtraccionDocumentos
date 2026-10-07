@@ -37,8 +37,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class WormAnchorService {
 
-    public static final String SIGNATURE_ALGORITHM = "ed25519";
-
     private final AuditRepository repo;
     private final ImmutableStore store;
     private final KeyService keys;
@@ -115,7 +113,7 @@ public class WormAnchorService {
         ObjectNode doc = CanonicalJson.mapper().createObjectNode();
         doc.put("manifestHash", manifestHash);
         ObjectNode sig = doc.putObject("signature");
-        sig.put("algorithm", SIGNATURE_ALGORITHM);
+        sig.put("algorithm", keys.signatureAlgorithm(tenant, signingKeyId).wireName());
         sig.put("keyId", signingKeyId);
         sig.put("value", signature);
         doc.set("manifest", manifest);

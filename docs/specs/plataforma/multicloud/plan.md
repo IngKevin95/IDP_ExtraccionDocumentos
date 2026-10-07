@@ -25,8 +25,8 @@ Cada módulo depende solo de `storage-port` o `kms-port`, nunca de otro adaptado
 - Helm: `_workload.tpl` mapea `global.adapters.storage` y `global.adapters.kms` a `IDP_STORAGE_PROVIDER` e `IDP_KMS_PROVIDER`. `values-onprem.yaml` pasa a `storage: s3`, `kms: openbao`. Se extiende `tools/ci/check_helm_env.py` para validar los cuatro destinos.
 
 ## 4. Algoritmo de firma
-- Constante `WormAnchorService.SIGNATURE_ALGORITHM` se sustituye por `keys.signatureAlgorithm(tenant, signingKeyId).name().toLowerCase()` en los cuatro firmantes: `WormAnchorService`, `DossierService`, `AiExecutionRegistry`, `AccessCertificationService`.
-- Verificadores (`AuditVerificationService.verifyAnchors`, `DossierService.signatureValid`): comparan el `algorithm` del documento contra `keys.signatureAlgorithm` de la llave configurada; si difiere, resultado inválido. Si el algoritmo es `ED25519` y hay `publicKeys`, verificación local; en otro caso `keys.verify`.
+- Constante `WormAnchorService.SIGNATURE_ALGORITHM` se sustituye por `keys.signatureAlgorithm(tenant, signingKeyId).name().toLowerCase()` en los firmantes con bloque de firma: `WormAnchorService` y `DossierService`. `AiExecutionRegistry` y `AccessCertificationService` no llevan campo `algorithm` y no cambian.
+- Verificadores (`AuditVerificationService.verifyAnchors`, `DossierService.signatureValid`): comparan el `algorithm` del documento contra `keys.signatureAlgorithm` de la llave configurada; si difiere, resultado inválido. En el expediente, si el algoritmo es `ED25519` y hay `publicKeys`, verificación local; en otro caso `keys.verify`. Las anclas siguen verificando siempre con `keys.verify`.
 - ES256 en Azure: firma `ECDSA P-256 / SHA-256`, formato `r||s` crudo (64 bytes), que es lo que devuelve la API de Key Vault.
 
 ## 5. Detalle por adaptador
