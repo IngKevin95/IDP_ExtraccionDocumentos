@@ -17,9 +17,17 @@ import java.util.Map;
 /**
  * Fake en memoria de {@link BlobApi} con semantica de versiones, retencion y legal hold (el reloj es el del
  * adaptador, controlable). Modela solo lo que el contrato necesita: cada escritura crea una version, un borrado
- * deja las versiones y una version bajo retencion o hold no se puede destruir con {@link #hardDelete}.
+ * deja las versiones y una version bajo retencion o hold no se puede destruir con {@link #hardDelete}. Los
+ * contenedores deben crearse antes de usarse y la retencion exige WORM por version y una fecha futura.
  */
 class InMemoryBlobApi implements BlobApi {
+
+    /** Error del proveedor simulado (404 ContainerNotFound, 409 por WORM no habilitado, etc.). */
+    static class SimulatedProviderException extends RuntimeException {
+        SimulatedProviderException(String message) {
+            super(message);
+        }
+    }
 
     private static final class Version {
         final byte[] data;
@@ -50,9 +58,12 @@ class InMemoryBlobApi implements BlobApi {
         containerWorm.put(container, versionLevelWorm);
     }
 
-    private void checkAvailable() {
+    private void checkContainer(String container) {
         if (failing) {
             throw new IllegalStateException("proveedor no disponible");
+        }
+        if (!containerWorm.containsKey(container)) {
+            throw new SimulatedProviderException("404 ContainerNotFound");
         }
     }
 
@@ -63,15 +74,23 @@ class InMemoryBlobApi implements BlobApi {
     @Override
     public void write(String container, String blob, InputStream data, long length, String contentType,
                       byte[] sha256, Instant retainUntil) {
-        checkAvailable();
+        checkContainer(container);
+        if (retainUntil != null) {
+            if (!containerWorm.get(container)) {
+                throw new SimulatedProviderException("409 contenedor sin immutable storage con versionado");
+            }
+            if (!retainUntil.isAfter(clock.instant())) {
+                throw new SimulatedProviderException("400 fecha de expiracion en el pasado");
+            }
+        }
         byte[] bytes;
         try {
             bytes = data.readAllBytes();
             if (bytes.length != length) {
-                throw new IllegalArgumentException("longitud declarada distinta de la recibida");
+                throw new StorageException("longitud declarada distinta de la recibida");
             }
             if (sha256 != null && !MessageDigest.isEqual(sha256, MessageDigest.getInstance("SHA-256").digest(bytes))) {
-                throw new IllegalArgumentException("sha-256 declarado distinto del recibido");
+                throw new StorageException("sha-256 declarado distinto del recibido");
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -85,7 +104,7 @@ class InMemoryBlobApi implements BlobApi {
 
     @Override
     public InputStream read(String container, String blob) {
-        checkAvailable();
+        checkContainer(container);
         Blob b = blobs.get(id(container, blob));
         if (b == null || b.deleted) {
             throw new NotFoundException();
@@ -95,7 +114,7 @@ class InMemoryBlobApi implements BlobApi {
 
     @Override
     public void delete(String container, String blob) {
-        checkAvailable();
+        checkContainer(container);
         Blob b = blobs.get(id(container, blob));
         if (b != null) {
             b.deleted = true;
@@ -104,7 +123,7 @@ class InMemoryBlobApi implements BlobApi {
 
     @Override
     public void setLegalHold(String container, String blob, boolean hold) {
-        checkAvailable();
+        checkContainer(container);
         Blob b = blobs.get(id(container, blob));
         if (b == null || b.deleted) {
             throw new NotFoundException();
@@ -114,12 +133,8 @@ class InMemoryBlobApi implements BlobApi {
 
     @Override
     public boolean versionLevelWormEnabled(String container) {
-        checkAvailable();
-        Boolean worm = containerWorm.get(container);
-        if (worm == null) {
-            throw new IllegalStateException("contenedor inexistente");
-        }
-        return worm;
+        checkContainer(container);
+        return containerWorm.get(container);
     }
 
     private Version oldest(String container, String blob) {

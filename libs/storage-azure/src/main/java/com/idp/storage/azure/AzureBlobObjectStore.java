@@ -42,8 +42,10 @@ public class AzureBlobObjectStore implements ObjectStore {
         try {
             api.write(container(tenantId), blob, data, metadata.length(), metadata.contentType(), sha256,
                 retainUntil);
+        } catch (StorageException e) {
+            throw e;
         } catch (RuntimeException e) {
-            throw new StorageException("No se pudo guardar el objeto: " + e.getClass().getSimpleName());
+            throw new StorageException("No se pudo guardar el objeto: " + e.getClass().getSimpleName(), e);
         }
     }
 
@@ -55,7 +57,7 @@ public class AzureBlobObjectStore implements ObjectStore {
         } catch (BlobApi.NotFoundException e) {
             throw new StorageException("Objeto no encontrado");
         } catch (RuntimeException e) {
-            throw new StorageException("No se pudo leer el objeto: " + e.getClass().getSimpleName());
+            throw new StorageException("No se pudo leer el objeto: " + e.getClass().getSimpleName(), e);
         }
     }
 
@@ -65,7 +67,7 @@ public class AzureBlobObjectStore implements ObjectStore {
         try {
             api.delete(container(tenantId), blob);
         } catch (RuntimeException e) {
-            throw new StorageException("No se pudo borrar el objeto: " + e.getClass().getSimpleName());
+            throw new StorageException("No se pudo borrar el objeto: " + e.getClass().getSimpleName(), e);
         }
     }
 

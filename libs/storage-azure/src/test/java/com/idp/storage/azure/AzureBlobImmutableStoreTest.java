@@ -84,7 +84,7 @@ class AzureBlobImmutableStoreTest extends ImmutableStoreContract {
         AzureBlobImmutableStore porTenant =
             new AzureBlobImmutableStore(api, TenantBucketResolver.fixed("silo-sin-worm"), clock);
         byte[] data = "x".getBytes(StandardCharsets.UTF_8);
-        assertThrows(IllegalStateException.class, () -> porTenant.putWithRetention(getTenantA(), "a.txt",
+        assertThrows(StorageException.class, () -> porTenant.putWithRetention(getTenantA(), "a.txt",
             new ByteArrayInputStream(data), new ObjectMetadata(null, data.length, null), Duration.ofDays(1)));
     }
 
@@ -111,6 +111,110 @@ class AzureBlobImmutableStoreTest extends ImmutableStoreContract {
         StorageException ex = assertThrows(StorageException.class, () -> store.put(getTenantA(), "a.txt",
             new ByteArrayInputStream(data), new ObjectMetadata("zz", data.length, null)));
         assertEquals("SHA-256 invalido", ex.getMessage());
+    }
+
+    private static final class ResolverProhibido extends TenantBucketResolver {
+        ResolverProhibido() {
+            super(null, Duration.ZERO, java.time.Clock.systemUTC());
+        }
+
+        @Override
+        public String resolve(String tenantId) {
+            throw new AssertionError("no debe resolverse el contenedor");
+        }
+    }
+
+    @Test
+    void rutaOTenantInvalidoNoTocanResolverNiProveedor() {
+        AzureBlobImmutableStore sinResolver = new AzureBlobImmutableStore(api, new ResolverProhibido(), clock);
+        api.failing = true;
+        byte[] data = "x".getBytes(StandardCharsets.UTF_8);
+        ObjectMetadata meta = new ObjectMetadata(null, data.length, null);
+        TenantId malo = new TenantId("t/1");
+        assertThrows(StorageException.class, () -> sinResolver.putWithRetention(getTenantA(), "../x",
+            new ByteArrayInputStream(data), meta, Duration.ofDays(1)));
+        assertThrows(StorageException.class, () -> sinResolver.putWithRetention(malo, "x",
+            new ByteArrayInputStream(data), meta, Duration.ofDays(1)));
+        assertThrows(StorageException.class, () -> sinResolver.applyLegalHold(getTenantA(), "../x"));
+        assertThrows(StorageException.class, () -> sinResolver.removeLegalHold(malo, "x"));
+    }
+
+    @Test
+    void validacionPorTenantFallaComoStorageExceptionConservandoLaCausa() {
+        api.createContainer("silo-sin-worm", false);
+        AzureBlobImmutableStore porTenant =
+            new AzureBlobImmutableStore(api, TenantBucketResolver.fixed("silo-sin-worm"), clock);
+        byte[] data = "x".getBytes(StandardCharsets.UTF_8);
+        StorageException ex = assertThrows(StorageException.class, () -> porTenant.putWithRetention(getTenantA(),
+            "a.txt", new ByteArrayInputStream(data), new ObjectMetadata(null, data.length, null),
+            Duration.ofDays(1)));
+        assertEquals(IllegalStateException.class, ex.getCause().getClass());
+        assertEquals(-1, ex.getMessage().indexOf("silo-sin-worm"));
+        assertThrows(StorageException.class, () -> porTenant.applyLegalHold(getTenantA(), "a.txt"));
+    }
+
+    @Test
+    void elArranqueConservaLaCausaDelFalloDelProveedor() {
+        api.failing = true;
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> AzureBlobImmutableStore.forContainer(api, CONTAINER, clock));
+        assertEquals(IllegalStateException.class, ex.getCause().getClass());
+    }
+
+    private AzureBlobObjectStore plano(String container) {
+        return new AzureBlobObjectStore(api, TenantBucketResolver.fixed(container));
+    }
+
+    @Test
+    void putYDeleteConContenedorInexistenteFallanSinPiiNiCredenciales() {
+        AzureBlobObjectStore sinContenedor = plano("no-existe");
+        byte[] data = "x".getBytes(StandardCharsets.UTF_8);
+        ObjectMetadata meta = new ObjectMetadata(null, data.length, null);
+        for (Runnable op : new Runnable[] {
+            () -> sinContenedor.put(getTenantA(), "a.txt", new ByteArrayInputStream(data), meta),
+            () -> sinContenedor.get(getTenantA(), "a.txt"),
+            () -> sinContenedor.delete(getTenantA(), "a.txt")}) {
+            StorageException ex = assertThrows(StorageException.class, op::run);
+            assertEquals(-1, ex.getMessage().indexOf(getTenantA().value()));
+            assertEquals(InMemoryBlobApi.SimulatedProviderException.class, ex.getCause().getClass());
+        }
+    }
+
+    @Test
+    void putYDeleteConProveedorCaidoFallanSinPiiNiCredenciales() {
+        byte[] data = "x".getBytes(StandardCharsets.UTF_8);
+        api.failing = true;
+        StorageException put = assertThrows(StorageException.class, () -> store.put(getTenantA(), "a.txt",
+            new ByteArrayInputStream(data), new ObjectMetadata(null, data.length, null)));
+        StorageException del = assertThrows(StorageException.class, () -> store.delete(getTenantA(), "a.txt"));
+        assertEquals(-1, put.getMessage().indexOf(getTenantA().value()));
+        assertEquals(-1, del.getMessage().indexOf(getTenantA().value()));
+    }
+
+    @Test
+    void quitarLegalHoldConRetencionVigenteSigueImpidiendoElBorradoDefinitivo() throws Exception {
+        byte[] data = "x".getBytes(StandardCharsets.UTF_8);
+        store.putWithRetention(getTenantA(), "lock/mixto.txt", new ByteArrayInputStream(data), meta(data),
+            Duration.ofMinutes(5));
+        store.applyLegalHold(getTenantA(), "lock/mixto.txt");
+        store.removeLegalHold(getTenantA(), "lock/mixto.txt");
+
+        assertThrows(Exception.class, () -> hardDelete(getTenantA(), "lock/mixto.txt"));
+        advancePastRetention();
+        clock.advance(Duration.ofMinutes(10));
+        assertDoesNotThrow(() -> hardDelete(getTenantA(), "lock/mixto.txt"));
+    }
+
+    @Test
+    void elFakeRechazaRetencionEnContenedorSinWormYExpiracionEnElPasado() {
+        api.createContainer("plano", false);
+        byte[] data = "x".getBytes(StandardCharsets.UTF_8);
+        assertThrows(InMemoryBlobApi.SimulatedProviderException.class, () -> api.write("plano", "a",
+            new ByteArrayInputStream(data), data.length, null, null, clock.instant().plusSeconds(60)));
+        assertThrows(InMemoryBlobApi.SimulatedProviderException.class, () -> api.write(CONTAINER, "a",
+            new ByteArrayInputStream(data), data.length, null, null, clock.instant().minusSeconds(1)));
+        assertThrows(InMemoryBlobApi.SimulatedProviderException.class, () -> api.setLegalHold("no-existe", "a", true));
+        assertThrows(InMemoryBlobApi.SimulatedProviderException.class, () -> api.delete("no-existe", "a"));
     }
 
     @Test

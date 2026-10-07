@@ -67,4 +67,6 @@ Los adaptadores sin cobertura de emulador para WORM o KMS se prueban con un fake
 ## 8. Riesgos
 - Superficie de CVE por tres SDKs adicionales: Trivy y Dependabot ya cubren; revisar tamaño de imagen.
 - Emuladores sin soporte WORM o KMS: mitigado con fake de interfaz fina y runbook.
+- Netty 4.2 (Boot) frente a 4.1 que espera `azure-core-http-netty`: el SDK de Azure avisa del desajuste en el log; vigilar en CI y en la imagen final.
+- AC-07 literal no aplica a Blob con versionado: `delete` o sobrescribir crea una version nueva y la retenida sigue intacta; `ImmutableStoreContract` verifica con `hardDelete`. Semantica real sin probar contra Azure (runbook T-12).
 - RSA-OAEP-256 limita el tamaño de la carga envuelta: DEK de 32 bytes más hash de 32 bytes es 64, cabe con llave RSA de 3072 bits.

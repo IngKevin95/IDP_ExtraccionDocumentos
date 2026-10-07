@@ -6,6 +6,7 @@ import java.io.InputStream;
 public interface ObjectStore {
     class StorageException extends RuntimeException {
         public StorageException(String message) { super(message); }
+        public StorageException(String message, Throwable cause) { super(message, cause); }
     }
     
     void put(TenantId tenantId, String path, InputStream data, ObjectMetadata metadata);

@@ -9,6 +9,7 @@ import com.azure.storage.blob.models.BlobImmutabilityPolicyMode;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.options.BlockBlobCommitBlockListOptions;
 import com.azure.storage.blob.specialized.BlockBlobClient;
+import com.idp.storage.ObjectStore.StorageException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -22,25 +23,39 @@ import java.util.Base64;
 import java.util.List;
 
 /** {@link BlobApi} sobre {@link BlobServiceClient}. */
-public class SdkBlobApi implements BlobApi {
+public final class SdkBlobApi implements BlobApi {
 
     static final int BLOCK_SIZE = 4 * 1024 * 1024;
 
+    /** Limite de Azure para blobs de bloques: 50 000 bloques. */
+    private static final long MAX_BLOCKS = 50_000;
+
     private final BlobServiceClient service;
     private final BlobImmutabilityPolicyMode mode;
+    private final long maxObjectBytes;
 
-    public SdkBlobApi(BlobServiceClient service, BlobImmutabilityPolicyMode mode) {
+    public SdkBlobApi(BlobServiceClient service, BlobImmutabilityPolicyMode mode, long maxObjectBytes) {
+        if (maxObjectBytes <= 0 || maxObjectBytes > MAX_BLOCKS * BLOCK_SIZE) {
+            throw new IllegalArgumentException("idp.storage.max-object-bytes debe estar entre 1 y "
+                + MAX_BLOCKS * BLOCK_SIZE);
+        }
         this.service = service;
         this.mode = mode;
+        this.maxObjectBytes = maxObjectBytes;
     }
 
     /**
-     * Sube en bloques y confirma solo si el SHA-256 y la longitud coinciden: Blob no verifica SHA-256 en el
-     * servidor (solo MD5) y un blob con retencion no se podria corregir ni borrar despues de subirlo.
+     * Sube en bloques y confirma solo si el SHA-256 y la longitud coinciden con lo declarado. Blob no verifica
+     * SHA-256 en el servidor (solo MD5): el hash cubre lo leido en el cliente, no lo almacenado. Se valida antes
+     * de confirmar porque un blob con retencion no se podria corregir ni borrar despues. Aborta en cuanto el
+     * flujo supera la longitud declarada o el tope configurado.
      */
     @Override
     public void write(String container, String blob, InputStream data, long length, String contentType,
                       byte[] sha256, Instant retainUntil) {
+        if (length > maxObjectBytes) {
+            throw new StorageException("El objeto supera el tope de " + maxObjectBytes + " bytes");
+        }
         BlockBlobClient client = service.getBlobContainerClient(container).getBlobClient(blob).getBlockBlobClient();
         MessageDigest digest = newSha256();
         List<String> ids = new ArrayList<>();
@@ -48,8 +63,11 @@ public class SdkBlobApi implements BlobApi {
         try {
             byte[] chunk = data.readNBytes(BLOCK_SIZE);
             while (chunk.length > 0) {
-                digest.update(chunk);
                 total += chunk.length;
+                if (total > length) {
+                    throw new StorageException("El contenido supera la longitud declarada");
+                }
+                digest.update(chunk);
                 String id = Base64.getEncoder().encodeToString(
                     String.format("%08d", ids.size()).getBytes(StandardCharsets.US_ASCII));
                 client.stageBlock(id, BinaryData.fromBytes(chunk));
@@ -60,10 +78,10 @@ public class SdkBlobApi implements BlobApi {
             throw new UncheckedIOException(e);
         }
         if (total != length) {
-            throw new IllegalArgumentException("longitud declarada distinta de la recibida");
+            throw new StorageException("La longitud declarada es distinta de la recibida");
         }
         if (sha256 != null && !MessageDigest.isEqual(sha256, digest.digest())) {
-            throw new IllegalArgumentException("sha-256 declarado distinto del recibido");
+            throw new StorageException("El SHA-256 declarado es distinto del contenido recibido");
         }
         BlockBlobCommitBlockListOptions options = new BlockBlobCommitBlockListOptions(ids);
         if (contentType != null) {
@@ -90,6 +108,7 @@ public class SdkBlobApi implements BlobApi {
         service.getBlobContainerClient(container).getBlobClient(blob).deleteIfExists();
     }
 
+    /** El legal hold de Blob aplica a la version actual; no se puede dirigir a una version anterior. */
     @Override
     public void setLegalHold(String container, String blob, boolean hold) {
         try {

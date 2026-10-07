@@ -58,7 +58,7 @@ class AzureBlobObjectStoreAzuriteTest extends ObjectStoreContract {
     }
 
     private static ObjectStore storeOn(BlobServiceClient client) {
-        return new AzureBlobObjectStore(new SdkBlobApi(client, BlobImmutabilityPolicyMode.UNLOCKED),
+        return new AzureBlobObjectStore(new SdkBlobApi(client, BlobImmutabilityPolicyMode.UNLOCKED, 256L * 1024 * 1024),
             TenantBucketResolver.fixed(CONTAINER));
     }
 
