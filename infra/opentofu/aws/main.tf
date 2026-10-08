@@ -135,7 +135,7 @@ data "aws_iam_policy_document" "openbao_kms" {
     actions   = ["kms:Encrypt", "kms:Decrypt", "kms:DescribeKey"]
     resources = ["*"]
     principals {
-      type        = "AWS"
+      type = "AWS"
       # Asume que se crea un rol específico para OpenBao con EKS Pod Identity
       identifiers = ["*"] # Debería ser el ARN del rol de OpenBao
     }
