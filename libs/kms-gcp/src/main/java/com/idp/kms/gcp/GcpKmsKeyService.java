@@ -34,7 +34,6 @@ public final class GcpKmsKeyService implements KeyService {
 
     /** Una rotacion de la llave de firma se refleja en verify tras este plazo. */
     private static final long KEY_TTL_NANOS = TimeUnit.MINUTES.toNanos(5);
-    private static final int CRYPTO_KEY_ID_MAX = 63;
     private static final byte[] ED25519_SPKI_PREFIX =
         {0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00};
 
@@ -59,7 +58,7 @@ public final class GcpKmsKeyService implements KeyService {
 
     private String cryptoKey(TenantId tenantId, String keyId) {
         // KeyNames.hashed da 68 caracteres y el id de CryptoKey admite 63: se conserva "idp-" + 59 hex (236 bits)
-        return keyRingPath + "/cryptoKeys/" + KeyNames.hashed(tenantId, keyId).substring(0, CRYPTO_KEY_ID_MAX);
+        return keyRingPath + "/cryptoKeys/" + KeyNames.hashed(tenantId, keyId);
     }
 
     private String checked(TenantId tenantId, String keyId) {
