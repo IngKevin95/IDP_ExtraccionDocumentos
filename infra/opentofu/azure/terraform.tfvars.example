@@ -1,0 +1,19 @@
+# Archivo de ejemplo para las variables.
+# Cópialo a un archivo sin el sufijo .example (ej. dev.tfvars) y ajusta los valores.
+# NOTA: No incluyas credenciales ni secretos en este archivo.
+
+subscription_id = "00000000-0000-0000-0000-000000000000"
+location        = "eastus2"
+environment     = "dev"
+project_name    = "idp"
+unique_suffix   = "a1b2"
+vnet_cidr       = "10.1.0.0/16"
+node_vm_size    = "Standard_D4ds_v5"
+
+# Grupo de Entra ID con administracion del cluster y IP del runner que aplica OpenTofu
+aks_admin_group_object_ids  = ["11111111-1111-1111-1111-111111111111"]
+key_vault_allowed_ip_ranges = ["203.0.113.10/32"]
+key_admin_object_ids        = ["22222222-2222-2222-2222-222222222222"]
+
+# Politica WORM por defecto del contenedor de auditoria (0 = sin politica por defecto)
+audit_worm_default_retention_days = 0

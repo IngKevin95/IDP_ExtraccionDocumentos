@@ -4,7 +4,20 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.0"
+      version = "~> 4.40"
+    }
+    azapi = {
+      source  = "azure/azapi"
+      version = "~> 2.4"
     }
   }
+
+  # Configuración recomendada de backend remoto documentada
+  # backend "azurerm" {
+  #   resource_group_name  = "idp-tfstate-rg"
+  #   storage_account_name = "idptfstate"
+  #   container_name       = "tfstate"
+  #   key                  = "infra/azure/terraform.tfstate"
+  #   use_azuread_auth     = true
+  # }
 }
