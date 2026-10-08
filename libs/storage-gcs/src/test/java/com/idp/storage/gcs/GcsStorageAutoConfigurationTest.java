@@ -92,10 +92,9 @@ class GcsStorageAutoConfigurationTest {
     void conEndpointSinEmulatorNoSeAnulanLasCredencialesPorDefecto() {
         StorageOptions o = GcsStorageAutoConfiguration.storageOptions("p", "http://localhost:9", false);
         assertThat(o.getHost()).isEqualTo("http://localhost:9");
-        // Sin ADC en el entorno el SDK resuelve NoCredentials por su cuenta; con ADC no puede serlo. El adaptador
-        // nunca fuerza NoCredentials: se compara con lo que resuelve el SDK sin ninguna configuracion nuestra.
-        assertThat(o.getCredentials().getClass())
-            .isEqualTo(StorageOptions.newBuilder().setProjectId("p").build().getCredentials().getClass());
+        // El adaptador nunca fuerza NoCredentials sin emulator=true. Con ADC en el entorno hay credenciales; sin
+        // ADC (CI) el SDK deja null y resuelve al usarse: en ningun caso es NoCredentials.
+        assertThat(o.getCredentials() instanceof NoCredentials).isFalse();
     }
 
     @Test
