@@ -4,7 +4,24 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 5.0"
+      version = "~> 6.0"
+    }
+
+    time = {
+      source  = "hashicorp/time"
+      version = "~> 0.12"
+    }
+
+    # Solo para google_project_service_identity (agente de servicio de Artifact Registry).
+    google-beta = {
+      source  = "hashicorp/google-beta"
+      version = "~> 6.0"
     }
   }
+
+  # Configuración recomendada de backend remoto documentada
+  # backend "gcs" {
+  #   bucket = "idp-tofu-state"
+  #   prefix = "infra/gcp"
+  # }
 }
