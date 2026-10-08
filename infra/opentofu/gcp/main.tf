@@ -418,6 +418,10 @@ resource "google_container_node_pool" "default" {
     workload_metadata_config {
       mode = "GKE_METADATA"
     }
+
+    metadata = {
+      disable-legacy-endpoints = "true"
+    }
   }
 }
 
