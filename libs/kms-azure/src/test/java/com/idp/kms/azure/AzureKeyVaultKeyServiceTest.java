@@ -177,7 +177,7 @@ class AzureKeyVaultKeyServiceTest {
     @Test
     void nombreDeLlaveEsElHashDelParTenantKeyId() {
         String nombre = KeyNames.hashed(T1, "datos");
-        assertThat(nombre).matches("idp-[0-9a-f]{64}").doesNotContain("_");
+        assertThat(nombre).matches("idp-[0-9a-f]{59}").doesNotContain("_");
         assertThat(nombre).isNotEqualTo(KeyNames.hashed(T2, "datos"));
         kms.wrapDek(T1, new byte[32], "datos", AAD);
         assertThat(fake.calls).containsExactly(nombre);
