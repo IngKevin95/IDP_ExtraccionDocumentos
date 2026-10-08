@@ -14,8 +14,8 @@ class KeyNamesTest {
     void nombreDeterministaYApto() {
         String n = KeyNames.hashed(new TenantId("t1"), "datos");
         assertEquals(n, KeyNames.hashed(new TenantId("t1"), "datos"));
-        assertEquals(68, n.length());
-        assertTrue(n.matches("idp-[a-f0-9]{64}"));
+        assertEquals(63, n.length());
+        assertTrue(n.matches("idp-[a-f0-9]{59}"));
     }
 
     @Test
