@@ -65,6 +65,9 @@ Ejecutado con Testcontainers (`localstack/localstack:3.2.0`, `fsouza/fake-gcs-se
 Los adaptadores sin cobertura de emulador para WORM o KMS se prueban con un fake de la interfaz fina interna; la semántica real queda en el runbook de smoke (T-12).
 
 ## 8. Riesgos
+- Nombres de llave de `OpenBaoTransitKeyService` (`t-<tenant>-<keyId>`): ambiguos si ambos ids llevan guion, a diferencia de los de AWS, Cloud KMS y Key Vault (SEC-057). No explotable hoy; corregirlo requiere renombrar las llaves transit existentes (migración) y queda como decisión pendiente.
+- Prueba inestable preexistente: `NotificationPostgresKafkaIntegrationTest.skipLocked_dosReclamosConcurrentesNoTomanLasMismasEntregas` falló en CI en dos PRs de F8 y pasó al relanzar; no se relaciona con los cambios de F8.
+- Sin cuentas de nube: ninguna ruta real de WORM, firma o destrucción de llaves se ejecutó; la evidencia es de fakes, mocks, LocalStack, Azurite, fake-gcs-server y Lowkey Vault. El runbook `docs/runbooks/smoke-multicloud.md` las cubre y está sin ejecutar.
 - Limitación abierta de S3 (`S3ImmutableStore`): tras un `delete`, que solo agrega un delete marker, `applyLegalHold` y `removeLegalHold` apuntan a esa versión y fallan. Corregirlo exige listar versiones (`s3:ListBucketVersions`), que ampliaría los privilegios del rol de `audit-service` (SEC-011). Las anclas WORM no se borran en la práctica; GCS y Blob no tienen la limitación. El contrato WORM no depende de ese caso: usa `hardDelete` y `retainedContent`.
 - Superficie de CVE por tres SDKs adicionales: Trivy y Dependabot ya cubren; revisar tamaño de imagen.
 - Emuladores sin soporte WORM o KMS: mitigado con fake de interfaz fina y runbook.

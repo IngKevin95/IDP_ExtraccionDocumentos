@@ -65,3 +65,6 @@
 * **Descripción:** Escribir `docs/runbooks/smoke-multicloud.md` y actualizar `matriz-controles.md` (SEC-042, SEC-055, SEC-056 con sus pruebas) y `docs/despliegue.md`.
 * **Criterio de hecho:** Runbook cubre AC-22 por destino; la matriz referencia los tests reales.
 * **Validación:** Revisión del auditor contra el spec y las pruebas citadas.
+
+## Estado (2026-10-08)
+T-00 a T-12 implementadas (T-09 dentro de T-03). Pendiente, fuera de la fase: ejecutar el runbook de smoke en cuentas reales (T-12), cambiar AWS a `kms: aws-kms` en `values-aws.yaml` cuando se valide en una cuenta real, y decidir la migración de nombres de llave de OpenBao (SEC-057).
