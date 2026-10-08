@@ -19,13 +19,16 @@ public final class KeyNames {
     private KeyNames() {
     }
 
-    /** Valida los identificadores y devuelve {@code idp-<sha256 hex>} (68 caracteres, solo [a-z0-9-]). */
+    /**
+     * Valida los identificadores y devuelve {@code idp-<59 hex del SHA-256>}: 63 caracteres, solo [a-z0-9-], el
+     * maximo de un id de CryptoKey de Cloud KMS (236 bits de hash, sin riesgo practico de colision).
+     */
     public static String hashed(TenantId tenantId, String keyId) {
         check(tenantId, keyId);
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")
                 .digest((tenantId.value() + '\0' + keyId).getBytes(StandardCharsets.UTF_8));
-            return "idp-" + HexFormat.of().formatHex(digest);
+            return "idp-" + HexFormat.of().formatHex(digest).substring(0, 59);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
