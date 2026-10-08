@@ -53,6 +53,38 @@ jobs:
           path: services/*/target/bom.json
           retention-days: 14
 
+  tofu-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [aws, gcp, azure]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: 1.12.7
+
+      - name: Init (sin backend)
+        working-directory: infra/opentofu/${{ matrix.module }}
+        run: tofu init -backend=false -input=false
+
+      - name: Validate
+        working-directory: infra/opentofu/${{ matrix.module }}
+        run: tofu validate
+
+      - name: Format check
+        working-directory: infra/opentofu/${{ matrix.module }}
+        run: tofu fmt -check -recursive
+
   publish-image:
     needs: build-and-test
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')

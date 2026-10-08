@@ -4,7 +4,6 @@ import com.idp.tenant.TenantId;
 import com.idp.tenant.context.TenantBucketResolver;
 import java.io.InputStream;
 import java.util.Base64;
-import java.util.HexFormat;
 import java.util.function.Consumer;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -40,16 +39,7 @@ public class S3ObjectStore implements ObjectStore {
 
     /** Clave del objeto con aislamiento por tenant; rechaza rutas que escapen del prefijo. */
     protected static String key(TenantId tenantId, String path) {
-        String tenant = tenantId.value();
-        if (!tenant.matches("[A-Za-z0-9_-]{1,64}")) {
-            throw new StorageException("tenantId invalido para almacenamiento");
-        }
-        if (path == null || path.isBlank() || path.startsWith("/") || path.contains("\\")
-            || path.contains("//") || java.util.Arrays.asList(path.split("/")).contains("..")
-            || java.util.Arrays.asList(path.split("/")).contains(".")) {
-            throw new StorageException("Ruta de objeto invalida");
-        }
-        return tenant + "/" + path;
+        return StorageKeys.key(tenantId, path);
     }
 
     @Override
@@ -102,14 +92,6 @@ public class S3ObjectStore implements ObjectStore {
     }
 
     private static String toBase64(String hexSha256) {
-        try {
-            byte[] raw = HexFormat.of().parseHex(hexSha256);
-            if (raw.length != 32) {
-                throw new StorageException("SHA-256 invalido");
-            }
-            return Base64.getEncoder().encodeToString(raw);
-        } catch (IllegalArgumentException e) {
-            throw new StorageException("SHA-256 invalido");
-        }
+        return Base64.getEncoder().encodeToString(StorageKeys.sha256Bytes(hexSha256));
     }
 }

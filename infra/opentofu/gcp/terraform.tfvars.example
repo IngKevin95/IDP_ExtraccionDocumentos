@@ -1,0 +1,20 @@
+# Archivo de ejemplo para las variables.
+# Cópialo a un archivo sin el sufijo .example (ej. dev.tfvars) y ajusta los valores.
+# NOTA: No incluyas credenciales ni secretos en este archivo.
+
+project_id   = "mi-proyecto-gcp"
+region       = "us-central1"
+environment  = "dev"
+project_name = "idp-bancario"
+
+# CIDRs externos autorizados al API de GKE (nunca 0.0.0.0/0). Vacío = solo acceso desde la VPC.
+master_authorized_cidrs = []
+
+# Separación de funciones (SEC-011): un miembro no puede estar en ambas listas.
+key_admin_members       = ["group:idp-kms-admins@example.com"]
+evidence_reader_members = ["group:idp-auditores@example.com"]
+
+# Retención por defecto del bucket WORM de evidencia. En prod, evidence_retention_locked = true
+# bloquea la política de forma irreversible (Bucket Lock).
+evidence_retention_days   = 365
+evidence_retention_locked = false
