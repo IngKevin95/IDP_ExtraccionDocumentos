@@ -191,8 +191,15 @@ public final class AzureKeyVaultKeyService implements KeyService {
         }
     }
 
+    /** Tope del material a envolver: RSA-OAEP-256 con llave de 3072 bits admite 318 bytes, hash incluido. */
+    private static final int MAX_PLAIN_BYTES = 256;
+
     private static byte[] concat(byte[] a, byte[] b) {
-        byte[] out = Arrays.copyOf(a, a.length + b.length);
+        if (a.length > MAX_PLAIN_BYTES || b.length > MAX_PLAIN_BYTES) {
+            throw new IllegalArgumentException("Material a envolver demasiado grande");
+        }
+        byte[] out = new byte[a.length + b.length];
+        System.arraycopy(a, 0, out, 0, a.length);
         System.arraycopy(b, 0, out, a.length, b.length);
         return out;
     }
