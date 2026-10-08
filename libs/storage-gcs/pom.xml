@@ -6,34 +6,19 @@
         <artifactId>libs</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>kms-port</artifactId>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
+    <artifactId>storage-gcs</artifactId>
+    <properties>
+        <google-cloud-storage.version>2.75.0</google-cloud-storage.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>com.idp</groupId>
-            <artifactId>tenant-context</artifactId>
+            <artifactId>storage-port</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-jackson</artifactId>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-storage</artifactId>
+            <version>${google-cloud-storage.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -41,11 +26,18 @@
             <optional>true</optional>
         </dependency>
         <dependency>
+            <groupId>com.idp</groupId>
+            <artifactId>storage-port</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-            <dependency>
+        <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-junit-jupiter</artifactId>
             <scope>test</scope>

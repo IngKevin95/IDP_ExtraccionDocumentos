@@ -1,7 +1,7 @@
 package com.idp.storage.azure;
 
 import com.idp.storage.ImmutableStore;
-import com.idp.storage.ObjectKeys;
+import com.idp.storage.StorageKeys;
 import com.idp.storage.ObjectMetadata;
 import com.idp.tenant.TenantId;
 import com.idp.tenant.context.TenantBucketResolver;
@@ -65,7 +65,7 @@ public class AzureBlobImmutableStore extends AzureBlobObjectStore implements Imm
     @Override
     public void putWithRetention(TenantId tenantId, String path, InputStream data, ObjectMetadata metadata,
                                  Duration retention) {
-        ObjectKeys.of(tenantId, path);
+        StorageKeys.key(tenantId, path);
         if (retention == null || retention.isZero() || retention.isNegative()) {
             throw new StorageException("La retencion debe ser positiva");
         }
@@ -84,7 +84,7 @@ public class AzureBlobImmutableStore extends AzureBlobObjectStore implements Imm
     }
 
     private void setLegalHold(TenantId tenantId, String path, boolean hold) {
-        String blob = ObjectKeys.of(tenantId, path);
+        String blob = StorageKeys.key(tenantId, path);
         String container = container(tenantId);
         validateForUse(container);
         try {

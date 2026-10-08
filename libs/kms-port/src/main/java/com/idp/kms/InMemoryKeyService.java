@@ -17,7 +17,12 @@ public final class InMemoryKeyService implements KeyService {
     private final Map<String, KeyPair> signingKeys = new ConcurrentHashMap<>();
     private final Set<String> disabled = ConcurrentHashMap.newKeySet();
 
+    private static final java.util.regex.Pattern NAME = java.util.regex.Pattern.compile("[A-Za-z0-9_-]{1,64}");
+
     private static String id(TenantId tenantId, String keyId) {
+        if (!NAME.matcher(tenantId.value()).matches() || keyId == null || !NAME.matcher(keyId).matches()) {
+            throw new IllegalArgumentException("Identificador de tenant o llave invalido");
+        }
         return tenantId.value() + "/" + keyId;
     }
 

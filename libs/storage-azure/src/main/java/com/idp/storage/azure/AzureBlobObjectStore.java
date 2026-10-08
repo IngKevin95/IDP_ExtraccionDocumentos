@@ -1,6 +1,6 @@
 package com.idp.storage.azure;
 
-import com.idp.storage.ObjectKeys;
+import com.idp.storage.StorageKeys;
 import com.idp.storage.ObjectMetadata;
 import com.idp.storage.ObjectStore;
 import com.idp.tenant.TenantId;
@@ -34,7 +34,7 @@ public class AzureBlobObjectStore implements ObjectStore {
 
     protected final void putInternal(TenantId tenantId, String path, InputStream data, ObjectMetadata metadata,
                                      Instant retainUntil) {
-        String blob = ObjectKeys.of(tenantId, path);
+        String blob = StorageKeys.key(tenantId, path);
         if (metadata == null || metadata.length() < 0) {
             throw new StorageException("Metadatos de objeto invalidos");
         }
@@ -51,7 +51,7 @@ public class AzureBlobObjectStore implements ObjectStore {
 
     @Override
     public InputStream get(TenantId tenantId, String path) {
-        String blob = ObjectKeys.of(tenantId, path);
+        String blob = StorageKeys.key(tenantId, path);
         try {
             return api.read(container(tenantId), blob);
         } catch (BlobApi.NotFoundException e) {
@@ -63,7 +63,7 @@ public class AzureBlobObjectStore implements ObjectStore {
 
     @Override
     public void delete(TenantId tenantId, String path) {
-        String blob = ObjectKeys.of(tenantId, path);
+        String blob = StorageKeys.key(tenantId, path);
         try {
             api.delete(container(tenantId), blob);
         } catch (RuntimeException e) {
