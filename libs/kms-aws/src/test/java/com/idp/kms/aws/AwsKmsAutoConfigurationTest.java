@@ -65,7 +65,11 @@ class AwsKmsAutoConfigurationTest {
     @Test
     void elClienteSeCierraAlApagarElContexto() {
         KmsClient[] cliente = new KmsClient[1];
-        runner.withPropertyValues("idp.kms.provider=aws-kms").run(ctx -> cliente[0] = ctx.getBean(KmsClient.class));
+        // Credenciales y region de emulador para que el cliente no dependa del entorno (CI no tiene cadena de credenciales).
+        runner.withPropertyValues("idp.kms.provider=aws-kms", "idp.kms.aws.region=us-east-1",
+                "idp.kms.aws.endpoint=http://localhost:1", "idp.kms.aws.emulator=true",
+                "idp.kms.aws.access-key=a", "idp.kms.aws.secret-key=b")
+            .run(ctx -> cliente[0] = ctx.getBean(KmsClient.class));
         // run() ya cerro el contexto; el cliente cerrado falla por el pool HTTP apagado, no por red ni credenciales.
         RuntimeException e = org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
             () -> cliente[0].listKeys());
