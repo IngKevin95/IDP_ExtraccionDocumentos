@@ -18,6 +18,7 @@
         <module>kms-port</module>
         <module>kms-gcp</module>
         <module>kms-azure</module>
+        <module>kms-aws</module>
         <module>llm-port</module>
         <module>observability</module>
     </modules>
