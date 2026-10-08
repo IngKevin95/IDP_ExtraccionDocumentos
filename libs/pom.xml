@@ -13,7 +13,10 @@
         <module>events</module>
         <module>security</module>
         <module>storage-port</module>
+        <module>storage-gcs</module>
+        <module>storage-azure</module>
         <module>kms-port</module>
+        <module>kms-gcp</module>
         <module>kms-azure</module>
         <module>llm-port</module>
         <module>observability</module>
