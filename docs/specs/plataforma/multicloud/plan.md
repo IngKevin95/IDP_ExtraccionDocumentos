@@ -69,3 +69,4 @@ Los adaptadores sin cobertura de emulador para WORM o KMS se prueban con un fake
 - Superficie de CVE por tres SDKs adicionales: Trivy y Dependabot ya cubren; revisar tamaño de imagen.
 - Emuladores sin soporte WORM o KMS: mitigado con fake de interfaz fina y runbook.
 - RSA-OAEP-256 limita el tamaño de la carga envuelta: DEK de 32 bytes más hash de 32 bytes es 64, cabe con llave RSA de 3072 bits.
+- Rotación de la llave de firma de auditoría (Cloud KMS, AWS KMS): nunca deshabilitar ni destruir versiones de firma de la llave de auditoría salvo shredding total; las firmas anteriores solo verifican mientras su versión siga habilitada (SEC-042). Las firmas llevan la versión (`vault:v<N>:`) y `publicKeys` devuelve todas las versiones habilitadas. La llave de auditoría sobrevive al shredding de datos (SEC-017).

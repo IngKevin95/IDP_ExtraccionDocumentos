@@ -15,6 +15,7 @@
         <module>storage-port</module>
         <module>storage-gcs</module>
         <module>kms-port</module>
+        <module>kms-gcp</module>
         <module>llm-port</module>
         <module>observability</module>
     </modules>
