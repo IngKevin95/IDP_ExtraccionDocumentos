@@ -97,6 +97,18 @@ class AwsKmsLocalStackContractTest extends KeyServiceContract {
         assertTrue(client.describeKey(b -> b.keyId(alias)).keyMetadata().enabled());
     }
 
+    /** Multi-replica: otra instancia, sin el Set en proceso, ve la llave deshabilitada por el proveedor. */
+    @Test
+    void otraInstanciaVeLaLlaveDeshabilitadaPorElProveedor() {
+        createKeyIfNeeded(getTenantA(), "multi-replica");
+        byte[] wrapped = kms.wrapDek(getTenantA(), new byte[32], "multi-replica", java.util.Map.of()).getData();
+        kms.disableKek(getTenantA(), "multi-replica");
+        AwsKmsKeyService otra = new AwsKmsKeyService(client, 7);
+        assertThrows(KeyService.KeyDisabledException.class,
+            () -> otra.unwrapDek(getTenantA(), wrapped, "multi-replica", java.util.Map.of()));
+        otra.disableKek(getTenantA(), "multi-replica"); // idempotente contra el proveedor real
+    }
+
     /**
      * LocalStack 3.8 responde 500 al crear llaves ECC_NIST_EDWARDS25519. Si algun dia las soporta, este test falla y
      * avisa de que ya se puede heredar la firma de la suite contra LocalStack.

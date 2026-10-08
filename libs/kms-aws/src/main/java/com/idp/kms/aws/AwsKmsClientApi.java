@@ -1,12 +1,14 @@
 package com.idp.kms.aws;
 
 import com.idp.kms.KeyService;
+import java.util.Arrays;
 import java.util.Map;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.kms.KmsClient;
 import software.amazon.awssdk.services.kms.model.AlreadyExistsException;
 import software.amazon.awssdk.services.kms.model.DisabledException;
 import software.amazon.awssdk.services.kms.model.KeySpec;
+import software.amazon.awssdk.services.kms.model.KeyState;
 import software.amazon.awssdk.services.kms.model.KeyUsageType;
 import software.amazon.awssdk.services.kms.model.KmsInvalidSignatureException;
 import software.amazon.awssdk.services.kms.model.KmsInvalidStateException;
@@ -78,8 +80,30 @@ final class AwsKmsClientApi implements AwsKmsApi {
     @Override
     public void disableAndScheduleDeletion(String alias, int pendingWindowInDays) {
         String keyId = translate(() -> kms.describeKey(b -> b.keyId(alias)).keyMetadata().keyId());
-        translate(() -> kms.disableKey(b -> b.keyId(keyId)));
-        translate(() -> kms.scheduleKeyDeletion(b -> b.keyId(keyId).pendingWindowInDays(pendingWindowInDays)));
+        try {
+            kms.disableKey(b -> b.keyId(keyId));
+        } catch (NotFoundException e) {
+            throw new KeyService.KeyNotFoundException("Llave inexistente en el KMS");
+        } catch (KmsInvalidStateException e) {
+            // Ya deshabilitada o pendiente de borrado (otra replica): es el estado buscado.
+            if (!stateIn(keyId, KeyState.DISABLED, KeyState.PENDING_DELETION)) {
+                throw e;
+            }
+        }
+        try {
+            kms.scheduleKeyDeletion(b -> b.keyId(keyId).pendingWindowInDays(pendingWindowInDays));
+        } catch (NotFoundException e) {
+            throw new KeyService.KeyNotFoundException("Llave inexistente en el KMS");
+        } catch (KmsInvalidStateException e) {
+            if (!stateIn(keyId, KeyState.PENDING_DELETION)) {
+                throw e;
+            }
+        }
+    }
+
+    private boolean stateIn(String keyId, KeyState... states) {
+        KeyState current = kms.describeKey(b -> b.keyId(keyId)).keyMetadata().keyState();
+        return Arrays.asList(states).contains(current);
     }
 
     @Override

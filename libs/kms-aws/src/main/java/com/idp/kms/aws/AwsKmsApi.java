@@ -21,9 +21,12 @@ interface AwsKmsApi {
     /** SubjectPublicKeyInfo DER de la llave de firma. */
     byte[] publicKey(String alias);
 
-    /** DisableKey y ScheduleKeyDeletion (DisableKey y ScheduleKeyDeletion no admiten alias: se resuelve el id). */
+    /** DisableKey y ScheduleKeyDeletion (no admiten alias: se resuelve el id). Idempotente si ya esta deshabilitada. */
     void disableAndScheduleDeletion(String alias, int pendingWindowInDays);
 
-    /** Crea la llave (de firma Ed25519 o simetrica de datos) y su alias; no hace nada si el alias ya existe. */
+    /**
+     * Solo aprovisionamiento de pruebas: en produccion las llaves las crea la infraestructura, no el servicio.
+     * Crea la llave (de firma Ed25519 o simetrica de datos) y su alias; no hace nada si el alias ya existe.
+     */
     void createKey(String alias, boolean signing);
 }

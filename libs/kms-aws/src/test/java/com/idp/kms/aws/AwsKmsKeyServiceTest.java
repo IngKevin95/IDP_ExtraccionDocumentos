@@ -30,7 +30,7 @@ class AwsKmsKeyServiceTest {
 
     @Test
     void aliasPorTenantYLlave() {
-        assertEquals("alias/idp/t-t1-datos", AwsKmsKeyService.alias(T1, "datos"));
+        assertEquals("alias/idp/t1/datos", AwsKmsKeyService.alias(T1, "datos"));
     }
 
     @Test
@@ -61,20 +61,62 @@ class AwsKmsKeyServiceTest {
         keys(T1);
         byte[] wrapped = kms.wrapDek(T1, new byte[32], "datos", Map.of()).getData();
         kms.disableKek(T1, "datos");
-        assertTrue(api.isDisabled("alias/idp/t-t1-datos"));
-        assertEquals(7, api.deletionWindowDays("alias/idp/t-t1-datos"));
+        assertTrue(api.isDisabled("alias/idp/t1/datos"));
+        assertEquals(7, api.deletionWindowDays("alias/idp/t1/datos"));
         assertThrows(KeyService.KeyDisabledException.class, () -> kms.unwrapDek(T1, wrapped, "datos", Map.of()));
         assertThrows(KeyService.KeyDisabledException.class, () -> kms.wrapDek(T1, new byte[32], "datos", Map.of()));
     }
 
     @Test
-    void ventanaDeBorradoNuncaBajaDelMinimoDelProveedor() {
-        keys(T1);
-        new AwsKmsKeyService(api, 1).disableKek(T1, "datos");
-        assertEquals(AwsKmsKeyService.MIN_DELETION_WINDOW_DAYS, api.deletionWindowDays("alias/idp/t-t1-datos"));
+    void ventanaDeBorradoFueraDeRangoFalla() {
+        for (int dias : new int[] {0, 6, 31}) {
+            IllegalStateException e = assertThrows(IllegalStateException.class, () -> new AwsKmsKeyService(api, dias));
+            assertTrue(e.getMessage().contains("entre 7 y 30"));
+        }
         keys(T2);
         new AwsKmsKeyService(api, 30).disableKek(T2, "datos");
-        assertEquals(30, api.deletionWindowDays("alias/idp/t-t2-datos"));
+        assertEquals(30, api.deletionWindowDays("alias/idp/t2/datos"));
+    }
+
+    @Test
+    void aliasNoColisionaEntreTenants() {
+        TenantId ab = new TenantId("a-b");
+        TenantId a = new TenantId("a");
+        assertFalse(AwsKmsKeyService.alias(ab, "c").equals(AwsKmsKeyService.alias(a, "b-c")));
+        api.createKey(AwsKmsKeyService.alias(ab, "c"), false);
+        api.createKey(AwsKmsKeyService.alias(a, "b-c"), false);
+        byte[] wrapped = kms.wrapDek(ab, new byte[32], "c", Map.of()).getData();
+        assertThrows(KeyServiceUnavailableException.class, () -> kms.unwrapDek(a, wrapped, "b-c", Map.of()));
+        kms.disableKek(a, "b-c");
+        assertArrayEquals(new byte[32], kms.unwrapDek(ab, wrapped, "c", Map.of()).getData());
+    }
+
+    @Test
+    void disableKekEsIdempotenteEntreInstancias() {
+        keys(T1);
+        kms.disableKek(T1, "datos");
+        new AwsKmsKeyService(api, 7).disableKek(T1, "datos");
+        kms.disableKek(T1, "datos");
+    }
+
+    @Test
+    void disableKekDeLlaveInexistenteNoDejaElAliasBloqueado() {
+        assertThrows(KeyService.KeyNotFoundException.class, () -> kms.disableKek(T1, "datos"));
+        keys(T1);
+        // Si el alias se hubiera quedado en el Set, aqui saldria KeyDisabledException.
+        kms.wrapDek(T1, new byte[32], "datos", Map.of());
+    }
+
+    @Test
+    void mensajeMayorAlLimiteRawSeRechazaSinLlamarAlProveedor() {
+        keys(T1);
+        api.calls.clear();
+        byte[] grande = new byte[AwsKmsKeyService.MAX_RAW_MESSAGE_BYTES + 1];
+        assertThrows(IllegalArgumentException.class, () -> kms.sign(T1, grande, "firma"));
+        assertThrows(IllegalArgumentException.class, () -> kms.verify(T1, grande, new byte[64], "firma"));
+        assertTrue(api.calls.isEmpty());
+        byte[] limite = new byte[AwsKmsKeyService.MAX_RAW_MESSAGE_BYTES];
+        assertTrue(kms.verify(T1, limite, kms.sign(T1, limite, "firma").getData(), "firma"));
     }
 
     @Test
@@ -85,7 +127,7 @@ class AwsKmsKeyServiceTest {
         assertThrows(KeyServiceUnavailableException.class, () -> kms.disableKek(T1, "datos"));
         api.failDisable = false;
         // El proveedor sigue viendo la llave habilitada, pero este proceso ya no la usa.
-        assertFalse(api.isDisabled("alias/idp/t-t1-datos"));
+        assertFalse(api.isDisabled("alias/idp/t1/datos"));
         assertThrows(KeyService.KeyDisabledException.class, () -> kms.unwrapDek(T1, wrapped, "datos", Map.of()));
     }
 

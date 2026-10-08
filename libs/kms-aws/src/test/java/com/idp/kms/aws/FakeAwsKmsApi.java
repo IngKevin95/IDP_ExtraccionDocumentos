@@ -131,7 +131,12 @@ class FakeAwsKmsApi implements AwsKmsApi {
         if (failDisable) {
             throw new IllegalStateException("DisableKey fallo");
         }
-        Key k = key(alias);
+        Key k;
+        try {
+            k = key(alias);
+        } catch (KeyService.KeyDisabledException e) {
+            return; // ya deshabilitada: idempotente
+        }
         k.disabled = true;
         k.deletionWindowDays = pendingWindowInDays;
     }

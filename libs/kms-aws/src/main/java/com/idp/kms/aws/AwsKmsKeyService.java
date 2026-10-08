@@ -17,7 +17,7 @@ import software.amazon.awssdk.services.kms.KmsClient;
 /**
  * KeyService sobre AWS KMS.
  * <ul>
- *   <li>Aislamiento por tenant: cada (tenant, llave) es el alias {@code alias/idp/t-<tenant>-<keyId>}.</li>
+ *   <li>Aislamiento por tenant: cada (tenant, llave) es el alias {@code alias/idp/<tenant>/<keyId>}.</li>
  *   <li>wrap/unwrap con Encrypt/Decrypt; el AAD viaja como {@code EncryptionContext} nativo.</li>
  *   <li>sign/verify con llaves ECC_NIST_EDWARDS25519 (ED25519_SHA_512, mensaje RAW).</li>
  *   <li>disableKek: marca la KEK como deshabilitada de inmediato en este proceso, y luego DisableKey y
@@ -29,8 +29,11 @@ import software.amazon.awssdk.services.kms.KmsClient;
  */
 public final class AwsKmsKeyService implements KeyService {
 
-    /** Ventana minima de borrado programado de AWS KMS. */
+    /** Ventana de borrado programado admitida por AWS KMS (dias). */
     static final int MIN_DELETION_WINDOW_DAYS = 7;
+    static final int MAX_DELETION_WINDOW_DAYS = 30;
+    /** Limite de AWS KMS para mensajes con MessageType RAW. */
+    static final int MAX_RAW_MESSAGE_BYTES = 4096;
 
     private static final byte[] SPKI_ED25519_PREFIX =
         {0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00};
@@ -46,12 +49,17 @@ public final class AwsKmsKeyService implements KeyService {
 
     AwsKmsKeyService(AwsKmsApi api, int deletionWindowDays) {
         this.api = api;
-        this.deletionWindowDays = Math.max(MIN_DELETION_WINDOW_DAYS, deletionWindowDays);
+        if (deletionWindowDays < MIN_DELETION_WINDOW_DAYS || deletionWindowDays > MAX_DELETION_WINDOW_DAYS) {
+            throw new IllegalStateException("idp.kms.aws.deletion-window-days debe estar entre "
+                + MIN_DELETION_WINDOW_DAYS + " y " + MAX_DELETION_WINDOW_DAYS);
+        }
+        this.deletionWindowDays = deletionWindowDays;
     }
 
     static String alias(TenantId tenantId, String keyId) {
         KeyNames.check(tenantId, keyId);
-        return "alias/idp/t-" + tenantId.value() + "-" + keyId;
+        // '/' no es valido en tenant ni keyId, asi que el par (tenant, keyId) -> alias es inyectivo.
+        return "alias/idp/" + tenantId.value() + "/" + keyId;
     }
 
     private String checked(TenantId tenantId, String keyId) {
@@ -83,12 +91,14 @@ public final class AwsKmsKeyService implements KeyService {
     @Override
     public CryptoResult sign(TenantId tenantId, byte[] data, String keyId) {
         String alias = checked(tenantId, keyId);
+        checkMessageSize(data);
         return new CryptoResult(call(() -> api.sign(alias, data)));
     }
 
     @Override
     public boolean verify(TenantId tenantId, byte[] data, byte[] signature, String keyId) {
         String alias = checked(tenantId, keyId);
+        checkMessageSize(data);
         return call(() -> api.verify(alias, data, signature));
     }
 
@@ -115,10 +125,23 @@ public final class AwsKmsKeyService implements KeyService {
     public void disableKek(TenantId tenantId, String kekId) {
         String alias = alias(tenantId, kekId);
         disabled.add(alias);
-        call(() -> {
-            api.disableAndScheduleDeletion(alias, deletionWindowDays);
-            return null;
-        });
+        try {
+            call(() -> {
+                api.disableAndScheduleDeletion(alias, deletionWindowDays);
+                return null;
+            });
+        } catch (KeyNotFoundException e) {
+            // Una llave inexistente no queda bloqueada: no se enmascara el error ni se retiene el alias.
+            disabled.remove(alias);
+            throw e;
+        }
+    }
+
+    /** Sign y Verify con MessageType RAW admiten hasta 4096 bytes; mensajes mayores deben llegar ya resumidos. */
+    private static void checkMessageSize(byte[] data) {
+        if (data != null && data.length > MAX_RAW_MESSAGE_BYTES) {
+            throw new IllegalArgumentException("El mensaje a firmar supera " + MAX_RAW_MESSAGE_BYTES + " bytes");
+        }
     }
 
     private static Map<String, String> encryptionContext(Map<String, String> aad) {
