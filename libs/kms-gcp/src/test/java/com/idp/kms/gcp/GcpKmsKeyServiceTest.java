@@ -149,7 +149,7 @@ class GcpKmsKeyServiceTest {
         assertThat(kms.publicKeys(T1, "firma").orElseThrow()).containsOnlyKeys(1);
 
         clock.addAndGet(TimeUnit.MINUTES.toNanos(6));
-        assertThat(kms.publicKeys(T1, "firma").orElseThrow()).containsOnlyKeys(2);
+        assertThat(kms.publicKeys(T1, "firma").orElseThrow()).containsOnlyKeys(1, 2);
         byte[] sig = kms.sign(T1, MSG, "firma").getData();
         assertThat(kms.verify(T1, MSG, sig, "firma")).isTrue();
     }
@@ -158,11 +158,85 @@ class GcpKmsKeyServiceTest {
     void unaLlavePublicaQueNoEsEd25519EsUnavailable() {
         GcpKmsApi api = new FakeGcpKmsApi() {
             @Override
-            public SigningKey signingKey(String cryptoKey) {
-                return new SigningKey(1, new byte[10]);
+            public Map<Integer, byte[]> publicKeys(String cryptoKey) {
+                return Map.of(1, new byte[10]);
             }
         };
         GcpKmsKeyService service = new GcpKmsKeyService(api, "p", "l", "r");
         assertThatThrownBy(() -> service.publicKeys(T1, "firma")).isInstanceOf(KeyServiceUnavailableException.class);
+    }
+
+    @Test
+    void laFirmaSaleEtiquetadaConLaVersionQueFirmo() {
+        fake.createSigningKey(key(T1, "firma"));
+        fake.rotateSigningKey(key(T1, "firma"));
+        String sig = new String(kms.sign(T1, MSG, "firma").getData(), StandardCharsets.UTF_8);
+        assertThat(sig).startsWith("vault:v2:");
+    }
+
+    @Test
+    void lasFirmasViejasYNuevasVerificanTrasRotarSinEsperar() {
+        String name = key(T1, "firma");
+        fake.createSigningKey(name);
+        kms.publicKeys(T1, "firma");
+        byte[] vieja = kms.sign(T1, MSG, "firma").getData();
+        fake.rotateSigningKey(name);
+        byte[] nueva = kms.sign(T1, MSG, "firma").getData();
+
+        assertThat(new String(nueva, StandardCharsets.UTF_8)).startsWith("vault:v2:");
+        assertThat(kms.verify(T1, MSG, nueva, "firma")).isTrue();
+        assertThat(kms.verify(T1, MSG, vieja, "firma")).isTrue();
+        assertThat(kms.publicKeys(T1, "firma").orElseThrow()).containsOnlyKeys(1, 2);
+
+        String payload = new String(vieja, StandardCharsets.UTF_8).substring("vault:v1:".length());
+        byte[] cruda = java.util.Base64.getDecoder().decode(payload);
+        assertThat(kms.verify(T1, MSG, cruda, "firma")).isTrue();
+    }
+
+    @Test
+    void unaFirmaDeOtraInstanciaTrasRotarVerificaPorElRefrescoUnico() {
+        String name = key(T1, "firma");
+        fake.createSigningKey(name);
+        kms.publicKeys(T1, "firma");
+        fake.rotateSigningKey(name);
+        byte[] deOtro = new GcpKmsKeyService(fake, "p", "l", "r").sign(T1, MSG, "firma").getData();
+
+        assertThat(kms.verify(T1, MSG, deOtro, "firma")).isFalse();
+        clock.addAndGet(TimeUnit.SECONDS.toNanos(31));
+        assertThat(kms.verify(T1, MSG, deOtro, "firma")).isTrue();
+    }
+
+    @Test
+    void unVerifyFallidoRefrescaComoMuchoUnaVezPorVentana() {
+        fake.createSigningKey(key(T1, "firma"));
+        kms.publicKeys(T1, "firma");
+        byte[] falsa = "vault:v9:AAAA".getBytes(StandardCharsets.UTF_8);
+        int llamadas = fake.calls.size();
+
+        assertThat(kms.verify(T1, MSG, falsa, "firma")).isFalse();
+        assertThat(fake.calls).hasSize(llamadas);
+
+        clock.addAndGet(TimeUnit.SECONDS.toNanos(31));
+        assertThat(kms.verify(T1, MSG, falsa, "firma")).isFalse();
+        assertThat(fake.calls).hasSize(llamadas + 1);
+        assertThat(kms.verify(T1, MSG, falsa, "firma")).isFalse();
+        assertThat(fake.calls).hasSize(llamadas + 1);
+    }
+
+    @Test
+    void signRechazaDatosDeMasDe64KiBAntesDeLlamarAlProveedor() {
+        fake.createSigningKey(key(T1, "firma"));
+        assertThatThrownBy(() -> kms.sign(T1, new byte[64 * 1024 + 1], "firma"))
+            .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("65536");
+        assertThat(fake.calls).isEmpty();
+        assertThat(kms.sign(T1, new byte[64 * 1024], "firma").getData()).isNotEmpty();
+    }
+
+    @Test
+    void unwrapConAadDistintoEsArgumentoInvalidoYNoUnavailable() {
+        fake.createEncryptionKey(key(T1, "datos"));
+        byte[] wrapped = kms.wrapDek(T1, new byte[32], "datos", Map.of("doc", "1")).getData();
+        assertThatThrownBy(() -> kms.unwrapDek(T1, wrapped, "datos", Map.of("doc", "2")))
+            .isInstanceOf(IllegalArgumentException.class);
     }
 }

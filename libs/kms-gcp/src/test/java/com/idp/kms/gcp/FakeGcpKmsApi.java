@@ -7,6 +7,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.Signature;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -85,23 +86,27 @@ class FakeGcpKmsApi implements GcpKmsApi {
     }
 
     @Override
-    public byte[] sign(String cryptoKey, byte[] data) {
+    public Signed sign(String cryptoKey, byte[] data) {
         Key key = enabled(cryptoKey);
+        int version = key.signingVersions.size();
         try {
             Signature s = Signature.getInstance("Ed25519");
-            s.initSign(key.signingVersions.get(key.signingVersions.size() - 1).getPrivate());
+            s.initSign(key.signingVersions.get(version - 1).getPrivate());
             s.update(data);
-            return s.sign();
+            return new Signed(version, s.sign());
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException(e);
         }
     }
 
     @Override
-    public SigningKey signingKey(String cryptoKey) {
+    public Map<Integer, byte[]> publicKeys(String cryptoKey) {
         Key key = enabled(cryptoKey);
-        int version = key.signingVersions.size();
-        return new SigningKey(version, key.signingVersions.get(version - 1).getPublic().getEncoded());
+        Map<Integer, byte[]> out = new HashMap<>();
+        for (int i = 0; i < key.signingVersions.size(); i++) {
+            out.put(i + 1, key.signingVersions.get(i).getPublic().getEncoded());
+        }
+        return out;
     }
 
     @Override

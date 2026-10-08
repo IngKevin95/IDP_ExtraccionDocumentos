@@ -11,7 +11,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.api.gax.grpc.GrpcStatusCode;
+import com.google.api.gax.rpc.ApiException;
+import com.google.api.gax.rpc.FailedPreconditionException;
+import com.google.api.gax.rpc.InvalidArgumentException;
 import com.google.api.gax.rpc.NotFoundException;
+import com.google.api.gax.rpc.PermissionDeniedException;
 import com.google.cloud.kms.v1.AsymmetricSignRequest;
 import com.google.cloud.kms.v1.AsymmetricSignResponse;
 import com.google.cloud.kms.v1.CryptoKeyVersion;
@@ -28,11 +32,16 @@ import com.google.cloud.kms.v1.ListCryptoKeyVersionsRequest;
 import com.google.cloud.kms.v1.PublicKey;
 import com.google.cloud.kms.v1.UpdateCryptoKeyVersionRequest;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Int64Value;
 import com.idp.kms.KeyService;
+import com.idp.kms.KeyServiceUnavailableException;
 import io.grpc.Status;
 import java.security.KeyPairGenerator;
 import java.util.Base64;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.zip.CRC32C;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -42,7 +51,14 @@ class SdkGcpKmsApiTest {
     private static final String KEY = "projects/p/locations/l/keyRings/r/cryptoKeys/idp-x";
 
     private final KeyManagementServiceClient client = mock(KeyManagementServiceClient.class);
-    private final SdkGcpKmsApi api = new SdkGcpKmsApi(client);
+    private final AtomicLong clock = new AtomicLong();
+    private final SdkGcpKmsApi api = new SdkGcpKmsApi(client, clock::get);
+
+    private static Int64Value crc(byte[] data) {
+        CRC32C c = new CRC32C();
+        c.update(data);
+        return Int64Value.of(c.getValue());
+    }
 
     private static CryptoKeyVersion version(int n, CryptoKeyVersionState state) {
         return CryptoKeyVersion.newBuilder().setName(KEY + "/cryptoKeyVersions/" + n).setState(state).build();
@@ -54,10 +70,29 @@ class SdkGcpKmsApiTest {
         when(client.listCryptoKeyVersions(any(ListCryptoKeyVersionsRequest.class))).thenReturn(paged);
     }
 
+    private static ApiException grpc(Status.Code code) {
+        GrpcStatusCode status = GrpcStatusCode.of(code);
+        RuntimeException cause = new RuntimeException("detalle sensible projects/p/secreto");
+        return switch (code) {
+            case NOT_FOUND -> new NotFoundException(cause, status, false);
+            case INVALID_ARGUMENT -> new InvalidArgumentException(cause, status, false);
+            case FAILED_PRECONDITION -> new FailedPreconditionException(cause, status, false);
+            default -> new PermissionDeniedException(cause, GrpcStatusCode.of(code), false);
+        };
+    }
+
+    private void signResponse(byte[] signature) {
+        when(client.asymmetricSign(any(AsymmetricSignRequest.class))).thenReturn(AsymmetricSignResponse.newBuilder()
+            .setSignature(ByteString.copyFrom(signature)).setSignatureCrc32C(crc(signature))
+            .setVerifiedDataCrc32C(true).build());
+    }
+
     @Test
-    void encryptEnviaLlavePlaintextYAad() {
-        when(client.encrypt(any(EncryptRequest.class)))
-            .thenReturn(EncryptResponse.newBuilder().setCiphertext(ByteString.copyFromUtf8("ct")).build());
+    void encryptEnviaLlavePlaintextAadYCrc() {
+        byte[] ct = "ct".getBytes();
+        when(client.encrypt(any(EncryptRequest.class))).thenReturn(EncryptResponse.newBuilder()
+            .setCiphertext(ByteString.copyFrom(ct)).setCiphertextCrc32C(crc(ct))
+            .setVerifiedPlaintextCrc32C(true).setVerifiedAdditionalAuthenticatedDataCrc32C(true).build());
 
         byte[] out = api.encrypt(KEY, new byte[] {1, 2}, new byte[] {9});
 
@@ -66,13 +101,24 @@ class SdkGcpKmsApiTest {
         assertThat(req.getValue().getName()).isEqualTo(KEY);
         assertThat(req.getValue().getPlaintext().toByteArray()).containsExactly(1, 2);
         assertThat(req.getValue().getAdditionalAuthenticatedData().toByteArray()).containsExactly(9);
-        assertThat(out).isEqualTo("ct".getBytes());
+        assertThat(req.getValue().getPlaintextCrc32C()).isEqualTo(crc(new byte[] {1, 2}));
+        assertThat(req.getValue().getAdditionalAuthenticatedDataCrc32C()).isEqualTo(crc(new byte[] {9}));
+        assertThat(out).isEqualTo(ct);
     }
 
     @Test
-    void decryptEnviaLlaveCiphertextYAad() {
-        when(client.decrypt(any(DecryptRequest.class)))
-            .thenReturn(DecryptResponse.newBuilder().setPlaintext(ByteString.copyFrom(new byte[] {7})).build());
+    void encryptSinVerificacionCrcDelServidorFalla() {
+        byte[] ct = "ct".getBytes();
+        when(client.encrypt(any(EncryptRequest.class))).thenReturn(EncryptResponse.newBuilder()
+            .setCiphertext(ByteString.copyFrom(ct)).setCiphertextCrc32C(crc(ct)).build());
+        assertThatThrownBy(() -> api.encrypt(KEY, new byte[1], new byte[0])).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void decryptEnviaLlaveCiphertextAadYCrc() {
+        byte[] plain = {7};
+        when(client.decrypt(any(DecryptRequest.class))).thenReturn(DecryptResponse.newBuilder()
+            .setPlaintext(ByteString.copyFrom(plain)).setPlaintextCrc32C(crc(plain)).build());
 
         byte[] out = api.decrypt(KEY, new byte[] {3}, new byte[] {9});
 
@@ -81,17 +127,24 @@ class SdkGcpKmsApiTest {
         assertThat(req.getValue().getName()).isEqualTo(KEY);
         assertThat(req.getValue().getCiphertext().toByteArray()).containsExactly(3);
         assertThat(req.getValue().getAdditionalAuthenticatedData().toByteArray()).containsExactly(9);
+        assertThat(req.getValue().getCiphertextCrc32C()).isEqualTo(crc(new byte[] {3}));
         assertThat(out).containsExactly(7);
     }
 
     @Test
-    void signUsaLaVersionHabilitadaMasAltaConLosDatosCrudos() {
+    void decryptConCrcDeRespuestaIncorrectoFalla() {
+        when(client.decrypt(any(DecryptRequest.class))).thenReturn(DecryptResponse.newBuilder()
+            .setPlaintext(ByteString.copyFrom(new byte[] {7})).setPlaintextCrc32C(Int64Value.of(1)).build());
+        assertThatThrownBy(() -> api.decrypt(KEY, new byte[1], new byte[0])).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void signUsaLaVersionHabilitadaMasAltaConLosDatosCrudosYDevuelveSuNumero() {
         versions(version(2, CryptoKeyVersionState.ENABLED), version(10, CryptoKeyVersionState.ENABLED),
             version(9, CryptoKeyVersionState.ENABLED));
-        when(client.asymmetricSign(any(AsymmetricSignRequest.class)))
-            .thenReturn(AsymmetricSignResponse.newBuilder().setSignature(ByteString.copyFrom(new byte[] {5})).build());
+        signResponse(new byte[] {5});
 
-        byte[] sig = api.sign(KEY, new byte[] {1, 2, 3});
+        GcpKmsApi.Signed signed = api.sign(KEY, new byte[] {1, 2, 3});
 
         ArgumentCaptor<ListCryptoKeyVersionsRequest> list = ArgumentCaptor.forClass(ListCryptoKeyVersionsRequest.class);
         verify(client).listCryptoKeyVersions(list.capture());
@@ -101,7 +154,30 @@ class SdkGcpKmsApiTest {
         verify(client).asymmetricSign(req.capture());
         assertThat(req.getValue().getName()).isEqualTo(KEY + "/cryptoKeyVersions/10");
         assertThat(req.getValue().getData().toByteArray()).containsExactly(1, 2, 3);
-        assertThat(sig).containsExactly(5);
+        assertThat(req.getValue().getDataCrc32C()).isEqualTo(crc(new byte[] {1, 2, 3}));
+        assertThat(signed.version()).isEqualTo(10);
+        assertThat(signed.signature()).containsExactly(5);
+    }
+
+    @Test
+    void signCacheaLaVersionConTtlYLaInvalidaAnteUnError() {
+        versions(version(1, CryptoKeyVersionState.ENABLED));
+        signResponse(new byte[] {5});
+
+        api.sign(KEY, new byte[1]);
+        api.sign(KEY, new byte[1]);
+        verify(client, times(1)).listCryptoKeyVersions(any(ListCryptoKeyVersionsRequest.class));
+        verify(client, times(2)).asymmetricSign(any(AsymmetricSignRequest.class));
+
+        clock.addAndGet(TimeUnit.SECONDS.toNanos(31));
+        api.sign(KEY, new byte[1]);
+        verify(client, times(2)).listCryptoKeyVersions(any(ListCryptoKeyVersionsRequest.class));
+
+        when(client.asymmetricSign(any(AsymmetricSignRequest.class))).thenThrow(grpc(Status.Code.NOT_FOUND));
+        assertThatThrownBy(() -> api.sign(KEY, new byte[1])).isInstanceOf(KeyService.KeyNotFoundException.class);
+        signResponse(new byte[] {5});
+        api.sign(KEY, new byte[1]);
+        verify(client, times(3)).listCryptoKeyVersions(any(ListCryptoKeyVersionsRequest.class));
     }
 
     @Test
@@ -112,27 +188,32 @@ class SdkGcpKmsApiTest {
     }
 
     @Test
-    void signingKeyDevuelveVersionYDerDelPem() throws Exception {
-        byte[] spki = KeyPairGenerator.getInstance("Ed25519").generateKeyPair().getPublic().getEncoded();
+    void publicKeysDevuelveTodasLasVersionesHabilitadasConSuDerDelPem() throws Exception {
+        byte[] spki1 = KeyPairGenerator.getInstance("Ed25519").generateKeyPair().getPublic().getEncoded();
+        byte[] spki3 = KeyPairGenerator.getInstance("Ed25519").generateKeyPair().getPublic().getEncoded();
+        versions(version(1, CryptoKeyVersionState.ENABLED), version(3, CryptoKeyVersionState.ENABLED));
+        when(client.getPublicKey(KEY + "/cryptoKeyVersions/1")).thenReturn(ed25519(spki1));
+        when(client.getPublicKey(KEY + "/cryptoKeyVersions/3")).thenReturn(ed25519(spki3));
+
+        var keys = api.publicKeys(KEY);
+
+        assertThat(keys).containsOnlyKeys(1, 3);
+        assertThat(keys.get(1)).isEqualTo(spki1);
+        assertThat(keys.get(3)).isEqualTo(spki3);
+    }
+
+    private static PublicKey ed25519(byte[] spki) {
         String pem = "-----BEGIN PUBLIC KEY-----\n" + Base64.getMimeEncoder(64, "\n".getBytes()).encodeToString(spki)
             + "\n-----END PUBLIC KEY-----\n";
-        versions(version(1, CryptoKeyVersionState.ENABLED), version(3, CryptoKeyVersionState.ENABLED));
-        when(client.getPublicKey(anyString())).thenReturn(PublicKey.newBuilder().setPem(pem)
-            .setAlgorithm(CryptoKeyVersionAlgorithm.EC_SIGN_ED25519).build());
-
-        GcpKmsApi.SigningKey key = api.signingKey(KEY);
-
-        verify(client).getPublicKey(KEY + "/cryptoKeyVersions/3");
-        assertThat(key.version()).isEqualTo(3);
-        assertThat(key.spki()).isEqualTo(spki);
+        return PublicKey.newBuilder().setPem(pem).setAlgorithm(CryptoKeyVersionAlgorithm.EC_SIGN_ED25519).build();
     }
 
     @Test
-    void signingKeyRechazaUnAlgoritmoQueNoEsEd25519() {
+    void publicKeysRechazaUnAlgoritmoQueNoEsEd25519() {
         versions(version(1, CryptoKeyVersionState.ENABLED));
         when(client.getPublicKey(anyString())).thenReturn(PublicKey.newBuilder().setPem("x")
             .setAlgorithm(CryptoKeyVersionAlgorithm.EC_SIGN_P256_SHA256).build());
-        assertThatThrownBy(() -> api.signingKey(KEY)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> api.publicKeys(KEY)).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -159,10 +240,41 @@ class SdkGcpKmsApiTest {
     }
 
     @Test
-    void notFoundDelSdkSeTraduceAKeyNotFound() {
-        when(client.encrypt(any(EncryptRequest.class))).thenThrow(new NotFoundException(
-            new RuntimeException("x"), GrpcStatusCode.of(Status.Code.NOT_FOUND), false));
+    void notFoundSeTraduceAKeyNotFound() {
+        when(client.encrypt(any(EncryptRequest.class))).thenThrow(grpc(Status.Code.NOT_FOUND));
         assertThatThrownBy(() -> api.encrypt(KEY, new byte[1], new byte[0]))
             .isInstanceOf(KeyService.KeyNotFoundException.class);
+    }
+
+    @Test
+    void invalidArgumentEnDecryptEsArgumentoInvalido() {
+        when(client.decrypt(any(DecryptRequest.class))).thenThrow(grpc(Status.Code.INVALID_ARGUMENT));
+        assertThatThrownBy(() -> api.decrypt(KEY, new byte[1], new byte[0]))
+            .isInstanceOf(IllegalArgumentException.class).hasMessageNotContaining("secreto");
+    }
+
+    @Test
+    void invalidArgumentFueraDeDecryptEsUnavailableConElCodigo() {
+        when(client.encrypt(any(EncryptRequest.class))).thenThrow(grpc(Status.Code.INVALID_ARGUMENT));
+        assertThatThrownBy(() -> api.encrypt(KEY, new byte[1], new byte[0]))
+            .isInstanceOf(KeyServiceUnavailableException.class).hasMessageContaining("INVALID_ARGUMENT");
+    }
+
+    @Test
+    void failedPreconditionEsKekDeshabilitada() {
+        when(client.decrypt(any(DecryptRequest.class))).thenThrow(grpc(Status.Code.FAILED_PRECONDITION));
+        assertThatThrownBy(() -> api.decrypt(KEY, new byte[1], new byte[0]))
+            .isInstanceOf(KeyService.KeyDisabledException.class);
+        when(client.encrypt(any(EncryptRequest.class))).thenThrow(grpc(Status.Code.FAILED_PRECONDITION));
+        assertThatThrownBy(() -> api.encrypt(KEY, new byte[1], new byte[0]))
+            .isInstanceOf(KeyService.KeyDisabledException.class);
+    }
+
+    @Test
+    void permissionDeniedYElRestoSonUnavailableSoloConElNombreDelCodigo() {
+        when(client.decrypt(any(DecryptRequest.class))).thenThrow(grpc(Status.Code.PERMISSION_DENIED));
+        assertThatThrownBy(() -> api.decrypt(KEY, new byte[1], new byte[0]))
+            .isInstanceOf(KeyServiceUnavailableException.class)
+            .hasMessageContaining("PERMISSION_DENIED").hasMessageNotContaining("secreto").hasNoCause();
     }
 }
