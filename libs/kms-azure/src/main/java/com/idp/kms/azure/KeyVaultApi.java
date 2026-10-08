@@ -4,21 +4,30 @@ import com.idp.kms.KeyService;
 
 /**
  * Interfaz fina sobre las operaciones de Key Vault que usa el adaptador. Recibe siempre el nombre de llave ya
- * hasheado. Una llave inexistente se reporta como {@link KeyService.KeyNotFoundException}; cualquier otro fallo
- * como RuntimeException (el adaptador lo traduce a {@code KeyServiceUnavailableException}).
+ * hasheado. Contrato de errores: llave inexistente es {@link KeyService.KeyNotFoundException}; llave deshabilitada
+ * o eliminada es {@link KeyService.KeyDisabledException}; texto cifrado rechazado en unwrap es
+ * {@link CiphertextRejectedException}; cualquier otro fallo es RuntimeException (el adaptador lo traduce a
+ * {@code KeyServiceUnavailableException}).
  */
 interface KeyVaultApi {
 
-    /** wrapKey con RSA-OAEP-256 sobre la llave RSA. */
-    byte[] wrap(String keyName, byte[] material);
+    /** @param version version de la llave con la que se envolvio */
+    record Wrapped(byte[] ciphertext, String version) { }
 
-    byte[] unwrap(String keyName, byte[] wrapped);
+    /** wrapKey con RSA-OAEP-256 sobre la version vigente de la llave RSA. */
+    Wrapped wrap(String keyName, byte[] material);
+
+    /** unwrapKey contra la version indicada (la que uso wrap), para sobrevivir a la rotacion. */
+    byte[] unwrap(String keyName, String version, byte[] wrapped);
 
     /** Firma ES256 de {@code data} (el proveedor calcula SHA-256); devuelve r||s crudo de 64 bytes. */
     byte[] sign(String keyName, byte[] data);
 
     boolean verify(String keyName, byte[] data, byte[] signature);
 
-    /** updateKeyProperties(enabled=false) y beginDeleteKey; el purgado lo gobierna la purge protection. */
+    /**
+     * updateKeyProperties(enabled=false) y beginDeleteKey, esperando el borrado. Idempotente: una llave ya
+     * inexistente o ya eliminada converge a exito.
+     */
     void disable(String keyName);
 }

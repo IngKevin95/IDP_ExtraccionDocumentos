@@ -22,6 +22,7 @@ class AzureKeyVaultKeyServiceTest {
     private static final TenantId T1 = new TenantId("t1");
     private static final TenantId T2 = new TenantId("t2");
     private static final Map<String, String> AAD = Map.of("doc", "d-1");
+    private static final String GENERICO = "No se pudo descifrar";
 
     private final FakeKeyVaultApi fake = new FakeKeyVaultApi();
     private final AzureKeyVaultKeyService kms = new AzureKeyVaultKeyService(fake);
@@ -54,7 +55,7 @@ class AzureKeyVaultKeyServiceTest {
     void ac12AadAlteradoFallaEnLaComparacionDelSufijoYNoDevuelveLaDek() {
         byte[] wrapped = kms.wrapDek(T1, new byte[32], "datos", AAD).getData();
         assertThatThrownBy(() -> kms.unwrapDek(T1, wrapped, "datos", Map.of("doc", "d-2")))
-            .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("AAD");
+            .isInstanceOf(IllegalArgumentException.class).hasMessage(GENERICO);
         assertThatThrownBy(() -> kms.unwrapDek(T1, wrapped, "datos", null))
             .isInstanceOf(IllegalArgumentException.class);
     }
@@ -67,25 +68,80 @@ class AzureKeyVaultKeyServiceTest {
     }
 
     @Test
-    void materialDescifradoMasCortoQueElSufijoFalla() {
-        // Se envuelve directo en el proveedor algo de menos de 32 bytes: unwrap lo rechaza.
-        byte[] corto = fake.wrap(KeyNames.hashed(T1, "datos"), new byte[10]);
-        assertThatThrownBy(() -> kms.unwrapDek(T1, corto, "datos", AAD))
-            .isInstanceOf(IllegalArgumentException.class);
+    void materialDescifradoDeSoloElHashOMasCortoFalla() {
+        for (int len : new int[] {0, 10, 32}) {
+            KeyVaultApi corto = new FakeKeyVaultApi() {
+                @Override
+                public byte[] unwrap(String keyName, String version, byte[] wrapped) {
+                    return new byte[len];
+                }
+            };
+            AzureKeyVaultKeyService k = new AzureKeyVaultKeyService(corto);
+            byte[] blob = kms.wrapDek(T1, new byte[32], "datos", AAD).getData();
+            assertThatThrownBy(() -> k.unwrapDek(T1, blob, "datos", AAD))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage(GENERICO);
+        }
     }
 
     @Test
-    void blobEnvueltoTruncadoFalla() {
+    void blobTruncadoOManipuladoFallaConElMismoErrorGenerico() {
         byte[] wrapped = kms.wrapDek(T1, new byte[32], "datos", AAD).getData();
         byte[] truncado = Arrays.copyOf(wrapped, wrapped.length - 5);
-        assertThatThrownBy(() -> kms.unwrapDek(T1, truncado, "datos", AAD)).isInstanceOf(RuntimeException.class);
+        byte[] manipulado = wrapped.clone();
+        manipulado[manipulado.length - 1] ^= 1;
+        byte[] formatoMalo = wrapped.clone();
+        formatoMalo[0] = 9;
+        byte[] versionMala = wrapped.clone();
+        versionMala[2] = '/';
+        for (byte[] blob : new byte[][] {truncado, manipulado, formatoMalo, versionMala, new byte[0], new byte[2], null}) {
+            assertThatThrownBy(() -> kms.unwrapDek(T1, blob, "datos", AAD))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage(GENERICO).hasNoCause();
+        }
     }
 
     @Test
-    void otroTenantUsaOtraLlaveYFalla() {
+    void otroTenantUsaOtraLlaveYFallaConElMismoErrorGenerico() {
         byte[] wrapped = kms.wrapDek(T1, new byte[32], "datos", AAD).getData();
-        assertThatThrownBy(() -> kms.unwrapDek(T2, wrapped, "datos", AAD)).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> kms.unwrapDek(T2, wrapped, "datos", AAD))
+            .isInstanceOf(IllegalArgumentException.class).hasMessage(GENERICO);
         assertThat(fake.calls).contains(KeyNames.hashed(T2, "datos"));
+    }
+
+    @Test
+    void rotacionDeKekElBlobViejoSigueDesenvolviendoYElNuevoUsaLaVersionNueva() {
+        String nombre = KeyNames.hashed(T1, "datos");
+        byte[] dek = {1, 2, 3, 4};
+        byte[] viejo = kms.wrapDek(T1, dek, "datos", AAD).getData();
+        fake.rotateRsa(nombre);
+        byte[] nuevo = kms.wrapDek(T1, dek, "datos", AAD).getData();
+
+        assertThat(new String(viejo, 2, viejo[1], java.nio.charset.StandardCharsets.US_ASCII)).isEqualTo("v1");
+        assertThat(new String(nuevo, 2, nuevo[1], java.nio.charset.StandardCharsets.US_ASCII)).isEqualTo("v2");
+        assertThat(kms.unwrapDek(T1, viejo, "datos", AAD).getData()).isEqualTo(dek);
+        assertThat(kms.unwrapDek(T1, nuevo, "datos", AAD).getData()).isEqualTo(dek);
+    }
+
+    @Test
+    void versionInexistenteEnElProveedorEsKeyNotFound() {
+        byte[] wrapped = kms.wrapDek(T1, new byte[32], "datos", AAD).getData();
+        wrapped[2 + wrapped[1] - 1] = '9'; // v1 -> v9
+        assertThatThrownBy(() -> kms.unwrapDek(T1, wrapped, "datos", AAD))
+            .isInstanceOf(KeyService.KeyNotFoundException.class);
+    }
+
+    @Test
+    void llaveDeshabilitadaEnElProveedorEsKeyDisabled() {
+        fake.failure = new KeyService.KeyDisabledException("KEK deshabilitada");
+        assertThatThrownBy(() -> kms.wrapDek(T1, new byte[32], "datos", AAD))
+            .isInstanceOf(KeyService.KeyDisabledException.class);
+    }
+
+    @Test
+    void verifyConFirmaNulaODeLargoInvalidoEsFalseSinLlamarAlProveedor() {
+        assertThat(kms.verify(T1, new byte[3], null, "firma")).isFalse();
+        assertThat(kms.verify(T1, new byte[3], new byte[63], "firma")).isFalse();
+        assertThat(kms.verify(T1, new byte[3], new byte[65], "firma")).isFalse();
+        assertThat(fake.calls).isEmpty();
     }
 
     @Test
@@ -104,8 +160,8 @@ class AzureKeyVaultKeyServiceTest {
         assertThatThrownBy(() -> kms.wrapDek(T1, new byte[32], "datos", AAD))
             .isInstanceOf(KeyService.KeyDisabledException.class);
         assertThat(fake.calls).isEmpty();
-        // Un segundo desactivado es un fallo del proveedor (la llave ya no existe), pero sigue deshabilitada.
-        assertThatThrownBy(() -> kms.disableKek(T1, "datos")).isInstanceOf(KeyService.KeyNotFoundException.class);
+        // Idempotente: repetir el crypto-shredding sobre una llave ya eliminada converge a exito.
+        kms.disableKek(T1, "datos");
     }
 
     @Test
@@ -123,7 +179,7 @@ class AzureKeyVaultKeyServiceTest {
         fake.failure = new IllegalStateException("cuenta 123456 token abc");
         assertThatThrownBy(() -> kms.wrapDek(T1, new byte[32], "datos", AAD))
             .isInstanceOf(KeyServiceUnavailableException.class)
-            .hasMessage("KMS no disponible: IllegalStateException");
+            .hasMessage("KMS no disponible: IllegalStateException").hasNoCause();
         assertThatThrownBy(() -> kms.sign(T1, new byte[3], "firma"))
             .isInstanceOf(KeyServiceUnavailableException.class)
             .hasMessageNotContaining("123456").hasMessageNotContaining("token");

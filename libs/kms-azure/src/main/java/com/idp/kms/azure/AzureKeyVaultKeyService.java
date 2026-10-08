@@ -6,6 +6,7 @@ import com.idp.kms.KeyService;
 import com.idp.kms.KeyServiceUnavailableException;
 import com.idp.kms.SignatureAlgorithm;
 import com.idp.tenant.TenantId;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -14,6 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 /**
  * KeyService sobre Azure Key Vault (ADR 0032).
@@ -27,12 +29,16 @@ import java.util.function.Supplier;
  *   <li>disableKek: deshabilita de inmediato en este proceso y luego en Key Vault (enabled=false y borrado; el
  *       purgado definitivo lo gobierna la purge protection). El llamador respeta el legal hold (SEC-016).</li>
  * </ul>
- * Cualquier fallo del proveedor es {@link KeyServiceUnavailableException}, sin datos del mensaje del SDK.
+ * Los fallos de disponibilidad (5xx, 429, red, 401/403 de configuracion) son {@link KeyServiceUnavailableException},
+ * sin mensaje ni causa del SDK. Un 403/409 por llave deshabilitada o eliminada es {@link KeyDisabledException}: entre
+ * replicas la garantia la da el proveedor, la marca en proceso solo acelera la respuesta local.
  */
 public final class AzureKeyVaultKeyService implements KeyService {
 
     private static final int HASH_LENGTH = 32;
     private static final int SIGNATURE_LENGTH = 64;
+    private static final byte FORMAT = 1;
+    private static final Pattern VERSION = Pattern.compile("[A-Za-z0-9]{1,64}");
 
     private final KeyVaultApi api;
     private final Set<String> disabled = ConcurrentHashMap.newKeySet();
@@ -54,26 +60,38 @@ public final class AzureKeyVaultKeyService implements KeyService {
         String name = checked(tenantId, kekId);
         byte[] material = concat(dek, sha256(AadContext.canonical(aadContext)));
         try {
-            return new CryptoResult(call(() -> api.wrap(name, material)));
+            KeyVaultApi.Wrapped w = call(() -> api.wrap(name, material));
+            return new CryptoResult(encode(w.version(), w.ciphertext()));
         } finally {
             Arrays.fill(material, (byte) 0);
         }
     }
 
+    /**
+     * Un unico tipo y mensaje de fallo para AAD distinto, blob manipulado/truncado/de otra llave o version
+     * inexistente: no se filtra la causa.
+     */
     @Override
     public CryptoResult unwrapDek(TenantId tenantId, byte[] wrappedDek, String kekId,
                                   Map<String, String> aadContext) {
         String name = checked(tenantId, kekId);
-        byte[] plain = call(() -> api.unwrap(name, wrappedDek));
+        String[] version = new String[1];
+        byte[] ciphertext = decode(wrappedDek, version);
+        byte[] plain;
+        try {
+            plain = call(() -> api.unwrap(name, version[0], ciphertext));
+        } catch (CiphertextRejectedException e) {
+            throw decryptFailure();
+        }
         byte[] dek = null;
         try {
-            if (plain == null || plain.length < HASH_LENGTH) {
-                throw new IllegalArgumentException("Texto cifrado invalido");
+            if (plain == null || plain.length <= HASH_LENGTH) {
+                throw decryptFailure();
             }
             int dekLength = plain.length - HASH_LENGTH;
             byte[] storedHash = Arrays.copyOfRange(plain, dekLength, plain.length);
             if (!MessageDigest.isEqual(storedHash, sha256(AadContext.canonical(aadContext)))) {
-                throw new IllegalArgumentException("No se pudo descifrar: AAD no coincide");
+                throw decryptFailure();
             }
             dek = Arrays.copyOf(plain, dekLength);
             return new CryptoResult(dek);
@@ -85,6 +103,37 @@ public final class AzureKeyVaultKeyService implements KeyService {
                 Arrays.fill(dek, (byte) 0);
             }
         }
+    }
+
+    private static IllegalArgumentException decryptFailure() {
+        return new IllegalArgumentException("No se pudo descifrar");
+    }
+
+    /** Formato del blob: {@code 0x01 | longitud de version (1 byte) | version ASCII | texto cifrado} (plan 8). */
+    private static byte[] encode(String version, byte[] ciphertext) {
+        byte[] v = version.getBytes(StandardCharsets.US_ASCII);
+        byte[] out = new byte[2 + v.length + ciphertext.length];
+        out[0] = FORMAT;
+        out[1] = (byte) v.length;
+        System.arraycopy(v, 0, out, 2, v.length);
+        System.arraycopy(ciphertext, 0, out, 2 + v.length, ciphertext.length);
+        return out;
+    }
+
+    private static byte[] decode(byte[] blob, String[] versionOut) {
+        if (blob == null || blob.length < 3 || blob[0] != FORMAT) {
+            throw decryptFailure();
+        }
+        int len = blob[1] & 0xff;
+        if (len == 0 || 2 + len >= blob.length) {
+            throw decryptFailure();
+        }
+        String version = new String(blob, 2, len, StandardCharsets.US_ASCII);
+        if (!VERSION.matcher(version).matches()) {
+            throw decryptFailure();
+        }
+        versionOut[0] = version;
+        return Arrays.copyOfRange(blob, 2 + len, blob.length);
     }
 
     @Override
@@ -100,6 +149,10 @@ public final class AzureKeyVaultKeyService implements KeyService {
     @Override
     public boolean verify(TenantId tenantId, byte[] data, byte[] signature, String keyId) {
         String name = checked(tenantId, keyId);
+        // La firma la controla el atacante: una de largo invalido no llega al proveedor.
+        if (signature == null || signature.length != SIGNATURE_LENGTH) {
+            return false;
+        }
         return call(() -> api.verify(name, data, signature));
     }
 
@@ -130,10 +183,11 @@ public final class AzureKeyVaultKeyService implements KeyService {
     private static <T> T call(Supplier<T> op) {
         try {
             return op.get();
-        } catch (KeyNotFoundException e) {
+        } catch (KeyNotFoundException | KeyDisabledException | CiphertextRejectedException e) {
             throw e;
         } catch (RuntimeException e) {
-            throw new KeyServiceUnavailableException("KMS no disponible: " + e.getClass().getSimpleName(), e);
+            // Sin encadenar la causa: los mensajes del SDK pueden traer ids de tenant/cliente al log.
+            throw new KeyServiceUnavailableException("KMS no disponible: " + e.getClass().getSimpleName());
         }
     }
 

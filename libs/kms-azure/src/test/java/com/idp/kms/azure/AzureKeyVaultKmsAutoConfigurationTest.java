@@ -49,7 +49,7 @@ class AzureKeyVaultKmsAutoConfigurationTest {
         runner.withPropertyValues("idp.kms.provider=azure-keyvault", "idp.kms.azure.vault-url=http://localhost:8080")
             .run(ctx -> assertThat(ctx).getFailure().rootCause().hasMessageContaining("https"));
         runner.withPropertyValues("idp.kms.provider=azure-keyvault", "idp.kms.azure.vault-url=http://localhost:8080",
-                "idp.kms.azure.emulator=true")
+                "idp.kms.azure.emulator=true", "idp.security.dev-mode=true")
             .run(ctx -> assertThat(ctx).hasNotFailed());
     }
 
@@ -58,5 +58,24 @@ class AzureKeyVaultKmsAutoConfigurationTest {
         runner.withPropertyValues("idp.kms.provider=openbao", "idp.openbao.address=https://openbao:8200",
                 "idp.openbao.token=t")
             .run(ctx -> assertThat(ctx.getBean(KeyService.class)).isNotInstanceOf(AzureKeyVaultKeyService.class));
+    }
+
+    @Test
+    void emuladorExigeDevModeYRechazaVaultsDeAzure() {
+        runner.withPropertyValues("idp.kms.provider=azure-keyvault", "idp.kms.azure.vault-url=http://localhost:8080",
+                "idp.kms.azure.emulator=true")
+            .run(ctx -> assertThat(ctx).getFailure().rootCause().hasMessageContaining("dev-mode"));
+        runner.withPropertyValues("idp.kms.provider=azure-keyvault",
+                "idp.kms.azure.vault-url=https://idp.vault.azure.net", "idp.kms.azure.emulator=true",
+                "idp.security.dev-mode=true")
+            .run(ctx -> assertThat(ctx).getFailure().rootCause().hasMessageContaining("no sea de Azure"));
+    }
+
+    @Test
+    void laCredencialEstaticaSoloExisteConEmulador() {
+        assertThat(AzureKeyVaultKmsAutoConfiguration.credential(false))
+            .isInstanceOf(com.azure.identity.DefaultAzureCredential.class);
+        assertThat(AzureKeyVaultKmsAutoConfiguration.credential(true))
+            .isNotInstanceOf(com.azure.identity.DefaultAzureCredential.class);
     }
 }
